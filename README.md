@@ -47,11 +47,11 @@ Follow these steps to efficiently utilize each feature of Evil-M5Core2.
 
 #### Clone & Details
 
-- **List Details**: About the selected network. You can clone the SSID in this menu.
+- **List Details**: Informations about the selected network. You can clone the SSID in this menu.
 
 #### Start Captive Portal
 
-- **Operate Captive Portal**: With `normal.html`, a mock WiFi password page designed to mimic a legitimate login.
+- **Operate Captive Portal**: With `normal.html` page, a mock WiFi passord page designed to mimic a legitimate error on box.
 
 #### Special Pages
 
@@ -88,24 +88,26 @@ Any other tried page should redirect to the portal.
 
 - **Option**: Delete all captured credentials.
 
-#### Monitor Status
+### Monitor Status
 
-Contain 3 STATIC menu that can be checked with left right button :
-- menu 1:
-Clients number connected
-Number of password in credentials.txt 
-curently cloned portal
-Is the portal is ON or OFF 
-portal page provided 
+The Monitor Status feature consists of three static menus that can be navigated using the left and right buttons. Each menu provides specific information about the current status of the system:
 
-- menu 2:
-Mac address of connected client 
+#### Menu 1: System Overview
+- **Number of Connected Clients**: Displays how many clients are currently connected.
+- **Credentials Count**: Shows the number of passwords stored in `credentials.txt`.
+- **Current Cloned Portal**: Indicates which portal is currently being cloned.
+- **Portal Status**: Displays whether the portal is ON or OFF.
+- **Provided Portal Page**: Details about the portal page currently in use.
 
-- menu 3 :
-CPU // todo
-RAM left
-Batterie 
-Temperature
+#### Menu 2: Client Information
+- **MAC Addresses**: Lists the MAC addresses of all connected clients.
+
+#### Menu 3: Device Status
+- **CPU Usage**: (To be implemented)
+- **Available RAM**: Displays the remaining RAM in the device.
+- **Battery Level**: Shows the current battery level.
+- **Temperature**: Reports the device's internal temperature.
+
 
 # License
 
