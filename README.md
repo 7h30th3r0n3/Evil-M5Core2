@@ -60,22 +60,26 @@ Follow these steps to efficiently utilize each feature of Evil-M5Core2.
 
 #### Special Pages
 
-- **/credentials**: Lists captured credentials (protected by a password).
+- **/credentials**: Lists captured credentials.
 - **/uploadhtmlfile**: Provides an upload form to store files on the SD card (for new portal pages and file exfiltration).
-
-When Captive Portal is ON you can connect to it to acces to 2 fonctionnality protected by password :
+- **/check-sd-file**: Provides an index of to check, download and delete files on the SD card.
+  
+When Captive Portal is ON you can connect to it to acces to 3 fonctionnality protected by password :
 /credentials
 This page can list the captured credentials. 
 
 /uploadhtmlfile
 This page provide a upload form that store files in SD card in sites folder to be able to send new portal page and exfiltrate file trough wifi.
 
-To prevent unauthorised checking of these page they are simply protected by a password that is modifyable in the code. 
+/check-sd-file
+This page provide an index of to check, download and delete files on the SD card.
+
+To prevent unauthorised access of these page they are simply protected by a password that you need to change in the code. 
 To acces to these page use : 
 
 http://192.168.4.1/uploadhtmlfile?pass=7h30th3r0n3
 
-Any other tried page should redirect to the portal. 
+Any other tried page should redirect to the choosen portal. 
 
 #### Stop Captive Portal
 
