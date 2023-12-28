@@ -6,8 +6,13 @@
 
 ### Screenshots and Media
 
-[[https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744391.jpg|alt=booting]]
-[[https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744399.jpg|alt=menu]]
+#### Booting Screen
+![Booting Screen](https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744391.jpg)
+With funny little reference at each boot.
+
+#### Menu Screen
+![Menu Screen](https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744399.jpg)
+
 
 ## Features
 
