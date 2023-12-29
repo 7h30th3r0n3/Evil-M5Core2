@@ -11,12 +11,12 @@
 ### Screenshots and Media
 
 #### Booting Screen
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744391.jpg" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744391.jpg" width="300" />
 
 With a funny little reference at each boot.
 
 #### Menu Screen
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744399.jpg" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744399.jpg" width="300" />
 
 </div>
 
