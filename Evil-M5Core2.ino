@@ -134,7 +134,7 @@ void setup() {
     "  Accessing StarkNet...",
     "  Dialing on Stargate...",
     "   Activating Skynet...",
-    " Unleashing the Kraken.."
+    " Unleashing the Kraken..",
     " Accessing Mainframe...",
     "  Booting HAL 9000...",
     " Death Star loading ...",
@@ -162,10 +162,6 @@ void setup() {
     "Escaping the Matrix...",
     " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
-    "Neural Networks Syncing..",
-    "Neural Networks Syncing..",
-    
-    "Neural Networks Syncing..",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
