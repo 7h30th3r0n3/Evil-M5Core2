@@ -131,16 +131,14 @@ Evil-M5Core2 sends messages via serial for debugging purposes, you can use the s
 
 Plug your flipper with :
 
-On flipper : 
+- On flipper : 
 
 PIN 13/TX
 
 PIN 14/RX 
 
 
-
-
-On M5Core2 :
+- On M5Core2 :
 
 PIN G3/RXD0
 
