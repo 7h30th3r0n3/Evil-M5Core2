@@ -1,7 +1,7 @@
 /*
    Evil-M5Core2 - WiFi Network Testing and Exploration Tool
 
-   Copyright (c) [year] 7h30th3r0n3
+   Copyright (c) 2023 7h30th3r0n3
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
