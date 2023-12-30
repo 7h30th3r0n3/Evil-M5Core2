@@ -123,6 +123,31 @@ The Monitor Status feature consists of three static menus that can be navigated 
 - **Battery Level**: Shows the current battery level.
 - **Temperature**: Reports the device's internal temperature.
 
+## Flipper Zero Friend ? 
+### **Yes, it is !!!**
+
+Evil-M5Core2 send message trought serial for debbuging purpose, you can use serial app on flipper to see these message.
+
+Plug your flipper with :
+
+On flipper : 
+
+PIN 13/TX
+
+PIN 14/RX 
+
+
+
+
+On M5Core2 :
+
+PIN G3/RXD0
+
+PIN G1/TXD0
+
+<div align="center">
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/flipper-friends.jpg" width="500" />
+</div>
 
 # License
 
