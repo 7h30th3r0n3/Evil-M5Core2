@@ -126,7 +126,8 @@ The Monitor Status feature consists of three static menus that can be navigated 
 ## Flipper Zero Friend ? 
 ### **Yes, it is !!!**
 
-Evil-M5Core2 send message trought serial for debbuging purpose, you can use serial app on flipper to see these message.
+Evil-M5Core2 sends messages via serial for debugging purposes, you can use the serial app on Flipper to see these messages.
+
 
 Plug your flipper with :
 
