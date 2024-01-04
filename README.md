@@ -167,6 +167,10 @@ Delete ALL previous captured probes. Basically reset probes.txt on SD.
 
 Change the Brightness of the screen. 
 
+
+### Change startup image 
+Upload a startup.jpg 320x240 image to replace original startup.jpg and make your Evil-M5Core2 more special.
+
 ## Flipper Zero Friend ? 
 ### **Yes, it is !!!**
 
