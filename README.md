@@ -48,6 +48,9 @@ With a more than 100 little reference at each boot.
 - M5Core2 device (this project is coded with M5Unified, it should work on other M5Stack)
 - SD card
 
+tested working others device :
+- M5stack fire
+  
 ## Installation
 
 1. Connect your M5Core2 to your computer.
