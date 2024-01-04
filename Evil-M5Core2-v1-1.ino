@@ -202,6 +202,7 @@
       "  Accessing zone 51... ",
       "Downloading NASAs server..",
       "  You know Pwnagotchi ?",
+      "  You know FlipperZero?",
       "You know Hash-Monster ?",
       "Synergizing Neuromancer..",
       "Warping Through Cyberspac",
@@ -629,7 +630,7 @@ void firstScanWifiNetworks() {
       M5.Display.println("Back");
       
       M5.Display.display();
-      Serial.println("-------------------");
+      Serial.println("------Wifi-Info----");
       Serial.println("SSID: " + ssidList[networkIndex]);
       Serial.println("Channel: " + String(WiFi.channel(networkIndex)));
       Serial.println("Security: " + security);
@@ -716,6 +717,9 @@ void firstScanWifiNetworks() {
           html += "<a href='javascript:void(0);' onclick='this.href=\"/check-sd-file?pass=\"+document.getElementsByName(\"pass\")[0].value'>Check SD File</a>";
           html += "</form></div></body></html>";
           server.send(200, "text/html", html);
+          Serial.println("-------------------");
+          Serial.println("evil-m5core2-menu access.");
+          Serial.println("-------------------");
       });
   
       server.on("/credentials", HTTP_GET, []() {
@@ -1049,6 +1053,9 @@ void handleFileDelete() {
     WiFi.mode(WIFI_MODE_APSTA);
     WiFi.softAPdisconnect(true);
     isCaptivePortalOn = false;
+    Serial.println("-------------------");
+    Serial.println("Portal Stopped");
+    Serial.println("-------------------");
     waitAndReturnToMenu("  Portal Stopped");
   }
   
@@ -1136,6 +1143,9 @@ void handleFileDelete() {
   void checkCredentials() {
       readCredentialsFromFile();
       if (numCredentials == 0) {
+          Serial.println("-------------------");
+          Serial.println("No credentials...");
+          Serial.println("-------------------");
           waitAndReturnToMenu(" No credentials...");
       } else {
           const int lineHeight = 18; 
@@ -1238,9 +1248,15 @@ void handleFileDelete() {
           File file = SD.open("/credentials.txt", FILE_WRITE);
           if (file) {
               file.close();
+              Serial.println("-------------------");
+              Serial.println("credentials.txt deleted");
+              Serial.println("-------------------");
               waitAndReturnToMenu("Deleted successfully");
               Serial.println("Credentials deleted successfully");
           } else {
+               Serial.println("-------------------");
+              Serial.println("Error deleteting credentials.txt ");
+              Serial.println("-------------------");
               waitAndReturnToMenu("Error..");
               Serial.println("Error opening file for deletion");
           }
@@ -1283,6 +1299,18 @@ void handleFileDelete() {
       M5.Display.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
       M5.Display.setCursor(10, 150);
       M5.Display.println("Page: " + selectedPortalFile.substring(7));
+
+      Serial.println("-------------------");
+      Serial.println("Clients: " + String(WiFi.softAPgetStationNum()));
+      Serial.println("Passwords: " + String(countPasswordsInFile()));
+      Serial.println("SSID: " + clonedSSID);
+      Serial.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
+      Serial.println("Page: " + selectedPortalFile.substring(7));
+      Serial.println("-------------------");
+
+      
+
+      
       M5.Display.display();
   
       while (!inMenu) {
@@ -1331,6 +1359,9 @@ void handleFileDelete() {
   
           M5.Display.setCursor(10, y);
           M5.Display.println(macAddresses[i]);
+          Serial.println("----Mac-Address----");
+          Serial.println(macAddresses[i]);
+          Serial.println("-------------------");
       }}
   
       M5.Display.display();
@@ -1367,7 +1398,16 @@ void handleFileDelete() {
   
       M5.Display.setCursor(10, 120);
       M5.Display.println("Temperature: " + String(getTemperature()) + " C");
-  
+
+
+
+      Serial.println("-------------------");
+      Serial.println("Stack left: " + String(getStack()) + " Kb");
+      Serial.println("RAM: " + String(getRamUsage()) + " Mo");
+      Serial.println("Batterie: " + String(getBatteryLevel()) + "%");
+      Serial.println("Temperature: " + String(getTemperature()) + " C");
+      Serial.println("-------------------");
+      
       M5.Display.display();
   
       while (!inMenu) {
@@ -1621,15 +1661,16 @@ void handleFileDelete() {
     drawStopButtonKarma();
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(&packetSnifferKarma);
-    Serial.println("------------------------------------------------");
-    Serial.println("        Probe Sniffing Started...");
-    Serial.println("------------------------------------------------");
+    Serial.println("-------------------");
+    Serial.println("Probe Sniffing Started...");
+    Serial.println("-------------------");
+
   }
   
   void stopScanKarma() {
-      Serial.println("------------------------------------------------");
-      Serial.println("      Sniff Stopped. SSIDs found: " + String(ssid_count_Karma));
-      Serial.println("------------------------------------------------");
+      Serial.println("-------------------");
+      Serial.println("Sniff Stopped. SSIDs found: " + String(ssid_count_Karma));
+      Serial.println("-------------------");
       isScanningKarma = false;
       esp_wifi_set_promiscuous(false);
       
@@ -1645,9 +1686,13 @@ void handleFileDelete() {
               for (int i = 0; i < ssid_count_Karma; i++) {
                   saveSSIDToFile(ssidsKarma[i]);
               }
+              
               M5.Display.clear();
               M5.Display.setCursor(50 , M5.Display.height()/ 2 );
-              M5.Display.println("SSIDs saved on SD.");
+              M5.Display.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
+              Serial.println("-------------------");
+              Serial.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
+              Serial.println("-------------------");
               
           } else {
               M5.Display.println("  No SSID saved.");
@@ -1745,9 +1790,10 @@ void handleFileDelete() {
   void startAPWithSSIDKarma(const char* ssid) {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid);
-    Serial.println("------------------------------------------------");
-    Serial.println("    Karma Attack started for : " + String(ssid));
-    Serial.println("------------------------------------------------");
+    
+    Serial.println("-------------------");
+    Serial.println("Karma Attack started for : " + String(ssid));
+    Serial.println("-------------------");
   
     M5.Display.clear();
     unsigned long startTime = millis();
@@ -1778,6 +1824,13 @@ void handleFileDelete() {
           M5.Display.setCursor((M5.Display.width() - textWidth) / 2, 130);
           M5.Display.print("Connected Client: ");
           M5.Display.println(clientCount);
+
+          Serial.println("---Karma-Attack---");
+          Serial.println("On :" + String(ssid));
+          Serial.println("Left Time: " + String(remainingTime) + "s");
+          Serial.println("Connected Client: "+ String(clientCount));
+          Serial.println("-------------------");
+
           
          M5.Display.setCursor(130, 220);
          M5.Display.println(" Stop");
@@ -1797,15 +1850,15 @@ void handleFileDelete() {
     M5.Display.setCursor(50 , M5.Display.height()/ 2 );
     if (clientCount > 0) {
         M5.Display.println("Karma Successful!!!");
-        Serial.println("------------------------------------------------");
-        Serial.println("n             Karma Attack worked !");
-        Serial.println("------------------------------------------------");
+        Serial.println("-------------------");
+        Serial.println("Karma Attack worked !");
+        Serial.println("-------------------");
         clonedSSID = String(ssid);
     }else {
         M5.Display.println(" Karma Failed...");
-        Serial.println("------------------------------------------------");
-        Serial.println("             Karma Attack failed...");
-        Serial.println("------------------------------------------------");
+        Serial.println("-------------------");
+        Serial.println("Karma Attack failed...");
+        Serial.println("-------------------");
         WiFi.softAPdisconnect(true);
         WiFi.mode(WIFI_STA);
       }
@@ -1839,10 +1892,14 @@ void handleFileDelete() {
           line.trim();
           if (line.length() > 0 && !isProbePresent(probes, numProbes, line)) {
               probes[numProbes++] = line;
+
           }
       }
       file.close();
       if (numProbes == 0) {
+          Serial.println("-------------------");
+          Serial.println(" No probes found");
+          Serial.println("-------------------");
           waitAndReturnToMenu(" No probes found");
           return;
       }
@@ -1899,8 +1956,9 @@ void handleFileDelete() {
               needDisplayUpdate = false;
           }
       }
-  
+      Serial.println("-------------------");
       Serial.println("SSID selected: " + probes[selectedIndex]);
+      Serial.println("-------------------");
       clonedSSID = probes[selectedIndex];
       waitAndReturnToMenu(probes[selectedIndex] + " selected");
   }
@@ -1921,7 +1979,9 @@ void handleFileDelete() {
 void deleteProbe() {
     File file = SD.open("/probes.txt", FILE_READ);
     if (!file) {
+        Serial.println("-------------------");
         Serial.println("Failed to open probes.txt");
+        Serial.println("-------------------");
         waitAndReturnToMenu("Failed to open probes.txt");
         return;
     }
@@ -1998,6 +2058,9 @@ void deleteProbe() {
         }
 
         if (success) {
+              Serial.println("-------------------");
+              Serial.println(selectedProbe + " deleted");
+              Serial.println("-------------------");
             waitAndReturnToMenu(selectedProbe + " deleted");
         } else {
             waitAndReturnToMenu("Error deleting probe");
@@ -2097,10 +2160,14 @@ void deleteProbe() {
           if (file) {
               file.close();
               waitAndReturnToMenu("Deleted successfully");
+              Serial.println("-------------------");
               Serial.println("Probes deleted successfully");
+              Serial.println("-------------------");
           } else {
               waitAndReturnToMenu("Error..");
+              Serial.println("-------------------");
               Serial.println("Error opening file for deletion");
+              Serial.println("-------------------");
           }
       } else {
           waitAndReturnToMenu("Deletion cancelled");
