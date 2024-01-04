@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2
+# Evil-M5Core2 v1.1
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/logo.jpg" width="300" />
 
