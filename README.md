@@ -39,7 +39,7 @@ With a funny little reference at each boot.
 2. Open the Arduino IDE and load the provided code.
 3. Ensure all required libraries (listed at the beginning of the script) are installed.
 4. Upload the script to your M5Core2 device.
-5. Place SD file content on the SD card.
+5. Place SD file content on the SD card. ( Needed to get IMG startup)
 6. Restart the device.
 
 ## Usage
@@ -65,26 +65,30 @@ Follow these steps to efficiently utilize each feature of Evil-M5Core2.
 - **Operate Captive Portal**: With `normal.html` page, a mock WiFi passord page designed to mimic a legitimate error on box.
 
 #### Special Pages
-
+- **/evil-m5core2-menu**: Menu for pages bellow.
 - **/credentials**: Lists captured credentials.
 - **/uploadhtmlfile**: Provides an upload form to store files on the SD card (for new portal pages and file exfiltration).
 - **/check-sd-file**: Provides an index of to check, download and delete files on the SD card.
   
 When Captive Portal is ON you can connect to it to acces to 3 fonctionnality protected by password :
 
-/credentials
+- /evil-m5core2-menu
+This page is just a menu to provide easy access to others page with authentification form.
+
+- /credentials
 This page can list the captured credentials. 
 
-/uploadhtmlfile
-This page provide a upload form that store files in SD card in sites folder to be able to send new portal page and exfiltrate file trough wifi.
+- /uploadhtmlfile
+This page provide a upload form that store files in SD card in any folder of the SD to be able to send new portal page, exfiltrate file trough wifi or change the startup image.
+please considere to upload file under 1Mo to ensure no lag during the transfert process.
 
-/check-sd-file
+- /check-sd-file
 This page provide an index of to check, download and delete files on the SD card.
 
-To prevent unauthorised access of these page they are simply protected by a password that you need to change in the code. 
-To acces to these page use : 
+To prevent unauthorised access of these page they are really simply protected by a password that you need to change in the code. 
+To acces to these page use the password form in menu: 
 
-http://192.168.4.1/uploadhtmlfile?pass=7h30th3r0n3
+http://192.168.4.1/evil-m5core2-menu
 
 Any other tried page should redirect to the choosen portal. 
 
@@ -123,6 +127,30 @@ The Monitor Status feature consists of three static menus that can be navigated 
 - **Available RAM**: Displays the remaining RAM in the device.
 - **Battery Level**: Shows the current battery level.
 - **Temperature**: Reports the device's internal temperature.
+
+### Probe Sniffing
+
+Probe Sniffing start a probe scan that capture the SSID receive, you can store and reuse then. Restricted to 150 probes max.
+
+### Karma Attack
+
+Same as Probe Sniffing but provide a menu after stopping scan to choose a unique SSID, when SSID is chosen, a portal with the same SSID is deploy, if the original AP is an Open Network and the machine is vulnerable it should connect automaticaly to the network and dependind of the machine can pop up automatically the portal, if a client is present when scan end or stopped, the portal stay open, if not the portal is shutdown. 
+
+### Select Probe
+
+Menu to select a previous captured probe SSID and deploy it. List is restricted to 150 probes.
+
+### Delete Probe
+
+Menu to delete a previous captured probe SSID and deploy it. List is restricted to 150 probes.
+
+### Delete All Probes
+
+Delete ALL previous captured probes. Basically reset probes.txt on SD.
+
+### Brightness
+
+Change the Brightness of the screen. 
 
 ## Flipper Zero Friend ? 
 ### **Yes, it is !!!**
