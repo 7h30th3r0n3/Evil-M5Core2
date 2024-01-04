@@ -56,7 +56,7 @@ tested working others device :
 1. Connect your M5Core2 to your computer.
 2. Open the Arduino IDE and load the provided code.
 3. Ensure M5unified library are installed.
-4. Ensure esp32 and m5stack are installed.
+4. Ensure esp32 and M5stack board are installed.
 5. Place SD file content needed on the SD card. ( Needed to get IMG startup and sites folder).
 6. Upload the script to your M5Core2 device.
 7. Restart the device if needed.
