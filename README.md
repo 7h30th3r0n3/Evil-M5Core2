@@ -10,27 +10,42 @@
 
 ### Screenshots and Media
 
+<div align="center">
+
 #### Booting Screen
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup.jpg" width="300" />
-
-With a funny little reference at each boot.
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup2.jpg" width="300" />
+  
+With a more than 100 little reference at each boot.
+</div>
 
 #### Menu Screen
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/1703771744399.jpg" width="300" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/menu-1.jpg" width="300" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/menu-2.jpg" width="300" />
+
+
+#### Probes Sniffing
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/probes.jpg" width="300" />
+
+#### Low Battery at boot ( when under 15%)
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/low-battery.jpg" width="300" />
 
 </div>
+
 
 ## Features
 
 - **WiFi Network Scanning**: Identify and display nearby WiFi networks.
 - **Network Cloning**: Check information and replicate networks for in-depth analysis.
 - **Captive Portal Management**: Create and operate a captive portal to prompt users with a page upon connection.
-- **Credential Handling**: Capture and manage network credentials.
+- **Credential Handling**: Capture and manage portal credentials.
 - **Remote Web Server**: Monitor the device remotely via a simple web interface that can provide credentials and upload portal that store file on SD card.
-
+- **Sniffing probes**: Sniff and store on SD near probes.
+- **Karma Attack**: Try a simple Karma Attack on a captured probe.
+  
 ## Hardware Requirements
 
-- M5Core2 device
+- M5Core2 device (this project is coded with M5Unified, it should work on other M5Stack)
 - SD card
 
 ## Installation
@@ -39,7 +54,7 @@ With a funny little reference at each boot.
 2. Open the Arduino IDE and load the provided code.
 3. Ensure all required libraries (listed at the beginning of the script) are installed.
 4. Upload the script to your M5Core2 device.
-5. Place SD file content on the SD card. ( Needed to get IMG startup)
+5. Place SD file content on the SD card. ( Needed to get IMG startup and sites folder).
 6. Restart the device.
 
 ## Usage
@@ -115,7 +130,7 @@ The Monitor Status feature consists of three static menus that can be navigated 
 #### Menu 1: System Overview
 - **Number of Connected Clients**: Displays how many clients are currently connected.
 - **Credentials Count**: Shows the number of passwords stored in `credentials.txt`.
-- **Current Cloned Portal**: Indicates which portal is currently being cloned.
+- **Current Selected Portal**: Indicates which portal is currently being cloned.
 - **Portal Status**: Displays whether the portal is ON or OFF.
 - **Provided Portal Page**: Details about the portal page currently in use.
 
@@ -123,7 +138,7 @@ The Monitor Status feature consists of three static menus that can be navigated 
 - **MAC Addresses**: Lists the MAC addresses of all connected clients.
 
 #### Menu 3: Device Status
-- **CPU Usage**: (To be implemented)
+- **Stack left**: Displays the remaining Stack in the device.
 - **Available RAM**: Displays the remaining RAM in the device.
 - **Battery Level**: Shows the current battery level.
 - **Temperature**: Reports the device's internal temperature.
