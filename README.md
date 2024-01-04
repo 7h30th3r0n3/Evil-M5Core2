@@ -16,7 +16,7 @@
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup.jpg" width="300" />
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup2.jpg" width="300" />
   
-With a more than 100 little reference at each boot.
+With more than 100 references at each boot.
 </div>
 
 #### Menu Screen
