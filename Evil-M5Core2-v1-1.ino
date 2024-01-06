@@ -109,7 +109,7 @@
   AppState currentStateKarma = StartScanKarma;
   
   bool isProbeSniffingMode = false;
-  
+  bool isProbeKarmaAttackMode = false;
   // Probe Sniffing end
   
   
@@ -247,20 +247,20 @@
       return;
     }else{
     Serial.println("SD card initialized !! ");
+    String batteryLevelStr = getBatteryLevel();
+    int batteryLevel = batteryLevelStr.toInt();
+
+    if (batteryLevel < 15) {
+        drawImage("/img/low-battery.jpg");
+        Serial.println("-------------------"); 
+        Serial.println("!!!!Low Battery!!!!"); 
+        Serial.println("-------------------"); 
+        delay(4000);
+    }
     drawImage("/img/startup.jpg");
     delay(2000);
     }
-String batteryLevelStr = getBatteryLevel();
-int batteryLevel = batteryLevelStr.toInt();
-
-if (batteryLevel < 15) {
-    drawImage("/img/low-battery.jpg");
-    Serial.println("-------------------"); 
-    Serial.println("!!!!Low Battery!!!!"); 
-    Serial.println("-------------------"); 
-    delay(4000);
-}
-
+    
     int textY = 80;
     int lineOffset = 10;
     int lineY1 = textY - lineOffset;
@@ -308,9 +308,7 @@ if (batteryLevel < 15) {
           Serial.println("SSID is empty.");
           Serial.println("Skipping Wi-Fi connection.");
       }
-    
-
-  
+      
 xTaskCreate(
           backgroundTask, 
           "BackgroundTask", 
@@ -676,6 +674,7 @@ void firstScanWifiNetworks() {
   
   String bssidToString(uint8_t* bssid) {
     char mac[18];
+    
     snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
              bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
     return String(mac);
@@ -817,7 +816,9 @@ void firstScanWifiNetworks() {
        Serial.println("-------------------");
        Serial.println("Portal " + ssid + " Deployed with " + selectedPortalFile.substring(7) + " Portal !");
        Serial.println("-------------------");
+      if (!isProbeKarmaAttackMode){
       waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
+      }
   }
   
   
@@ -1706,7 +1707,7 @@ void handleFileDelete() {
       menuSizeKarma = ssid_count_Karma;
       currentIndexKarma = 0;
       menuStartIndexKarma = 0;
-  
+      
       if (ssid_count_Karma > 0) {
           drawMenuKarma();
           currentStateKarma = StopScanKarma;
@@ -1789,8 +1790,9 @@ void handleFileDelete() {
   }
   
   void startAPWithSSIDKarma(const char* ssid) {
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(ssid);
+    clonedSSID = String(ssid);
+    isProbeKarmaAttackMode = true;
+    createCaptivePortal();
     
     Serial.println("-------------------");
     Serial.println("Karma Attack started for : " + String(ssid));
@@ -1854,21 +1856,20 @@ void handleFileDelete() {
         Serial.println("-------------------");
         Serial.println("Karma Attack worked !");
         Serial.println("-------------------");
-        clonedSSID = String(ssid);
     }else {
         M5.Display.println(" Karma Failed...");
         Serial.println("-------------------");
         Serial.println("Karma Attack failed...");
         Serial.println("-------------------");
         WiFi.softAPdisconnect(true);
-        WiFi.mode(WIFI_STA);
       }
       delay(2000);
     if (confirmPopup("Save " + String(ssid) + " ?" )) {
     saveSSIDToFile(ssid);
     }
     lastIndex = -1;
-    inMenu = true;  
+    inMenu = true;
+    isProbeKarmaAttackMode = false;
     currentStateKarma = StartScanKarma;
     memset(ssidsKarma, 0, sizeof(ssidsKarma)); 
     ssid_count_Karma = 0;
