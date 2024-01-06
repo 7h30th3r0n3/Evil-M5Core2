@@ -311,12 +311,12 @@ if (batteryLevel < 15) {
     
 
   
-  xTaskCreate(
+xTaskCreate(
           backgroundTask, 
           "BackgroundTask", 
-          18432, /*stack*/
+          9216, /*stack*/
           NULL, 
-          1, 
+          0, 
           NULL);
           
   }
@@ -325,7 +325,7 @@ void backgroundTask(void *pvParameters) {
       for (;;) {
           dnsServer.processNextRequest();
           server.handleClient();
-          vTaskDelay(300); 
+          vTaskDelay(100); 
       }
   }
 
@@ -371,7 +371,8 @@ void firstScanWifiNetworks() {
   
   void loop() {
     M5.update();
-  
+    dnsServer.processNextRequest();
+    server.handleClient();
     if (inMenu) {
       if (lastIndex != currentIndex) {
         drawMenu();
