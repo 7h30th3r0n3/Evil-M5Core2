@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1
+# Evil-M5Core2 v1.1.1
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -146,6 +146,10 @@ The Monitor Status feature consists of three static menus that can be navigated 
 - **Available RAM**: Displays the remaining RAM in the device.
 - **Battery Level**: Shows the current battery level.
 - **Temperature**: Reports the device's internal temperature.
+
+### Probe Attack 
+
+Send fake random probes near you on all channel. Perfect for counter the Probe Sniffing attack. Press left or right to reduce or increase time delay. (200 ms to 1000ms)
 
 ### Probe Sniffing
 
