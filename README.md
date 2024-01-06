@@ -88,7 +88,9 @@ Follow these steps to efficiently utilize each feature of Evil-M5Core2.
 - **/credentials**: Lists captured credentials.
 - **/uploadhtmlfile**: Provides an upload form to store files on the SD card (for new portal pages and file exfiltration).
 - **/check-sd-file**: Provides an index of to check, download and delete files on the SD card.
-  
+- **/Change-Portal-Password**: Provides a page to change the password of the deployed access point.
+
+
 When Captive Portal is ON you can connect to it to acces to 3 fonctionnality protected by password :
 
 - /evil-m5core2-menu
@@ -104,6 +106,11 @@ please considere to upload file under 1Mo to ensure no lag during the transfert 
 - /check-sd-file
 This page provide an index of to check, download and delete files on the SD card.
 
+
+- /Change-Portal-Password
+Provides a page to change the password of the deployed Access Point. Required if attempting a Karma attack on a network with a known password.
+
+  
 To prevent unauthorised access of these page they are really simply protected by a password that you need to change in the code. 
 To acces to these page use the password form in menu: 
 
