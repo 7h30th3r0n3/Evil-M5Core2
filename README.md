@@ -61,6 +61,14 @@ tested working others device :
 6. Upload the script to your M5Core2 device.
 7. Restart the device if needed.
 
+First time or is something not working correctly? You should check out Samxplogs tutorial video :
+
+<a href="https://www.youtube.com/watch?v=ueIAf9Q3EeM">
+    <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/ueIAf9Q3EeM/0.jpg" width="33%" height="33%"/>
+</a>
+
+
+
 ## Usage
 
 Follow these steps to efficiently utilize each feature of Evil-M5Core2.
