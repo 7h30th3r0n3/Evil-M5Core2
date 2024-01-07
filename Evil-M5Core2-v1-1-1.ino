@@ -110,8 +110,10 @@
   
   bool isProbeSniffingMode = false;
   bool isProbeKarmaAttackMode = false;
-  // Probe Sniffing end
   
+  // Probe Sniffing end
+
+
   
   void setup() {
     M5.begin();
@@ -314,7 +316,7 @@ if (batteryLevel < 15) {
 xTaskCreate(
           backgroundTask, 
           "BackgroundTask", 
-          9216, /*stack*/
+          196608, /*stack*/
           NULL, 
           0, 
           NULL);
@@ -322,12 +324,13 @@ xTaskCreate(
   }
 
 void backgroundTask(void *pvParameters) {
-      for (;;) {
-          dnsServer.processNextRequest();
-          server.handleClient();
-          vTaskDelay(100); 
-      }
-  }
+    for (;;) {
+        dnsServer.processNextRequest();
+        server.handleClient();
+        vTaskDelay(100); 
+    }
+}
+
 
 
 void drawImage(const char *filepath) {
@@ -831,7 +834,7 @@ void createCaptivePortal() {
        Serial.println("-------------------");
        if (!isProbeKarmaAttackMode){
           waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
-       }
+      }
   }
   
   
@@ -932,6 +935,7 @@ void createCaptivePortal() {
 void handleFileUpload() {
     HTTPUpload& upload = server.upload();
     String password = server.arg("pass");
+    const size_t MAX_UPLOAD_SIZE = 8192;
 
     if (password != accessWebPassword) {
         Serial.println("Unauthorized access attempt");
@@ -954,22 +958,44 @@ void handleFileUpload() {
         String fullPath = directory + filename; 
 
         fsUploadFile = SD.open(fullPath, FILE_WRITE);
+        if (!fsUploadFile) {
+            Serial.println("Upload start failed: Unable to open file " + fullPath);
+            server.send(500, "text/html", "File opening failed");
+            return;
+        }
+
         Serial.print("Upload Start: ");
         Serial.println(fullPath);
     } else if (upload.status == UPLOAD_FILE_WRITE) {
-        if (fsUploadFile) {
-            fsUploadFile.write(upload.buf, upload.currentSize);
+        if (fsUploadFile && upload.currentSize > 0 && upload.currentSize <= MAX_UPLOAD_SIZE) {
+            size_t written = fsUploadFile.write(upload.buf, upload.currentSize);
+            if (written != upload.currentSize) {
+                Serial.println("Write Error: Inconsistent data size.");
+                fsUploadFile.close();
+                server.send(500, "text/html", "File write error");
+                return;
+            }
+        } else {
+            if (!fsUploadFile) {
+                Serial.println("Error: File is no longer valid for writing.");
+            } else if (upload.currentSize > MAX_UPLOAD_SIZE) {
+                Serial.println("Error: Data segment size too large.");
+                Serial.println(upload.currentSize);
+            } else {
+                Serial.println("Information: Empty data segment received.");
+            }
+            return;
         }
     } else if (upload.status == UPLOAD_FILE_END) {
         if (fsUploadFile) {
             fsUploadFile.close();
             Serial.print("Upload End: ");
             Serial.println(upload.totalSize);
-            server.send(200, "text/html", "<html><body><p>File Uploaded Successfully</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
-            Serial.println("File Uploaded Successfully");
+            server.send(200, "text/html", "<html><body><p>File successfully uploaded</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+            Serial.println("File successfully uploaded");
         } else {
-            server.send(500, "text/html", "<html><body><p>500: couldn't create file</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
-            Serial.println("500: couldn't create file");
+            server.send(500, "text/html", "File closing error");
+            Serial.println("File closing error");
         }
     }
 }
@@ -1860,7 +1886,7 @@ void handleChangePassword() {
     Serial.println("-------------------");
     Serial.println("Karma Attack started for : " + String(ssid));
     Serial.println("-------------------");
-   
+  
     M5.Display.clear();
     unsigned long startTime = millis();
     unsigned long currentTime;
@@ -1870,7 +1896,8 @@ void handleChangePassword() {
     
    while (true) {
           M5.update(); 
-  
+          dnsServer.processNextRequest();
+          server.handleClient();
           currentTime = millis();
           remainingTime = scanTimeKarma - ((currentTime - startTime) / 1000);
           clientCount = WiFi.softAPgetStationNum();
