@@ -309,26 +309,7 @@ if (batteryLevel < 15) {
           Serial.println("SSID is empty.");
           Serial.println("Skipping Wi-Fi connection.");
       }
-    
-
-  
-  
-xTaskCreate(
-          backgroundTask, 
-          "BackgroundTask", 
-          196608, /*stack*/
-          NULL, 
-          0, 
-          NULL);
-          
-  }
-
-void backgroundTask(void *pvParameters) {
-    for (;;) {
-        dnsServer.processNextRequest();
-        server.handleClient();
-        vTaskDelay(100); 
-    }
+//seem to not working so refactored in different blocking function to ensure dns and request delivery
 }
 
 
@@ -568,6 +549,8 @@ void firstScanWifiNetworks() {
   
   while (!inMenu) {
       M5.update();
+       dnsServer.processNextRequest();
+       server.handleClient();
       if (M5.BtnA.wasPressed()) {
         currentListIndex--;
         if (currentListIndex < 0) {
@@ -643,6 +626,8 @@ void firstScanWifiNetworks() {
   
       while (!inMenu) {
         M5.update();
+        dnsServer.processNextRequest();
+        server.handleClient();
         if (M5.BtnC.wasPressed()) {
           cloneSSIDForCaptivePortal(ssidList[networkIndex]);
           inMenu = true;
@@ -1284,6 +1269,8 @@ void handleChangePassword() {
   
           while (!inMenu) {
               M5.update();
+              dnsServer.processNextRequest();
+              server.handleClient();
               if (M5.BtnA.wasPressed()) {
                   currentListIndex = max(0, currentListIndex - 1);
                   checkCredentials();
@@ -1393,15 +1380,13 @@ void handleChangePassword() {
       Serial.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
       Serial.println("Page: " + selectedPortalFile.substring(7));
       Serial.println("-------------------");
-
-      
-
       
       M5.Display.display();
   
       while (!inMenu) {
           M5.update();
-  
+          dnsServer.processNextRequest();
+          server.handleClient();
           if (M5.BtnA.wasPressed()) {
               displayMonitorPage3();
               break;
@@ -1459,7 +1444,8 @@ void handleChangePassword() {
   
       while (!inMenu) {
           M5.update();
-  
+          dnsServer.processNextRequest();
+          server.handleClient();
           if (M5.BtnA.wasPressed()) {
               displayMonitorPage1(); 
               break;
@@ -1503,7 +1489,8 @@ void handleChangePassword() {
   
       while (!inMenu) {
           M5.update();
-  
+          dnsServer.processNextRequest();
+          server.handleClient();
           if (M5.BtnA.wasPressed()) {
               displayMonitorPage2();
               break;
@@ -1547,6 +1534,8 @@ void handleChangePassword() {
   
       while (true) {
           M5.update();
+          dnsServer.processNextRequest();
+          server.handleClient();
           if (M5.BtnB.wasPressed()) {
               stopScanKarma(); 
               break;
@@ -1588,7 +1577,8 @@ void handleChangePassword() {
   
       while (true) {
           M5.update();
-  
+          dnsServer.processNextRequest();
+          server.handleClient();
           if (M5.BtnA.wasPressed()) {
               currentBrightness = max(minBrightness, currentBrightness - 12);
               brightnessAdjusted = true;
@@ -1623,6 +1613,8 @@ void handleChangePassword() {
   //KARMA-PART-FUNCTIONS
   
   void packetSnifferKarma(void* buf, wifi_promiscuous_pkt_type_t type) {
+      dnsServer.processNextRequest();
+      server.handleClient();
       if (!isScanningKarma || type != WIFI_PKT_MGMT) return;
   
       const wifi_promiscuous_pkt_t *packet = (wifi_promiscuous_pkt_t*)buf;
@@ -2006,7 +1998,8 @@ void handleChangePassword() {
   
       while (selectedIndex == -1) {
           M5.update();
-  
+          dnsServer.processNextRequest();
+          server.handleClient();
           bool indexChanged = false;
           if (M5.BtnA.wasPressed()) {
               currentListIndex--;
@@ -2105,7 +2098,8 @@ void deleteProbe() {
 
     while (selectedIndex == -1) {
         M5.update();
-
+        dnsServer.processNextRequest();
+        server.handleClient();
         if (needDisplayUpdate) {
             M5.Display.clear();
             M5.Display.setTextSize(2);
@@ -2174,7 +2168,8 @@ void deleteProbe() {
   
       while (selectedIndex == -1) {
           M5.update();
-  
+          dnsServer.processNextRequest();
+          server.handleClient();
           if (needDisplayUpdate) {
               M5.Display.clear();
               M5.Display.setTextSize(2);
