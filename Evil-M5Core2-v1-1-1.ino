@@ -1613,8 +1613,6 @@ void handleChangePassword() {
   //KARMA-PART-FUNCTIONS
   
   void packetSnifferKarma(void* buf, wifi_promiscuous_pkt_type_t type) {
-      dnsServer.processNextRequest();
-      server.handleClient();
       if (!isScanningKarma || type != WIFI_PKT_MGMT) return;
   
       const wifi_promiscuous_pkt_t *packet = (wifi_promiscuous_pkt_t*)buf;
