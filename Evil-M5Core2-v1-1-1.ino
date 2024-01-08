@@ -1357,48 +1357,69 @@ void handleChangePassword() {
       file.close();
       return passwordCount;
   }
-  
-  void displayMonitorPage1() {
-      M5.Display.clear();
-      M5.Display.setTextSize(2);
-      M5.Display.setTextColor(TFT_WHITE);
-      M5.Display.setCursor(10, 30);
-      M5.Display.println("Clients: " + String(WiFi.softAPgetStationNum()));
-      M5.Display.setCursor(10, 60);
-      M5.Display.println("Passwords: " + String(countPasswordsInFile()));
-      M5.Display.setCursor(10, 90);
-      M5.Display.println("SSID: " + clonedSSID);
-      M5.Display.setCursor(10, 120);
-      M5.Display.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
-      M5.Display.setCursor(10, 150);
-      M5.Display.println("Page: " + selectedPortalFile.substring(7));
 
-      Serial.println("-------------------");
-      Serial.println("Clients: " + String(WiFi.softAPgetStationNum()));
-      Serial.println("Passwords: " + String(countPasswordsInFile()));
-      Serial.println("SSID: " + clonedSSID);
-      Serial.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
-      Serial.println("Page: " + selectedPortalFile.substring(7));
-      Serial.println("-------------------");
-      
-      M5.Display.display();
+
+int oldNumClients = -1;
+int oldNumPasswords = -1;
   
-      while (!inMenu) {
-          M5.update();
-          dnsServer.processNextRequest();
-          server.handleClient();
-          if (M5.BtnA.wasPressed()) {
-              displayMonitorPage3();
-              break;
-          } else if (M5.BtnC.wasPressed()) {
-              displayMonitorPage2();
-              break;
-          } else if (M5.BtnB.wasPressed()) {
-              inMenu = true; 
-              drawMenu();
-              break;
-          }
-      }
+void displayMonitorPage1() {
+    M5.Display.clear();
+    M5.Display.setTextSize(2);
+    M5.Display.setTextColor(TFT_WHITE);
+    
+    // Affichage des informations statiques
+    M5.Display.setCursor(10, 90);
+    M5.Display.println("SSID: " + clonedSSID);
+    M5.Display.setCursor(10, 120);
+    M5.Display.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
+    M5.Display.setCursor(10, 150);
+    M5.Display.println("Page: " + selectedPortalFile.substring(7));
+
+    // Réinitialiser les valeurs pour forcer la mise à jour
+    oldNumClients = -1;
+    oldNumPasswords = -1;
+
+    M5.Display.display();
+  
+    while (!inMenu) {
+        M5.update();
+        dnsServer.processNextRequest();
+        server.handleClient();
+
+        // Rafraîchir l'affichage des clients et mots de passe
+        int newNumClients = WiFi.softAPgetStationNum();
+        int newNumPasswords = countPasswordsInFile();
+
+        if (newNumClients != oldNumClients) {
+            M5.Display.fillRect(10, 30, 200, 20, TFT_BLACK); // Efface l'ancienne valeur
+            M5.Display.setCursor(10, 30);
+            M5.Display.println("Clients: " + String(newNumClients));
+            oldNumClients = newNumClients;
+        }
+
+        if (newNumPasswords != oldNumPasswords) {
+            M5.Display.fillRect(10, 60, 200, 20, TFT_BLACK); // Efface l'ancienne valeur
+            M5.Display.setCursor(10, 60);
+            M5.Display.println("Passwords: " + String(newNumPasswords));
+            oldNumPasswords = newNumPasswords;
+        }
+
+
+        // Gestion des boutons
+        if (M5.BtnA.wasPressed()) {
+            displayMonitorPage3();
+            break;
+        } else if (M5.BtnC.wasPressed()) {
+            displayMonitorPage2();
+            break;
+        } else if (M5.BtnB.wasPressed()) {
+            inMenu = true; 
+            drawMenu();
+            break;
+        }
+
+        delay(100); // Délai pour le rafraîchissement, à ajuster selon les besoins
+    }
   }
   
   void updateConnectedMACs() {
@@ -1460,74 +1481,134 @@ void handleChangePassword() {
       }
       }
   
-  void displayMonitorPage3() {
-      M5.Display.clear();
-      M5.Display.setTextSize(2);
-  
-      M5.Display.setCursor(10, 30);
-      M5.Display.println("Stack left: " + String(getStack()) + " Kb");
-  
-      M5.Display.setCursor(10, 60);
-      M5.Display.println("RAM: " + String(getRamUsage()) + " Mo");
-  
-      M5.Display.setCursor(10, 90);
-      M5.Display.println("Batterie: " + String(getBatteryLevel()) + "%");
-  
-      M5.Display.setCursor(10, 120);
-      M5.Display.println("Temperature: " + String(getTemperature()) + " C");
+// Variables globales pour stocker les anciennes valeurs des informations
+String oldStack = "";
+String oldRamUsage = "";
+String oldBatteryLevel = "";
+String oldTemperature = "";
 
+String getBatteryLevel() {
+    return String(M5.Power.getBatteryLevel());
+}
 
+String getTemperature() {
+    float temperature;
+    M5.Imu.getTemp(&temperature);
+    int roundedTemperature = round(temperature); 
+    return String(roundedTemperature);
+}
 
-      Serial.println("-------------------");
-      Serial.println("Stack left: " + String(getStack()) + " Kb");
-      Serial.println("RAM: " + String(getRamUsage()) + " Mo");
-      Serial.println("Batterie: " + String(getBatteryLevel()) + "%");
-      Serial.println("Temperature: " + String(getTemperature()) + " C");
-      Serial.println("-------------------");
-      
-      M5.Display.display();
+String getStack() {
+    UBaseType_t stackWordsRemaining = uxTaskGetStackHighWaterMark(NULL);
+    return String(stackWordsRemaining * 4 / 1024.0);
+}
+
+String getRamUsage() {
+    float heapSizeInMegabytes = esp_get_free_heap_size() / 1048576.0; 
+    char buffer[10]; 
+    sprintf(buffer, "%.2f", heapSizeInMegabytes);
+    return String(buffer);
+}
+
+unsigned long lastUpdateTime = 0; // Variable pour garder la trace du dernier moment de mise à jour
+const long updateInterval = 1000; // Mise à jour toutes les 1000 millisecondes (1 seconde)
+
+void displayMonitorPage3() {
+    M5.Display.clear();
+    M5.Display.setTextSize(2);
+    M5.Display.setTextColor(TFT_WHITE);
+
+    // Afficher les valeurs initiales immédiatement
+    oldStack = getStack();
+    oldRamUsage = getRamUsage();
+    oldBatteryLevel = getBatteryLevel();
+    oldTemperature = getTemperature();
+
+    M5.Display.setCursor(10, 30);
+    M5.Display.println("Stack left: " + oldStack + " Kb");
+    M5.Display.setCursor(10, 60);
+    M5.Display.println("RAM: " + oldRamUsage + " Mo");
+    M5.Display.setCursor(10, 90);
+    M5.Display.println("Batterie: " + oldBatteryLevel + "%");
+    M5.Display.setCursor(10, 120);
+    M5.Display.println("Temperature: " + oldTemperature + "C");
+
+    M5.Display.display();
+    // Initialisation de la dernière heure de mise à jour
+    lastUpdateTime = millis();
+
+    // Réinitialiser les anciennes valeurs pour forcer la mise à jour initiale
+    oldStack = "";
+    oldRamUsage = "";
+    oldBatteryLevel = "";
+    oldTemperature = "";
+
+    M5.Display.display();
   
-      while (!inMenu) {
-          M5.update();
-          dnsServer.processNextRequest();
-          server.handleClient();
-          if (M5.BtnA.wasPressed()) {
-              displayMonitorPage2();
-              break;
-          } else if (M5.BtnC.wasPressed()) {
-              displayMonitorPage1(); 
-              break;
-          } else if (M5.BtnB.wasPressed()) {
-              inMenu = true; 
-              drawMenu();
-              break;
-          }
-      }
-  }
-  
-  String getBatteryLevel() {
-      return String(M5.Power.getBatteryLevel());
-  }
-  
-  String getTemperature() {
-      float temperature;
-      M5.Imu.getTemp(&temperature);
-      return String(temperature);
-  }
-  
-  String getStack() {
-      UBaseType_t stackWordsRemaining = uxTaskGetStackHighWaterMark(NULL);
-      return String(stackWordsRemaining * 4 / 1024.0);
-  }
-         
-  
-  String getRamUsage() {
-      float heapSizeInMegabytes = esp_get_free_heap_size() / 1048576.0; 
-      char buffer[10]; 
-      sprintf(buffer, "%.2f", heapSizeInMegabytes);
-      return String(buffer);
-  }
-  
+    while (!inMenu) {
+        M5.update();
+        dnsServer.processNextRequest();
+        server.handleClient();
+
+        unsigned long currentMillis = millis();
+
+        // Vérifier si l'intervalle de mise à jour s'est écoulé
+        if (currentMillis - lastUpdateTime >= updateInterval) {
+            // Mettre à jour les informations
+            String newStack = getStack();
+            String newRamUsage = getRamUsage();
+            String newBatteryLevel = getBatteryLevel();
+            String newTemperature = getTemperature();
+
+        // Mettre à jour l'affichage si les valeurs ont changé
+        if (newStack != oldStack) {
+            M5.Display.fillRect(10, 30, 200, 20, TFT_BLACK);
+            M5.Display.setCursor(10, 30);
+            M5.Display.println("Stack left: " + newStack + " Kb");
+            oldStack = newStack;
+        }
+
+        if (newRamUsage != oldRamUsage) {
+            M5.Display.fillRect(10, 60, 200, 20, TFT_BLACK);
+            M5.Display.setCursor(10, 60);
+            M5.Display.println("RAM: " + newRamUsage + " Mo");
+            oldRamUsage = newRamUsage;
+        }
+
+        if (newBatteryLevel != oldBatteryLevel) {
+            M5.Display.fillRect(10, 90, 200, 20, TFT_BLACK);
+            M5.Display.setCursor(10, 90);
+            M5.Display.println("Batterie: " + newBatteryLevel + "%");
+            oldBatteryLevel = newBatteryLevel;
+        }
+
+        if (newTemperature != oldTemperature) {
+            M5.Display.fillRect(10, 120, 200, 20, TFT_BLACK);
+            M5.Display.setCursor(10, 120);
+            M5.Display.println("Temperature: " + newTemperature + "C");
+            oldTemperature = newTemperature;
+        }
+
+        lastUpdateTime = currentMillis;
+        }
+
+        // Gestion des boutons
+        if (M5.BtnA.wasPressed()) {
+            displayMonitorPage2();
+            break;
+        } else if (M5.BtnC.wasPressed()) {
+            displayMonitorPage1();
+            break;
+        } else if (M5.BtnB.wasPressed()) {
+            inMenu = true;
+            drawMenu();
+            break;
+        }
+
+        delay(100); // Délai pour le rafraîchissement
+    }
+}
+
   void probeSniffing() {
       isProbeSniffingMode = true; 
       startScanKarma();
