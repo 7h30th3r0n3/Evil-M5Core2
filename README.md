@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.1
+# Evil-M5Core2 v1.1.2 - Karma Auto
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -8,30 +8,21 @@
 
 > <i>Disclaimer</i>: The creator of Evil-M5Core2 is not responsible for any misuse of this tool. It is intended solely for ethical and educational purposes. Users are reminded to comply with all applicable laws and regulations in their jurisdiction. All files provided with Evil-M5Core2 are designed to be used in a controlled environment and must be used in compliance with all applicable laws and regulations. Misuse or illegal use of this tool is strictly prohibited and not supported by the creator.
 
-### Screenshots and Media
+</div>
 
 <div align="center">
 
 #### Booting Screen
+<div align="center">
+  
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup.jpg" width="300" />
+  
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup2.jpg" width="300" />
   
 With more than 100 references at each boot.
-</div>
-
-#### Menu Screen
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/menu-1.jpg" width="300" />
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/menu-2.jpg" width="300" />
-
-
-#### Probes Sniffing
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/probes.jpg" width="300" />
-
-#### Low Battery at boot ( when under 15%)
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/low-battery.jpg" width="300" />
 
 </div>
-
+</div>
 
 ## Features
 
@@ -42,7 +33,8 @@ With more than 100 references at each boot.
 - **Remote Web Server**: Monitor the device remotely via a simple web interface that can provide credentials and upload portal that store file on SD card.
 - **Sniffing probes**: Sniff and store on SD near probes.
 - **Karma Attack**: Try a simple Karma Attack on a captured probe.
-  
+- **Automated Karma Attack**: Try Karma Attack on near probe automatically.
+
 ## Hardware Requirements
 
 - M5Core2 device (this project is coded with M5Unified, it should work on other M5Stack)
@@ -61,13 +53,46 @@ tested working others device :
 6. Upload the script to your M5Core2 device.
 7. Restart the device if needed.
 
-First time or is something not working correctly? You should check out Samxplogs tutorial video :
+First time or is something not working correctly? You should check out Samxplogs tutorial video thx to him :
 
 <a href="https://www.youtube.com/watch?v=ueIAf9Q3EeM">
     <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/ueIAf9Q3EeM/0.jpg" width="33%" height="33%"/>
 </a>
 
+### Screenshots and Media
 
+<div align="center">
+
+#### Booting Screen
+<div align="center">
+  
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup.jpg" width="300" />
+  
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup2.jpg" width="300" />
+  
+With more than 100 references at each boot.
+</div>
+
+#### Menu Screen
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/menu-1.jpg" width="300" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/menu-2.jpg" width="300" />
+
+#### Probes Sniffing
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/probes.jpg" width="300" />
+
+#### Low Battery at boot ( when under 15%)
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/low-battery.jpg" width="300" />
+
+
+#### Video 
+
+<a href="https://www.youtube.com/watch?v=ueIAf9Q3EeM">
+    <img alt="Talking Sasquatch" src="https://img.youtube.com/vi/jcVm4cysmnE/0.jpg" width="50%" height="33%"/>
+</a>
+
+Thx to TalkingSasquatch for making a video about the project
+</div>
+</div>
 
 ## Usage
 
@@ -173,6 +198,13 @@ Probe Sniffing start a probe scan that capture the SSID receive, you can store a
 ### Karma Attack
 
 Same as Probe Sniffing but provide a menu after stopping scan to choose a unique SSID, when SSID is chosen, a portal with the same SSID is deploy, if the original AP is an Open Network and the machine is vulnerable it should connect automaticaly to the network and dependind of the machine can pop up automatically the portal, if a client is present when scan end or stopped, the portal stay open, if not the portal is shutdown. 
+(Can be used with password if set on web interface).
+
+### NEW ! from v1.1.2 : Karma Auto 
+
+Same as Karma Attack but try the first probe seen, if no client connects after 15 seconds the Evil-m5core2 returns to sniffing mode to try another captured probe and continues in a cycle until stopped by the user.
+Can also be used with a password if set on the web interface, if you have a password and you don't know on which AP it work you could try it with different probe request to test if karma work and get the SSID.
+This feature is inspired by the pwnagotchi project but with probe request and karma attack, you can use both to ensure a full attack of the near devices around you.
 
 ### Select Probe
 
@@ -197,7 +229,7 @@ Upload a startup.jpg 320x240 image to replace original startup.jpg and make your
 ## Flipper Zero Friend ? 
 ### **Yes, it is !!!**
 
-Evil-M5Core2 sends messages via serial for debugging purposes, you can use the serial app on Flipper to see these messages.
+Evil-M5Core2 sends messages via serial for debugging purposes and message when you navigate on the Core2, you can use the serial app on Flipper to see these messages.
 
 
 Plug your flipper with :
