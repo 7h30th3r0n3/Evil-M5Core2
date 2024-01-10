@@ -2613,7 +2613,12 @@ void activateAPForAutoKarma(const char* ssid) {
 
   isAPDeploying = true;
   isInitialDisplayDone = false;
-  WiFi.softAP(ssid);
+  if (captivePortalPassword == ""){
+     WiFi.softAP(ssid);
+  }else{
+     WiFi.softAP(ssid ,captivePortalPassword.c_str());
+  }
+
   Serial.println("-------------------");
   Serial.println("Starting Karma AP for : " + String(ssid));
   Serial.println("Time :" + String(autoKarmaAPDuration / 1000) + " s" );
