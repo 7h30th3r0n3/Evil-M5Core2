@@ -290,7 +290,7 @@ void setup() {
     Serial.println("SD card not mounted...");
   }else{
     Serial.println("SD card initialized !! ");
-    restoreScreenBrightness();
+    restoreConfigParameter("brightness");
     drawImage("/img/startup.jpg");
     delay(2000);
   }
@@ -491,7 +491,7 @@ void executeMenuItem(int index) {
       break;
     case 16: 
       brightness();
-      break;
+      break;    
   }
   isOperationInProgress = false;
 }
@@ -1709,7 +1709,7 @@ void brightness() {
             currentBrightness = min(maxBrightness, currentBrightness + 12);
             brightnessAdjusted = true;
         } else if (M5.BtnB.wasPressed()) {
-            saveScreenBrightness(currentBrightness);
+            saveConfigParameter("brightness", currentBrightness);
             break; 
         }
 
@@ -1730,37 +1730,54 @@ void brightness() {
     waitAndReturnToMenu("Brightness set to " + String((int)finalBrightnessPercentage) + "%");
 }
 
-void saveScreenBrightness(int brightness) {
+void saveConfigParameter(String key, int value) {
   if (!SD.exists(configFolderPath)) {
     SD.mkdir(configFolderPath);
   }
-
   File configFile = SD.open(configFilePath, FILE_WRITE);
   if (configFile) {
-    configFile.println(brightness);
+    configFile.println(key + "=" + value);
     configFile.close();
-    Serial.println("Brightness saved!");
+    Serial.println(key + " saved!");
   } else {
     Serial.println("Error when opening config.txt");
   }
 }
 
-void restoreScreenBrightness() {
+
+
+
+
+void restoreConfigParameter(String key) {
   if (SD.exists(configFilePath)) {
     File configFile = SD.open(configFilePath, FILE_READ);
     if (configFile) {
-      int brightness = configFile.parseInt();
+      String line;
+      int value = defaultBrightness; 
+      while (configFile.available()) {
+        line = configFile.readStringUntil('\n');
+        if (line.startsWith(key + "=")) {
+          value = line.substring(line.indexOf('=') + 1).toInt();
+          break;
+        }
+      }
       configFile.close();
-      M5.Display.setBrightness(brightness);
-      Serial.println("Brightness restored!");
+      if (key == "brightness") {
+        M5.Display.setBrightness(value);
+        Serial.println("Brightness restored to " + String(value));
+      }
     } else {
       Serial.println("Error when opening config.txt");
     }
   } else {
-    Serial.println("Config file not found, using default brightness");
-    M5.Display.setBrightness(defaultBrightness);
+    Serial.println("Config file not found, using default value");
+    if (key == "brightness") {
+      M5.Display.setBrightness(defaultBrightness);
+    }
+    // other value
   }
 }
+
 
 
 
