@@ -130,6 +130,12 @@ static bool isInitialDisplayDone = false;
 char lastDeployedSSID[33] = {0}; 
 //AutoKarma end
 
+//config file
+const char* configFolderPath = "/config";
+const char* configFilePath = "/config/config.txt";
+int defaultBrightness = 255 * 0.35; //  35% default Brightness
+//config file end 
+
 
 void setup() {
   M5.begin();
@@ -284,6 +290,7 @@ void setup() {
     Serial.println("SD card not mounted...");
   }else{
     Serial.println("SD card initialized !! ");
+    restoreScreenBrightness();
     drawImage("/img/startup.jpg");
     delay(2000);
   }
@@ -1702,6 +1709,7 @@ void brightness() {
             currentBrightness = min(maxBrightness, currentBrightness + 12);
             brightnessAdjusted = true;
         } else if (M5.BtnB.wasPressed()) {
+            saveScreenBrightness(currentBrightness);
             break; 
         }
 
@@ -1722,7 +1730,37 @@ void brightness() {
     waitAndReturnToMenu("Brightness set to " + String((int)finalBrightnessPercentage) + "%");
 }
 
+void saveScreenBrightness(int brightness) {
+  if (!SD.exists(configFolderPath)) {
+    SD.mkdir(configFolderPath);
+  }
 
+  File configFile = SD.open(configFilePath, FILE_WRITE);
+  if (configFile) {
+    configFile.println(brightness);
+    configFile.close();
+    Serial.println("Brightness saved!");
+  } else {
+    Serial.println("Error when opening config.txt");
+  }
+}
+
+void restoreScreenBrightness() {
+  if (SD.exists(configFilePath)) {
+    File configFile = SD.open(configFilePath, FILE_READ);
+    if (configFile) {
+      int brightness = configFile.parseInt();
+      configFile.close();
+      M5.Display.setBrightness(brightness);
+      Serial.println("Brightness restored!");
+    } else {
+      Serial.println("Error when opening config.txt");
+    }
+  } else {
+    Serial.println("Config file not found, using default brightness");
+    M5.Display.setBrightness(defaultBrightness);
+  }
+}
 
 
 
