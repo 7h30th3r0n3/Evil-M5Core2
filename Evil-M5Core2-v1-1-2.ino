@@ -36,6 +36,7 @@
 #include <M5Unified.h>
 #include <vector>
 #include <string>
+#include <set>
 
 extern "C" {
   #include "esp_wifi.h"
@@ -139,6 +140,7 @@ const char* configFilePath = "/config/config.txt";
 int defaultBrightness = 255 * 0.35; //  35% default Brightness
 
 std::vector<std::string> whitelist;
+std::set<std::string> seenWhitelistedSSIDs;
 //config file end 
 
 
@@ -274,13 +276,13 @@ void setup() {
     "     Meeseeks Mayhem.",
     "   Schwifty Shenanigans.",
     "  Dimension C-137 Chaos.",
-    "Cartman's Schemes Unfold."
-    "Stan and Kyle's Adventures"
-    "   Mysterion Rises Again."
-    "   Towelie's High Times."
-    "Butters Awkward Escapades."
+    "Cartman's Schemes Unfold.",
+    "Stan and Kyle's Adventures",
+    "   Mysterion Rises Again.",
+    "   Towelie's High Times.",
+    "Butters Awkward Escapades.",
     "Navigating the Multiverse.",
-    "Affirmative Dave,I read you."
+    "Affirmative Dave,I read you.",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
@@ -1809,20 +1811,32 @@ void packetSnifferKarma(void* buf, wifi_promiscuous_pkt_type_t type) {
             if (strlen(ssidKarma) == 0 || strspn(ssidKarma, " ") == strlen(ssidKarma)) {
                 return;
             }
+        // Vérifier si le SSID est déjà dans la liste des SSID vus
+        bool ssidExistsKarma = false;
+        for (int i = 0; i < ssid_count_Karma; i++) {
+            if (strcmp(ssidsKarma[i], ssidKarma) == 0) {
+                ssidExistsKarma = true;
+                break;
+            }
+        }
 
-            bool ssidExistsKarma = false;
-            for (int i = 0; i < ssid_count_Karma; i++) {
-                if (strcmp(ssidsKarma[i], ssidKarma) == 0) {
-                    ssidExistsKarma = true;
-                    break;
-                }
+        // Si le SSID est dans la whitelist mais pas encore dans la liste des SSID vus
+        if (isSSIDWhitelisted(ssidKarma)) {
+            if (seenWhitelistedSSIDs.find(ssidKarma) == seenWhitelistedSSIDs.end()) {
+                // Si le SSID n'a pas été vu auparavant dans ce scan
+                seenWhitelistedSSIDs.insert(ssidKarma); // Ajoutez-le à l'ensemble
+                Serial.println("SSID in whitelist, ignoring: " + String(ssidKarma));
             }
-            if (!ssidExistsKarma && ssid_count_Karma < MAX_SSIDS_Karma) {
-                strcpy(ssidsKarma[ssid_count_Karma], ssidKarma);
-                updateDisplayWithSSIDKarma(ssidKarma, ++ssid_count_Karma);
-                Serial.print("Found: ");
-                Serial.println(ssidKarma);
-            }
+            return; // Ignorez les SSID de la whitelist
+        }
+
+        // Traiter les SSID non-whitelisted normalement
+        if (!ssidExistsKarma && ssid_count_Karma < MAX_SSIDS_Karma) {
+            strcpy(ssidsKarma[ssid_count_Karma], ssidKarma);
+            updateDisplayWithSSIDKarma(ssidKarma, ++ssid_count_Karma);
+            Serial.print("Found: ");
+            Serial.println(ssidKarma);
+          }
         }
     }
 }
@@ -1919,6 +1933,8 @@ void startScanKarma() {
   esp_wifi_set_promiscuous(false);
   delay(50);
   esp_wifi_set_promiscuous(true);
+  readConfigFile("/config/config.txt");
+  seenWhitelistedSSIDs.clear();
   esp_wifi_set_promiscuous_rx_cb(&packetSnifferKarma);
   Serial.println("-------------------");
   Serial.println("Probe Sniffing Started...");
@@ -2049,6 +2065,7 @@ void executeMenuItemKarma(int indexKarma) {
 void startAPWithSSIDKarma(const char* ssid) {
   clonedSSID = String(ssid);
   isProbeKarmaAttackMode = true;
+  readConfigFile("/config/config.txt");
   createCaptivePortal();
   
   Serial.println("-------------------");
