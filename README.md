@@ -206,6 +206,10 @@ Same as Karma Attack but try the first probe seen, if no client connects after 1
 Can also be used with a password if set on the web interface, if you have a password and you don't know on which AP it work you could try it with different probe request to test if karma work and get the SSID.
 This feature is inspired by the pwnagotchi project but with probe request and karma attack, you can use both to ensure a full attack of the near devices around you.
 
+You can add SSID on KarmaAutoWhitelist line like this : KarmaAutoWhitelist=notmybox,thisonetoo 
+
+Probe should be ignored and serial message send to notify that this network is whitelisted.
+
 ### Select Probe
 
 Menu to select a previous captured probe SSID and deploy it. List is restricted to 150 probes.
