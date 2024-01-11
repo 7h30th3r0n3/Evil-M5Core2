@@ -255,7 +255,8 @@ PIN G1/TXD0
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/flipper-friends.jpg" width="500" />
 </div>
 
-#Discord 
+## Discord 
+
 https://discord.gg/G9qXGVHN 
 
 # License
