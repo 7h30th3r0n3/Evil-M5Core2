@@ -34,6 +34,9 @@
 #include <DNSServer.h>
 #include <SD.h>
 #include <M5Unified.h>
+#include <vector>
+#include <string>
+
 extern "C" {
   #include "esp_wifi.h"
   #include "esp_system.h"
@@ -134,6 +137,8 @@ char lastDeployedSSID[33] = {0};
 const char* configFolderPath = "/config";
 const char* configFilePath = "/config/config.txt";
 int defaultBrightness = 255 * 0.35; //  35% default Brightness
+
+std::vector<std::string> whitelist;
 //config file end 
 
 
@@ -285,7 +290,7 @@ void setup() {
   const char* randomMessage = startUpMessages[randomIndex];
 
   
-  if (!SD.begin(SDCARD_CSPIN, SPI, 40000000)) {
+  if (!SD.begin(SDCARD_CSPIN, SPI, 25000000)) {
     Serial.println("Error..");
     Serial.println("SD card not mounted...");
   }else{
@@ -1911,6 +1916,8 @@ void startScanKarma() {
   ssid_count_Karma = 0;
   M5.Display.clear();
   drawStopButtonKarma();
+  esp_wifi_set_promiscuous(false);
+  delay(50);
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(&packetSnifferKarma);
   Serial.println("-------------------");
@@ -2533,7 +2540,7 @@ void probeAttack() {
       M5.update();
       if (M5.BtnA.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
           lastDebounceTime = currentMillis;
-          delayTime = max(200, delayTime - 100); // min delay
+          delayTime = max(0, delayTime - 100); // min delay
       }
       if (M5.BtnC.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
           lastDebounceTime = currentMillis;
@@ -2576,6 +2583,8 @@ void restoreOriginalWiFiSettings() {
 bool isAPDeploying = false;
 
 void startAutoKarma() {
+  esp_wifi_set_promiscuous(false);
+  delay(50);
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(&autoKarmaPacketSniffer);
 
@@ -2583,6 +2592,7 @@ void startAutoKarma() {
   Serial.println("-------------------");
   Serial.println("Karma Auto Attack Started....");
   Serial.println("-------------------");
+  readConfigFile("/config/config.txt");
   createCaptivePortal();
   loopAutoKarma();
   esp_wifi_set_promiscuous(false);
@@ -2611,6 +2621,44 @@ void autoKarmaPacketSniffer(void* buf, wifi_promiscuous_pkt_type_t type) {
   }
 }
 
+
+
+bool readConfigFile(const char* filename) {
+    whitelist.clear(); // Efface la liste existante
+    File configFile = SD.open(filename);
+    if (!configFile) {
+        Serial.println("Failed to open config file");
+        return false;
+    }
+
+    while (configFile.available()) {
+        String line = configFile.readStringUntil('\n');
+        if (line.startsWith("KarmaAutoWhitelist=")) {
+            int startIndex = line.indexOf('=') + 1;
+            String ssidList = line.substring(startIndex);
+            if (!ssidList.length()) { // Liste vide
+                break;
+            }
+            int lastIndex = 0, nextIndex;
+            while ((nextIndex = ssidList.indexOf(',', lastIndex)) != -1) {
+                whitelist.push_back(ssidList.substring(lastIndex, nextIndex).c_str());
+                lastIndex = nextIndex + 1;
+            }
+            whitelist.push_back(ssidList.substring(lastIndex).c_str()); // Ajoute le dernier élément
+        }
+    }
+    configFile.close();
+    return true;
+}
+
+bool isSSIDWhitelisted(const char* ssid) {
+    for (const auto& wssid : whitelist) {
+        if (wssid == ssid) {
+            return true;
+        }
+    }
+    return false;
+}
 
 void loopAutoKarma() {
   while (isAutoKarmaActive) {
@@ -2659,6 +2707,12 @@ void loopAutoKarma() {
 }
 
 void activateAPForAutoKarma(const char* ssid) {
+    if (blo(ssid)) {
+      Serial.println("-------------------");
+      Serial.println("SSID in the whitelist, skipping : " + String(ssid));
+      Serial.println("-------------------");
+      return;
+  }
   if (strcmp(ssid, lastDeployedSSID) == 0) {
       Serial.println("-------------------");
       Serial.println("Skipping already deployed probe : " + String(lastDeployedSSID));
