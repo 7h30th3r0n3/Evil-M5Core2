@@ -1741,17 +1741,37 @@ void saveConfigParameter(String key, int value) {
   if (!SD.exists(configFolderPath)) {
     SD.mkdir(configFolderPath);
   }
-  File configFile = SD.open(configFilePath, FILE_WRITE);
+
+  String content = "";
+  File configFile = SD.open(configFilePath, FILE_READ);
   if (configFile) {
-    configFile.println(key + "=" + value);
+    while (configFile.available()) {
+      content += configFile.readStringUntil('\n') + '\n';
+    }
+    configFile.close();
+  } else {
+    Serial.println("Error when opening config.txt for reading");
+    return;
+  }
+
+  int startPos = content.indexOf(key + "=");
+  if (startPos != -1) {
+    int endPos = content.indexOf('\n', startPos);
+    String oldValue = content.substring(startPos, endPos);
+    content.replace(oldValue, key + "=" + String(value));
+  } else {
+    content += key + "=" + String(value) + "\n";
+  }
+
+  configFile = SD.open(configFilePath, FILE_WRITE);
+  if (configFile) {
+    configFile.print(content);
     configFile.close();
     Serial.println(key + " saved!");
   } else {
-    Serial.println("Error when opening config.txt");
+    Serial.println("Error when opening config.txt for writing");
   }
 }
-
-
 
 
 
