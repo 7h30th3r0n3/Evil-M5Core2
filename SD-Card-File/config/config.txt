@@ -1,2 +1,2 @@
 brightness=33
-KarmaAutoWhitelist=
+KarmaAutoWhitelist=notmybox,thisonetoo
