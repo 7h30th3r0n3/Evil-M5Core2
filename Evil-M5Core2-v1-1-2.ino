@@ -2707,7 +2707,7 @@ void loopAutoKarma() {
 }
 
 void activateAPForAutoKarma(const char* ssid) {
-    if (blo(ssid)) {
+    if (isSSIDWhitelisted(ssid)) {
       Serial.println("-------------------");
       Serial.println("SSID in the whitelist, skipping : " + String(ssid));
       Serial.println("-------------------");
