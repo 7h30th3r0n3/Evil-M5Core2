@@ -53,8 +53,12 @@ Functionnality :
 
 (For the moment no portal is sent it just tests if a device connect).
 
-Hardware Requirements :
-- M5AtomS3 
+Hardware Requirement :
+- M5AtomS3
+  
+Software Requirement :
+This little parasite use m5stack-avatar to render face, donwload avatar librairie before compile.
+- https://github.com/meganetaaan/m5stack-avatar
 
 It pretty small so you can also check serial on USB to get information.
 
