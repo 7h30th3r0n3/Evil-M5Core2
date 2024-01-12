@@ -21,10 +21,44 @@
   
 With more than 100 references at each boot.
 
+
+## !! New Parasite Added !! 
+
+<div align="center">
+Your Evil-Core 2 or Flipper Zero feels lonely?
+  
+**Add a small parasite to it !!!**
+</div>
+
+<div align="center">
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/evil-atom.jpg" width="200" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/evil-atom2.jpg" width="200" />
+</div>
+
+<div align="center">
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/atom-flipper.jpg" width="200" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/atom-flipper-probes.jpg" width="200" />
+  
+He can also be used standalone but he needs a host for energy like a phone or a powersupply to survive or he die. 
+</div>
 </div>
 </div>
 
-## Features
+Functionnality : 
+
+- **Cute** (yes it's a useful feature to survive).
+- **Accelerometer interaction** (don't shake it or it get mad).
+- **AutoKarmaAttack** when face is pressed ( when a karma attack is successfull your little parasiste tell the name of the SSID in a textbubble until the next karma successfull or death).
+- **Whitelist** (hardcoded, need to be change by compiling the code again)
+
+(For the moment no portal is sent it just tests if a device connect).
+
+Hardware Requirements :
+- M5AtomS3 
+
+It pretty small so you can also check serial on USB to get information.
+
+## Features Evil-M5core2
 
 - **WiFi Network Scanning**: Identify and display nearby WiFi networks.
 - **Network Cloning**: Check information and replicate networks for in-depth analysis.
@@ -37,11 +71,12 @@ With more than 100 references at each boot.
 
 ## Hardware Requirements
 
-- M5Core2 device (this project is coded with M5Unified, it should work on other M5Stack)
-- SD card
+- M5Stack Core2 (this project is coded with M5Unified, it should work on other M5Stack).
+- SD card (fat32 max 32Go, consider 8Go is already more than enough).
 
-tested working others device :
+Tested working others device :
 - M5stack fire
+- M5stack core1
   
 ## Installation
 
@@ -59,10 +94,12 @@ First time or is something not working correctly? You should check out Samxplogs
     <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/ueIAf9Q3EeM/0.jpg" width="33%" height="33%"/>
 </a>
 
-### Screenshots and Media
+
 
 <div align="center">
-
+  
+### Screenshots and Media
+  
 #### Booting Screen
 <div align="center">
   
