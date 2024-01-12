@@ -22,7 +22,7 @@
    SOFTWARE.
 
    Disclaimer:
-   This tool, Evil-M5Core2, is developed for educational and ethical testing purposes only. 
+   This tool, Evil-AtomS3 and Evil-M5Core2, is developed for educational and ethical testing purposes only. 
    Any misuse or illegal use of this tool is strictly prohibited. The creator of Evil-M5Core2 
    assumes no liability and is not responsible for any misuse or damage caused by this tool. 
    Users are required to comply with all applicable laws and regulations in their jurisdiction 
