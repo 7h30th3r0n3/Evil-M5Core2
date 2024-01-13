@@ -2519,48 +2519,84 @@ void setRandomMAC() {
   delay(50);
 }
 
+std::vector<String> readCustomProbes(const char* filename) {
+    File file = SD.open(filename, FILE_READ);
+    std::vector<String> customProbes;
+
+    if (!file) {
+        Serial.println("Failed to open file for reading");
+        return customProbes;
+    }
+
+    while (file.available()) {
+        String line = file.readStringUntil('\n');
+        if (line.startsWith("CustomProbes=")) {
+            String probesStr = line.substring(String("CustomProbes=").length());
+            int idx = 0;
+            while ((idx = probesStr.indexOf(',')) != -1) {
+                customProbes.push_back(probesStr.substring(0, idx));
+                probesStr = probesStr.substring(idx + 1);
+            }
+            if (probesStr.length() > 0) {
+                customProbes.push_back(probesStr); // Ajouter le dernier élément
+            }
+            break;
+        }
+    }
+    file.close();
+    return customProbes;
+}
+
+
+
 int checkNb = 0;
 
 void probeAttack() {
-  WiFi.mode(WIFI_MODE_STA);
-  M5.Display.clear();
+    WiFi.mode(WIFI_MODE_STA);
+    bool useCustomProbes = confirmPopup("Use custom probes?");
+    M5.Display.clear();
+    std::vector<String> customProbes;
+    if (useCustomProbes) {
+        customProbes = readCustomProbes("/config/config.txt"); // Remplacez par le chemin réel du fichier
+    }
 
-  int probeCount = 0;
-  int delayTime = 500; // initial probes delay
-  unsigned long previousMillis = 0;
-  const int debounceDelay = 200; 
-  unsigned long lastDebounceTime = 0;
-  
-  M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
-  M5.Display.setCursor(135, M5.Display.height() - 40);
-  M5.Display.setTextColor(TFT_WHITE);
-  M5.Display.println("Stop");
-  
-  int probesTextX = 10;
-  String probesText = "Probe Attack running...";
-  M5.Display.setCursor(probesTextX, 50);
-  M5.Display.println(probesText);
-  probesText = "Probes sent: ";
-  M5.Display.setCursor(probesTextX, 70);
-  M5.Display.print(probesText);
-  Serial.println("-------------------");
-  Serial.println("Starting Probe Attack");
-  Serial.println("-------------------");
-  
-  while (true) {
-      unsigned long currentMillis = millis();
+    int probeCount = 0;
+    int delayTime = 500; // initial probes delay
+    unsigned long previousMillis = 0;
+    const int debounceDelay = 200; 
+    unsigned long lastDebounceTime = 0;
+    
+    M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
+    M5.Display.setCursor(135, M5.Display.height() - 40);
+    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.println("Stop");
+    
+    int probesTextX = 10;
+    String probesText = "Probe Attack running...";
+    M5.Display.setCursor(probesTextX, 50);
+    M5.Display.println(probesText);
+    probesText = "Probes sent: ";
+    M5.Display.setCursor(probesTextX, 70);
+    M5.Display.print(probesText);
+    Serial.println("-------------------");
+    Serial.println("Starting Probe Attack");
+    Serial.println("-------------------");
+    
+    while (true) {
+        unsigned long currentMillis = millis();
 
-      if (currentMillis - previousMillis >= delayTime) {
-          previousMillis = currentMillis;
-          setRandomMAC();
-          checkNb++;
+        if (currentMillis - previousMillis >= delayTime) {
+            previousMillis = currentMillis;
 
-              setNextWiFiChannel();
-              checkNb = 0;
-          
-          String randomSSID1 = generateRandomSSID(32);    
-          WiFi.begin(randomSSID1.c_str(), "");
-          
+            String ssid;
+            if (!customProbes.empty()) {
+                ssid = customProbes[probeCount % customProbes.size()]; // Utiliser un probe personnalisé
+            } else {
+                ssid = generateRandomSSID(32); // Utiliser un SSID aléatoire
+            }
+
+            WiFi.begin(ssid.c_str(), "");
+
           M5.Display.setCursor(probesTextX + probesText.length() * 12, 70);
           M5.Display.fillRect(probesTextX + probesText.length() * 12, 70, 50, 20, TFT_BLACK);
           M5.Display.print(++probeCount);
@@ -2570,14 +2606,13 @@ void probeAttack() {
           M5.Display.setCursor(100, M5.Display.height() / 2);
           M5.Display.print("Delay: " + String(delayTime) + "ms");
 
-          Serial.println("Probe sent: " + randomSSID1);
-
+            Serial.println("Probe sent: " + ssid);
       }
 
       M5.update();
       if (M5.BtnA.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
           lastDebounceTime = currentMillis;
-          delayTime = max(0, delayTime - 100); // min delay
+          delayTime = max(200, delayTime - 100); // min delay
       }
       if (M5.BtnC.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
           lastDebounceTime = currentMillis;
