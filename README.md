@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.2 - Karma Auto
+# Evil-M5Core2 v1.1.3 - Serial Command
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -275,8 +275,6 @@ Upload a startup.jpg 320x240 image to replace original startup.jpg and make your
 ### **Yes, it is !!!**
 
 Evil-M5Core2 sends messages via serial for debugging purposes and message when you navigate on the Core2, you can use the serial app on Flipper to see these messages.
-
-
 Plug your flipper with :
 
 - On flipper : 
@@ -295,6 +293,28 @@ PIN G1/TXD0
 <div align="center">
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/flipper-friends.jpg" width="500" />
 </div>
+
+You can also control almost all functionnaly with serial:
+
+Available Commands:
+- scan_wifi - Scan for WiFi networks
+- select_network <index> - Select a network by index for operations
+- detail_ssid <index> - Show details of a specific WiFi network
+- clone_ssid - Clone the selected network SSID for captive portal
+- start_portal - Start the captive portal
+- stop_portal - Stop the captive portal
+- list_portal - List available portal files
+- change_portal <index> - Change the current portal to another
+- check_credentials - Check for saved credentials
+- probe_attack - Start a probe request attack
+- stop_probe_attack - Stop the probe request attack
+- probe_sniffing - Start sniffing for probe requests
+- stop_probe_sniffing - Stop sniffing for probe requests
+- list_probes - List captured probe requests
+- select_probes <index> - Select captured probe request by index
+- karma_auto - Start an automatic karma attack that stop automaticaly when successfull
+
+
 
 ## Discord 
 
