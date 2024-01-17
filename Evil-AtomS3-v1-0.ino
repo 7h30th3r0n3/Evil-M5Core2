@@ -22,7 +22,7 @@
    SOFTWARE.
 
    Disclaimer:
-   This tool, Evil-AtomS3 and Evil-M5Core2, is developed for educational and ethical testing purposes only. 
+   This tool, Evil-M5Core2, is developed for educational and ethical testing purposes only. 
    Any misuse or illegal use of this tool is strictly prohibited. The creator of Evil-M5Core2 
    assumes no liability and is not responsible for any misuse or damage caused by this tool. 
    Users are required to comply with all applicable laws and regulations in their jurisdiction 
@@ -161,6 +161,14 @@ void createCaptivePortal() {
 bool isAPDeploying = false;
 
 void startAutoKarma() {
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); //petite pause
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(&autoKarmaPacketSniffer);
 
