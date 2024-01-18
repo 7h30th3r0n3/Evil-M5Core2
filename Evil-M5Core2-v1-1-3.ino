@@ -478,7 +478,7 @@ void firstScanWifiNetworks() {
         numSsid = min(n, 100);
         for (int i = 0; i < numSsid; i++) {
             ssidList[i] = WiFi.SSID(i);
-            Serial.print(i); // Affiche l'indice (en commençant par 1)
+            Serial.print(i);
             Serial.print(": ");
             Serial.println(ssidList[i]);
         }
@@ -2956,13 +2956,15 @@ String generateRandomMAC() {
   return String(macStr);
 }
 
-void setRandomMAC() {
-  String mac = generateRandomMAC();
-  uint8_t macArray[6];
-  sscanf(mac.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &macArray[0], &macArray[1], &macArray[2], &macArray[3], &macArray[4], &macArray[5]);
-  esp_wifi_set_mac(WIFI_IF_STA, macArray);
-  delay(50);
+void setRandomMAC_STA() {
+    String mac = generateRandomMAC();
+    uint8_t macArray[6];
+    sscanf(mac.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &macArray[0], &macArray[1], &macArray[2], &macArray[3], &macArray[4], &macArray[5]);
+    esp_wifi_set_mac(WIFI_IF_STA, macArray);
+    delay(50);
 }
+
+
 
 std::vector<String> readCustomProbes(const char* filename) {
     File file = SD.open(filename, FILE_READ);
@@ -3043,7 +3045,7 @@ void probeAttack() {
         handleDnsRequestSerial();
         if (currentMillis - previousMillis >= delayTime) {
             previousMillis = currentMillis;
-            setRandomMAC();
+            setRandomMAC_STA();
             setNextWiFiChannel();
             String ssid;
             if (!customProbes.empty()) {
@@ -3149,6 +3151,7 @@ void startAutoKarma() {
 
   readConfigFile("/config/config.txt");
   createCaptivePortal();
+  WiFi.softAPdisconnect(true);
   loopAutoKarma();
   esp_wifi_set_promiscuous(false);
 }
@@ -3216,6 +3219,72 @@ bool isSSIDWhitelisted(const char* ssid) {
     return false;
 }
 
+
+uint8_t originalMACKarma[6];
+
+void saveOriginalMACKarma() {
+  esp_wifi_get_mac(WIFI_IF_AP, originalMACKarma);
+}
+
+void restoreOriginalMACKarma() {
+  esp_wifi_set_mac(WIFI_IF_AP, originalMACKarma);
+}
+
+String generateRandomMACKarma() {
+    uint8_t mac[6];
+    for (int i = 0; i < 6; ++i) {
+        mac[i] = random(0x00, 0xFF);
+    }
+    // Force unicast byte
+    mac[0] &= 0xFE; 
+
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return String(macStr);
+}
+
+void setRandomMAC_APKarma() {
+
+    esp_wifi_stop();
+
+    wifi_mode_t currentMode;
+    esp_wifi_get_mode(&currentMode);
+    if (currentMode != WIFI_MODE_AP && currentMode != WIFI_MODE_APSTA) {
+        esp_wifi_set_mode(WIFI_MODE_AP);
+    }
+    
+    String macKarma = generateRandomMACKarma();
+    uint8_t macArrayKarma[6];
+    sscanf(macKarma.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &macArrayKarma[0], &macArrayKarma[1], &macArrayKarma[2], &macArrayKarma[3], &macArrayKarma[4], &macArrayKarma[5]);
+
+    esp_err_t ret = esp_wifi_set_mac(WIFI_IF_AP, macArrayKarma);
+    if (ret != ESP_OK) {
+        Serial.print("Error setting MAC: ");
+        Serial.println(ret);
+        esp_wifi_set_mode(currentMode);
+        return;
+    } 
+
+    ret = esp_wifi_start();
+    if (ret != ESP_OK) {
+        Serial.print("Error starting WiFi: ");
+        Serial.println(ret);
+        esp_wifi_set_mode(currentMode);
+        return;
+    } 
+}
+
+
+
+String getMACAddress() {
+    uint8_t mac[6];
+    esp_wifi_get_mac(WIFI_IF_AP, mac);
+    char macStr[18];
+    sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return String(macStr);
+}
+
+
 void loopAutoKarma() {
   while (isAutoKarmaActive) {
       M5.update();
@@ -3235,13 +3304,11 @@ void loopAutoKarma() {
           Serial.println("-------------------");
           break;
       }
-
-      
       if (newSSIDAvailable) {
           newSSIDAvailable = false;
-          activateAPForAutoKarma(lastSSID);
+          activateAPForAutoKarma(lastSSID); // Activate the AP
           isWaitingForProbeDisplayed = false;
-      } else {
+    } else {
           if (!isWaitingForProbeDisplayed || (millis() - lastProbeDisplayUpdate > 1000)) {
               displayWaitingForProbe();
               Serial.println("-------------------");
@@ -3300,14 +3367,18 @@ void activateAPForAutoKarma(const char* ssid) {
   }
   isAPDeploying = true;
   isInitialDisplayDone = false;
+  setRandomMAC_APKarma(); // Set random MAC for AP          
+  
   if (captivePortalPassword == ""){
      WiFi.softAP(ssid);
   }else{
      WiFi.softAP(ssid ,captivePortalPassword.c_str());
   }
-
+  // Display MAC, SSID, and channel
+  String macAddress = getMACAddress();
   Serial.println("-------------------");
   Serial.println("Starting Karma AP for : " + String(ssid));
+  Serial.print("MAC Address: "); Serial.println(macAddress);
   Serial.println("Time :" + String(autoKarmaAPDuration / 1000) + " s" );
   Serial.println("-------------------");
   unsigned long startTime = millis();
@@ -3344,12 +3415,22 @@ void activateAPForAutoKarma(const char* ssid) {
           waitAndReturnToMenu("Karma Successful !!! ");
           return;
       }
-
       delay(100);
   }
   strncpy(lastDeployedSSID, ssid, sizeof(lastDeployedSSID) - 1);
   
   WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_MODE_STA);
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); // Petite pause pour s'assurer que tout est terminé
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
+  esp_wifi_set_promiscuous(true);
+  esp_wifi_set_promiscuous_rx_cb(&autoKarmaPacketSniffer);
   isAPDeploying = false;
   isWaitingForProbeDisplayed = false;
 
@@ -3358,6 +3439,7 @@ void activateAPForAutoKarma(const char* ssid) {
   Serial.println("-------------------");
   Serial.println("Karma Fail for : " + String(ssid));
   Serial.println("-------------------");
+  
     if (ledOn){
     pixels.setPixelColor(0, pixels.Color(0,0,0)); 
     pixels.setPixelColor(9, pixels.Color(0,0,0)); 
