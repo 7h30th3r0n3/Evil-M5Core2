@@ -44,7 +44,7 @@ He can also be used standalone but he needs a host for energy like a phone or a 
 </div>
 </div>
 
-Functionnality : 
+Parasite Functionnality : 
 
 - **Cute** (yes it's a useful feature to survive).
 - **Accelerometer interaction** (don't shake it or it get mad).
@@ -81,6 +81,9 @@ It pretty small so you can also check serial on USB to get information.
 Tested working others device :
 - M5stack fire
 - M5stack core1
+- M5stack AWS
+
+It should also work on another esp32 board with SD card but only via serial.
   
 ## Installation
 
@@ -89,16 +92,11 @@ Tested working others device :
 3. Ensure M5unified and adafruit_neopixel libraries are installed.
 4. Ensure esp32 and M5stack board are installed (Error occur with esp32 3.0.0-alpha3, please use esp32 v2.0.14 and below).
 5. Place SD file content needed on the SD card. ( Needed to get IMG startup and sites folder).
-6. Upload the script to your M5Core2 device.
-7. Restart the device if needed.
+6. Ensure that the baudrates is at 115200.
+7. Upload the script to your M5Core2 device.
+8. Restart the device if needed.
 
-First time or is something not working correctly? You should check out Samxplogs tutorial video thx to him :
-
-<a href="https://www.youtube.com/watch?v=ueIAf9Q3EeM">
-    <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/ueIAf9Q3EeM/0.jpg" width="33%" height="33%"/>
-</a>
-
-
+First time or is something not working correctly? You should check out 
 
 <div align="center">
   
@@ -125,13 +123,26 @@ With more than 100 references at each boot.
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2-/blob/main/Github-Img/low-battery.jpg" width="300" />
 
 
-#### Video 
+### Video 
+Samxplogs tutorial video thx to him :
 
-<a href="https://www.youtube.com/watch?v=jcVm4cysmnE">
-    <img alt="Talking Sasquatch" src="https://img.youtube.com/vi/jcVm4cysmnE/0.jpg" width="50%" height="33%"/>
+<a href="https://www.youtube.com/watch?v=ueIAf9Q3EeM">
+    <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/ueIAf9Q3EeM/0.jpg" width="33%" height="33%"/>
 </a>
 
-Thx to TalkingSasquatch for making a video about the project
+You want a demo ? :
+
+<a href="https://www.youtube.com/watch?v=qr01vU4UIJc">
+    <img alt="Samxplogs Features" src="https://img.youtube.com/vi/qr01vU4UIJc/0.jpg" width="33%" height="33%"/>
+</a>
+
+More demo ? Thx to TalkingSasquatch for making a video about the project : 
+
+<a href="https://www.youtube.com/watch?v=jcVm4cysmnE">
+    <img alt="Talking Sasquatch" src="https://img.youtube.com/vi/jcVm4cysmnE/0.jpg" width="33%" height="33%"/>
+</a>
+
+
 </div>
 </div>
 
@@ -249,7 +260,7 @@ This feature is inspired by the pwnagotchi project but with probe request and ka
 
 You can add SSID on KarmaAutoWhitelist line like this : KarmaAutoWhitelist=notmybox,thisonetoo 
 
-Probe should be ignored and serial message send to notify that this network is whitelisted.
+Probe should be ignored and serial message send to notify that this network is whitelisted, it also work on probe sniffing and karma attack.
 
 ### Select Probe
 
@@ -294,7 +305,9 @@ PIN G1/TXD0
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/flipper-friends.jpg" width="500" />
 </div>
 
-You can also control almost all functionnaly with serial:
+### NEW ! from v1.1.3 : Serial Command 
+
+You can control almost all functionnaly with serial command:
 
 Available Commands:
 - scan_wifi - Scan for WiFi networks
@@ -313,7 +326,6 @@ Available Commands:
 - list_probes - List captured probe requests
 - select_probes <index> - Select captured probe request by index
 - karma_auto - Start an automatic karma attack that stop automaticaly when successfull
-
 
 
 ## Discord 
