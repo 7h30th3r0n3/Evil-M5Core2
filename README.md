@@ -330,7 +330,7 @@ Available Commands:
 
 ## Discord 
 
-https://discord.gg/G9qXGVHN 
+https://discord.com/invite/V3FDEC6Q
 
 # License
 
