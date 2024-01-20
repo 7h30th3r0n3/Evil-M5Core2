@@ -96,7 +96,7 @@ It should also work on another esp32 board with SD card but only via serial.
 7. Upload the script to your M5Core2 device.
 8. Restart the device if needed.
 
-First time or is something not working correctly? You should check out 
+It's your first time with arduino IDE or something not working correctly? You should check out video section ! 
 
 <div align="center">
   
