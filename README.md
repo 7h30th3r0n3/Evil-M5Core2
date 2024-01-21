@@ -154,14 +154,17 @@ With more than 100 references at each boot.
 
 
 ### Video 
-Samxplogs tutorial video thx to him :
+🇫🇷 Le turoriel et la démo en francais réalisé par Samxplogs 🇫🇷 (un trés grand merci à lui) :
+
+<a href="https://www.youtube.com/watch?v=JqByBCvLoXY">
+    <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/JqByBCvLoXY/0.jpg" width="33%" height="33%"/>
+</a>
+
+Samxplogs tutorial video and demo thx to him :
 
 <a href="https://www.youtube.com/watch?v=ueIAf9Q3EeM">
     <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/ueIAf9Q3EeM/0.jpg" width="33%" height="33%"/>
 </a>
-
-You want a demo ? :
-
 <a href="https://www.youtube.com/watch?v=qr01vU4UIJc">
     <img alt="Samxplogs Features" src="https://img.youtube.com/vi/qr01vU4UIJc/0.jpg" width="33%" height="33%"/>
 </a>
