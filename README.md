@@ -97,9 +97,11 @@ You can now control your Evil-M5Core2 via Bluetooth with serial bluetooth termin
 - **Credential Handling**: Capture and manage portal credentials.
 - **Remote Web Server**: Monitor the device remotely via a simple web interface that can provide credentials and upload portal that store file on SD card.
 - **Sniffing probes**: Sniff and store on SD near probes.
-- **Karma Attack**: Try a simple Karma Attack on a captured probe.
+- **Karma Attack**: Try a simple Karma Attack on a captured probe. 
 - **Automated Karma Attack**: Try Karma Attack on near probe automatically.
 - **Bluetooth Serial Control**: You can control it with bluetooth.
+
+ ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
 
 ## Hardware Requirements
 
