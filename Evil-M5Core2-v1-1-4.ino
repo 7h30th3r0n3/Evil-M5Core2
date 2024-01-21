@@ -322,6 +322,9 @@ void setup() {
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
   randomSeed(esp_random());
+
+  int randomIndex = random(numMessages);
+  const char* randomMessage = startUpMessages[randomIndex];
   
   if (!SD.begin(SDCARD_CSPIN, SPI, 25000000)) {
     Serial.println("Error..");
