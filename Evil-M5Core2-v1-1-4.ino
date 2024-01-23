@@ -59,7 +59,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Select Probe", "Delete Probe", "Delete All Probes", "Brigthness", "Bluetooth ON/OFF" };
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF" };
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 10;
@@ -1111,8 +1111,12 @@ while (!inMenu) {
   }
 }
 
-void showWifiDetails(int networkIndex) {
-if (networkIndex >= 0 && networkIndex < numSsid) {
+
+void showWifiDetails(int &networkIndex) {
+  inMenu = false;
+
+  auto updateDisplay = [&](){
+       if (networkIndex >= 0 && networkIndex < numSsid) {
     M5.Display.clear();
     M5.Display.setTextSize(2);
     int y = 10; 
@@ -1147,10 +1151,12 @@ if (networkIndex >= 0 && networkIndex < numSsid) {
     M5.Display.println("MAC: " + (macAddress.length() > 0 ? macAddress : "N/A"));
     y += 20;
     
-    M5.Display.setCursor(230, 220);
-    M5.Display.println("Clone");
+    M5.Display.setCursor(35, 220);
+    M5.Display.println("Next");
     M5.Display.setCursor(140, 220);
     M5.Display.println("Back");
+    M5.Display.setCursor(238, 220);
+    M5.Display.println("Clone");
     
     M5.Display.display();
     Serial.println("------Wifi-Info----");
@@ -1160,23 +1166,37 @@ if (networkIndex >= 0 && networkIndex < numSsid) {
     Serial.println("Signal: " + String(rssi) + " dBm");
     Serial.println("MAC: " + macAddress);
     Serial.println("-------------------");
+    }
 
-    while (!inMenu) {
-      M5.update();
-      handleDnsRequestSerial();
-      if (M5.BtnC.wasPressed()) {
-        cloneSSIDForCaptivePortal(ssidList[networkIndex]);
-        inMenu = true;
-        waitAndReturnToMenu(ssidList[networkIndex] + " Cloned...");
-        Serial.println(ssidList[networkIndex] + " Cloned...");
-        drawMenu(); 
-      } else if (M5.BtnB.wasPressed()) {
-        inMenu = true;
-        drawMenu(); 
-      }
+  };
+
+  updateDisplay(); 
+
+  while (!inMenu) {
+    M5.update();
+    handleDnsRequestSerial();
+
+    if (M5.BtnC.wasPressed()) {
+      cloneSSIDForCaptivePortal(ssidList[networkIndex]);
+      inMenu = true;
+      waitAndReturnToMenu(ssidList[networkIndex] + " Cloned...");
+      Serial.println(ssidList[networkIndex] + " Cloned...");
+      drawMenu();
+      break; // Sortir de la boucle
+    } else if (M5.BtnA.wasPressed()) {
+      networkIndex = (networkIndex + 1) % numSsid;
+      updateDisplay(); 
+    } else if (M5.BtnB.wasPressed()) {
+      inMenu = true;
+      drawMenu();
+      break;
+    } else if (M5.BtnPWR.wasClicked()) {
+      networkIndex = (networkIndex - 1 + numSsid) % numSsid;
+      updateDisplay(); 
     }
   }
 }
+
 
 String getWifiSecurity(int networkIndex) {
   switch (WiFi.encryptionType(networkIndex)) {
