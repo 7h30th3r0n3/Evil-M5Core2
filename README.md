@@ -72,6 +72,7 @@ It pretty small so you can also check serial on USB to get information.
 
 You can now control your Evil-M5Core2 via Bluetooth with serial bluetooth terminal 
 ( Note that Command with promiscious mode like probes sniffing, karma attack or karma auto can't work with BLE enable )
+( Due to lack of implementation on esp librairy password protection is ensured by a password in serial dont forget to change it in the code)
 
 - scan_wifi - Scan WiFi Networks
 - select_network <index> - Select WiFi <index>
@@ -88,6 +89,7 @@ You can now control your Evil-M5Core2 via Bluetooth with serial bluetooth termin
 - monitor_status - Get current information on device
 - list_probes - Show Probes
 - select_probes <index> - Choose Probe <index>
+- exit - !! This command exit the serial bluetooth connexion and set the password for new connexion
 
 ## Features Evil-M5core2
 
