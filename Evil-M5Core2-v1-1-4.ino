@@ -29,7 +29,7 @@
    regarding network testing and ethical hacking.
 */
 // remember to change hardcoded webpassword below in the code to ensure no unauthorized access to web interface : !!!!!! CHANGE THIS !!!!! 
-// Also remember that bluetooth is not protected and anyone can connect to it without pincode ( esp librairies issue)
+// Also remember that bluetooth is not protected and anyone can connect to it without pincode ( esp librairies issue) to ensure protection serial password is implemented
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
@@ -48,6 +48,16 @@ extern "C" {
   #include "esp_wifi.h"
   #include "esp_system.h"
 }
+
+
+// bluetooth password pass
+enum ConnectionState {
+    AWAITING_PASSWORD,
+    AUTHENTICATED
+};
+ConnectionState connectionState = AWAITING_PASSWORD;
+// end bluetooth password pass
+
 
 int ledOn = true;// change this to true to get cool led effect (only on fire)
 
@@ -82,9 +92,10 @@ const char* password = ""; // wifi password
 // password for web access to remote check captured credentials and send new html file !!!!!! CHANGE THIS !!!!!
 const char* accessWebPassword = "7h30th3r0n3"; // !!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-const char* bluetoothName = "E7vhi3l0tMh53Cro0rne32";
+const char* bluetoothName = "E7vhi3l0tMh53Cro0rne32"; // !!!!!! CHANGE THIS !!!!!
+#define bluetoothSerialPassword "7h30th3r0n3" // !!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-
+//!!!!!! CHANGE THIS !!!!!
 
 String portalFiles[30]; // 30 portals max 
 int numPortalFiles = 0;
@@ -648,23 +659,23 @@ void drawMenu() {
 }
 
 
-void handleDnsRequestSerial(){
-      dnsServer.processNextRequest();
-      server.handleClient();
-     if (Serial.available()) {
-    String command = Serial.readStringUntil('\n');
-      checkSerialCommands(command);
+void handleDnsRequestSerial() {
+    dnsServer.processNextRequest();
+    server.handleClient();
+    if (Serial.available()) {
+        String command = Serial.readStringUntil('\n');
+        checkSerialCommands(command, false);  
     }
-    if (ESP_BT.available()) { 
+    if (ESP_BT.available()) {
         String command = "";
-        while (ESP_BT.available()) { 
-            char c = ESP_BT.read(); 
+        while (ESP_BT.available()) {
+            char c = ESP_BT.read();
             command += c;
-            if (c == '\n') { 
+            if (c == '\n') {
                 break;
             }
         }
-        checkSerialCommands(command);
+        checkSerialCommands(command, true); 
     }
 }
 
@@ -685,7 +696,7 @@ void onOffBleSerial() {
         esp_wifi_deinit();
         waitAndReturnToMenu("   Bluetooth ON");
         ESP_BT.begin(bluetoothName); 
-        ESP_BT.setPin("730303"); // NOT WORKING // WORK ONLY WITH esp v1.0.1 
+        ESP_BT.setPin("730303"); // NOT WORKING // WORK ONLY WITH esp v1.0.1 // workaround password in serial
         Serial.println("Bluetooth turned on");
     }
     bluetoothEnabled = !bluetoothEnabled; 
@@ -750,8 +761,23 @@ bool isProbeAttackRunning = false;
 bool stopProbeSniffingViaSerial = false;
 bool isProbeSniffingRunning = false;
 
-void checkSerialCommands(String command) {
-  command.trim();
+void checkSerialCommands(String command, bool fromBluetooth) {
+ command.trim();
+    if (fromBluetooth) {
+        if (connectionState == AWAITING_PASSWORD) {
+            if (command.equals(bluetoothSerialPassword)) {
+                connectionState = AUTHENTICATED;
+                ESP_BT.println("Password correct, you are now authenticated");
+                return;
+            } else {
+                ESP_BT.println("Password protected.");
+                ESP_BT.disconnect();
+                return;
+            }
+        }
+    }
+
+ if (connectionState == AUTHENTICATED || !fromBluetooth) {
   if (command == "scan_wifi") {
     isOperationInProgress = true;
     inMenu = false;
@@ -892,7 +918,13 @@ void checkSerialCommands(String command) {
     inMenu = false;
     startAutoKarma();
     delay(200);
-  } else if (command == "help") {
+  } else if (command == "exit") {
+    Serial.println("Disconnecting Bluetooth.");
+    ESP_BT.println("Disconnecting. Connexion protected by Password.");
+    ESP_BT.disconnect(); 
+    connectionState = AWAITING_PASSWORD;  
+    return;  
+    } else if (command == "help") {
     Serial.println("-------------------");
     sendBLE("-------------------");
     Serial.println("Available Commands:");
@@ -932,6 +964,7 @@ void checkSerialCommands(String command) {
     Serial.println("select_probes <index> - Choose Probe <index>");
     sendBLE("select_probes <index> - Choose Probe <index>");
     Serial.println("karma_auto - Auto Karma Attack Mode");
+    sendBLE("exit - !! exit and set password for new connexion !!");
     Serial.println("-------------------");
     sendBLE("-------------------");
   } else {
@@ -942,6 +975,7 @@ void checkSerialCommands(String command) {
     Serial.println("-------------------");
     sendBLE("-------------------");
   }
+}
 }
 
 void sendBLE(String message) {
@@ -2840,8 +2874,6 @@ void startAPWithSSIDKarma(const char* ssid) {
   ssid_count_Karma = 0;
   drawMenu();  
 }
-
-
 
 void listProbes() {
     File file = SD.open("/probes.txt", FILE_READ);
