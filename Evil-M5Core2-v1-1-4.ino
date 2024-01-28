@@ -667,6 +667,33 @@ void drawMenu() {
 }
 
 
+void drawScreenTitle(String text) {
+    M5.Display.setTextSize(2);
+    M5.Display.setTextFont(1);
+
+    int lineHeight = 22;
+    int startX = 5;
+    int startY = 0;
+
+    M5.Display.fillRect(0, startY * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+    M5.Display.setTextColor(TFT_GREEN);
+    M5.Display.setCursor(startX, startY * lineHeight + (lineHeight / 2) - 8);
+    M5.Display.println(text);
+}
+
+
+void drawButtonBar(int start1, String text1, int start2, String text2, int start3, String text3) {
+    M5.Display.setTextColor(TFT_DARKGRAY);
+    M5.Display.setCursor(start1, 220);
+    M5.Display.println(text1);
+    M5.Display.setCursor(start2, 220);
+    M5.Display.println(text2);
+    M5.Display.setCursor(start3, 220);
+    M5.Display.println(text3);
+    M5.Display.display();
+}
+
+
 void handleDnsRequestSerial() {
     dnsServer.processNextRequest();
     server.handleClient();
@@ -2094,8 +2121,14 @@ int oldNumClients = -1;
 int oldNumPasswords = -1;
 String isBluetoothEnabled;
 
+void MonitorPageButtonBar() {
+  drawButtonBar(50, "Prev", 138, "Back", 230, "Next");
+}
+
 void displayMonitorPage1() {
   M5.Display.clear();
+  drawScreenTitle("Monitor status 1/3");
+  MonitorPageButtonBar();
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   
@@ -2174,7 +2207,10 @@ void updateConnectedMACs() {
 
 void displayMonitorPage2() {
     M5.Display.clear();
+    drawScreenTitle("Monitor status 2/3");
+    MonitorPageButtonBar();
     M5.Display.setTextSize(2);
+    M5.Display.setTextColor(TFT_WHITE);  
     updateConnectedMACs();
     if (macAddresses[0] == "") { 
         M5.Display.setCursor(10, 30);
@@ -2248,6 +2284,8 @@ const long updateInterval = 1000;
 
 void displayMonitorPage3() {
   M5.Display.clear();
+  drawScreenTitle("Monitor status 3/3");
+  MonitorPageButtonBar();
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
 
@@ -2262,7 +2300,7 @@ void displayMonitorPage3() {
   M5.Display.setCursor(10, 60);
   M5.Display.println("RAM: " + oldRamUsage + " Mo");
   M5.Display.setCursor(10, 90);
-  M5.Display.println("Batterie: " + oldBatteryLevel + "%");
+  M5.Display.println("Battery: " + oldBatteryLevel + "%");
   M5.Display.setCursor(10, 120);
   M5.Display.println("Temperature: " + oldTemperature + "C");
 
