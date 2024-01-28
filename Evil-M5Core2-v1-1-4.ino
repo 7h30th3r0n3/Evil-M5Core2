@@ -638,7 +638,7 @@ void drawMenu() {
     M5.Display.setTextSize(2);
     M5.Display.setTextFont(1);
 
-    int lineHeight = 24;
+    int lineHeight = 22;
     int startX = 5;
     int startY = 0;
 
@@ -655,6 +655,14 @@ void drawMenu() {
         M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 8);
         M5.Display.println(menuItems[menuIndex]);
     }
+
+    M5.Display.setTextColor(TFT_DARKGRAY);
+    M5.Display.setCursor(58, 220);
+    M5.Display.println("Up");
+    M5.Display.setCursor(130, 220);
+    M5.Display.println("Select");
+    M5.Display.setCursor(233, 220);
+    M5.Display.println("Down");
     M5.Display.display();
 }
 
