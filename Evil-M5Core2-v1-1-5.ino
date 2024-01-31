@@ -98,6 +98,7 @@ const char* bluetoothName = "E7vhi3l0tMh53Cro0rne32"; // !!!!!! CHANGE THIS !!!!
 #define bluetoothSerialPassword "7h30th3r0n3" // !!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 
+bool useGPS = false;
 #define GPS_RX_PIN 13 
 #define GPS_TX_PIN 14 
 
@@ -208,7 +209,9 @@ bool isItSerialCommand = false;
 void setup() {
   M5.begin();
   Serial.begin(115200);
-  Serial2.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);  // Pour la communication avec le GPS, remplacez RX_PIN et TX_PIN par les numéros de pin réels
+  if( useGPS ) {
+    Serial2.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);  // Pour la communication avec le GPS, remplacez RX_PIN et TX_PIN par les numéros de pin réels
+  }
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.setTextFont(1);
@@ -658,7 +661,7 @@ void drawMenu() {
     M5.Display.setTextSize(2);
     M5.Display.setTextFont(1);
 
-    int lineHeight = 24;
+    int lineHeight = 22;
     int startX = 5;
     int startY = 0;
 
@@ -675,7 +678,42 @@ void drawMenu() {
         M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 8);
         M5.Display.println(menuItems[menuIndex]);
     }
+
+    M5.Display.setTextColor(TFT_DARKGRAY);
+    M5.Display.setCursor(58, 220);
+    M5.Display.println("Up");
+    M5.Display.setCursor(130, 220);
+    M5.Display.println("Select");
+    M5.Display.setCursor(233, 220);
+    M5.Display.println("Down");
     M5.Display.display();
+}
+
+
+void drawScreenTitle(String text) {
+    M5.Display.setTextSize(2);
+    M5.Display.setTextFont(1);
+
+    int lineHeight = 22;
+    int startX = 5;
+    int startY = 0;
+
+    M5.Display.fillRect(0, startY * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+    M5.Display.setTextColor(TFT_GREEN);
+    M5.Display.setCursor(startX, startY * lineHeight + (lineHeight / 2) - 8);
+    M5.Display.println(text);
+}
+
+
+void drawButtonBar(int start1, String text1, int start2, String text2, int start3, String text3) {
+    M5.Display.setTextColor(TFT_DARKGRAY);
+    M5.Display.setCursor(start1, 220);
+    M5.Display.println(text1);
+    M5.Display.setCursor(start2, 220);
+    M5.Display.println(text2);
+    M5.Display.setCursor(start3, 220);
+    M5.Display.println(text3);
+     M5.Display.display();
 }
 
 
@@ -1022,7 +1060,7 @@ String getMonitoringStatus() {
     }
     status += "Stack left: " + getStack() + " Kb\n";
     status += "RAM: " + getRamUsage() + " Mo\n";
-    status += "Batterie: " + getBatteryLevel() + "%\n";
+    status += "Battery: " + getBatteryLevel() + "%\n";
     status += "Temperature: " + getTemperature() + "C\n";
     return status;
 }
@@ -2106,8 +2144,14 @@ int oldNumClients = -1;
 int oldNumPasswords = -1;
 String isBluetoothEnabled;
 
+void MonitorPageButtonBar() {
+  drawButtonBar(50, "Prev", 138, "Back", 230, "Next");
+}
+
 void displayMonitorPage1() {
   M5.Display.clear();
+  drawScreenTitle("Monitor status 1/3");
+  MonitorPageButtonBar();
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   
@@ -2186,7 +2230,10 @@ void updateConnectedMACs() {
 
 void displayMonitorPage2() {
     M5.Display.clear();
+    drawScreenTitle("Monitor status 2/3");
+    MonitorPageButtonBar();
     M5.Display.setTextSize(2);
+    M5.Display.setTextColor(TFT_WHITE); 
     updateConnectedMACs();
     if (macAddresses[0] == "") { 
         M5.Display.setCursor(10, 30);
@@ -2260,6 +2307,8 @@ const long updateInterval = 1000;
 
 void displayMonitorPage3() {
   M5.Display.clear();
+  drawScreenTitle("Monitor status 3/3");
+  MonitorPageButtonBar();
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
 
@@ -2274,7 +2323,7 @@ void displayMonitorPage3() {
   M5.Display.setCursor(10, 60);
   M5.Display.println("RAM: " + oldRamUsage + " Mo");
   M5.Display.setCursor(10, 90);
-  M5.Display.println("Batterie: " + oldBatteryLevel + "%");
+  M5.Display.println("Battery: " + oldBatteryLevel + "%");
   M5.Display.setCursor(10, 120);
   M5.Display.println("Temperature: " + oldTemperature + "C");
 
@@ -2320,7 +2369,7 @@ void displayMonitorPage3() {
       if (newBatteryLevel != oldBatteryLevel) {
           M5.Display.fillRect(10, 90, 200, 20, TFT_BLACK);
           M5.Display.setCursor(10, 90);
-          M5.Display.println("Batterie: " + newBatteryLevel + "%");
+          M5.Display.println("Battery: " + newBatteryLevel + "%");
           oldBatteryLevel = newBatteryLevel;
       }
 
