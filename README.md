@@ -77,7 +77,7 @@ Tested device working on Core2/Fire/AtomS3 :
 - ATOMIC GPS Base [link](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3)
 
 Waiting for test : 
-- GPS Module with Internal & External Antenna [affiliate link](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3)
+- GPS Module with Internal & External Antenna [link](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3)
 - Mini GPS/BDS Unit [link](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
 
 !! Warning !! - PIN for GPS are different for M5Core2 and M5Fire ! Please change the PIN on the code or you may have screen issues !  
