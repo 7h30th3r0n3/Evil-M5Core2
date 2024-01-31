@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.4 - Bluetooth Serial
+# Evil-M5Core2 v1.1.5 - Wardriving
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -25,71 +25,64 @@ With more than 100 references at each boot.
 
 ----------------------------------------------------------
 
-## !! Adopt a Parasite !!
+## !! Smallest Hacking device in the world Evil-AtomS3 !!
+**Meet the smallest hacking tool in the world with all Evil-M5Core2 inside !** 
 
-Your Evil-Core 2 or Flipper Zero feels lonely?
-  
-**Add a small parasite to it !!!**
+(With Screen / SDcard / GPS )
 </div>
 
 <div align="center">
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/evil-atom.jpg" width="200" />
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/evil-atom2.jpg" width="200" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/Evil-AtomS3-Startup.jpg" width="200" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/Evil-AtomS3.jpg" width="200" />
 </div>
 
 <div align="center">
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/atom-flipper.jpg" width="200" />
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/atom-flipper-probes.jpg" width="200" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/Evil-AtomS3-Menu.jpg" width="200" />
   
-He can also be used standalone but he needs a host for energy like a phone or a powersupply to survive or he die. 
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/tail.jpg" width="100" />
+  
 </div>
 </div>
 </div>
 
-Parasite Functionnality : 
+Evil-AtomS3 Functionnality : 
 
-- **Cute** (yes it's a useful feature to survive).
-- **Accelerometer interaction** (don't shake it or it get mad).
-- **AutoKarmaAttack** when face is pressed ( when a karma attack is successfull your little parasiste tell the name of the SSID in a textbubble until the next karma successfull or death).
-- **Whitelist** (hardcoded, need to be change by compiling the code again)
+- All Evil-M5Core2 functionnality except bluetooth serial.
 
-(For the moment no portal is sent it just tests if a device connect).
+Consumption:
+- Tests show 200mAh draw 
 
 Hardware Requirement :
-- M5AtomS3
-  
-Software Requirement :
-This little parasite use m5stack-avatar to render face, donwload avatar librairie before compile.
-- https://github.com/meganetaaan/m5stack-avatar
+- M5AtomS3 [link](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
+- ATOMIC GPS Base [link](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3)
 
-It pretty small so you can also check serial on USB to get information.
+Optional: 
+- ATOM TailBat(45min) [link](https://shop.m5stack.com/products/atom-tailbat?ref=7h30th3r0n3) 
+  
+It pretty small so you can also check and control serial on USB from your phone or IDE.
+
+The parasite project still exist but rename to Evil-Face and should be updated in futur too.
 
 ----------------------------------------------------------
 </div>
 </div>
 
-### NEW ! from v1.1.4 : Bluetooth Serial Command 
+### NEW ! from v1.1.5 : Wardriving !
 
-You can now control your Evil-M5Core2 via Bluetooth with serial bluetooth terminal 
-( Note that Command with promiscious mode like probes sniffing, karma attack or karma auto can't work with BLE enable )
-( Due to lack of implementation on esp librairy password protection is ensured by a password in serial dont forget to change it in the code)
+You can now use your Evil-M5Core2 and AtomS3 as a wardriving tool ! 
+Scan wifi network around and link it to position in Wigle format, you can upload it to wigle and generate KLM file for Google earth.
+You need a GPS for this. 
 
-- scan_wifi - Scan WiFi Networks
-- select_network <index> - Select WiFi <index>
-- change_ssid <max 32 char> - change current SSID
-- set_portal_password <password min 8> - change portal password
-- set_portal_open  - change portal to open
-- detail_ssid <index> - Details of WiFi <index>
-- clone_ssid - Clone Network SSID
-- start_portal - Activate Captive Portal
-- stop_portal - Deactivate Portal
-- list_portal - Show Portal List
-- change_portal <index> - Switch Portal <index>
-- check_credentials - Check Saved Credentials
-- monitor_status - Get current information on device
-- list_probes - Show Probes
-- select_probes <index> - Choose Probe <index>
-- exit - !! This command exit the serial bluetooth connexion and set the password for new connexion
+Tested device working on Core2/Fire/AtomS3 :
+- ATOMIC GPS Base [link](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3)
+
+Waiting for test : 
+- GPS Module with Internal & External Antenna [affiliate link](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3)
+- Mini GPS/BDS Unit [link](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
+
+!! Warning !! - PIN for GPS are different for M5Core2 and M5Fire ! Please change the PIN on the code or you may have screen issues !  
+
+Also if you don't have any GPS wait few days to get an usage of this functionality in V1.1.6 with and without GPS.
 
 ## Features Evil-M5core2
 
@@ -102,21 +95,20 @@ You can now control your Evil-M5Core2 via Bluetooth with serial bluetooth termin
 - **Karma Attack**: Try a simple Karma Attack on a captured probe. 
 - **Automated Karma Attack**: Try Karma Attack on near probe automatically.
 - **Bluetooth Serial Control**: You can control it with bluetooth.
+- **Wardriving**: Wardriving with Wigle format output on SD.
 
  ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
 
 ## Hardware Requirements
 
-- M5Stack Core2 (this project is coded with M5Unified, it should work on other M5Stack).
+- M5Stack Core2 [link](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit-v1-1?ref=7h30th3r0n3) (this project is coded with M5Unified, it should work on other M5Stack).
 - SD card (fat32 max 32Go, consider 8Go is already more than enough).
 
 Tested working others device :
-- M5stack fire
-- M5stack core1
-- M5stack AWS
-
-It should also work on another esp32 board with SD card but only via serial.
-  
+- M5stack fire (with LED effect) [link](https://shop.m5stack.com/products/m5stack-fire-iot-development-kit-psram-v2-7?ref=7h30th3r0n3)
+- M5stack core1 [link](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
+- M5stack AWS [link](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
+ 
 ## Installation
 
 1. Connect your M5Core2 to your computer.
@@ -318,6 +310,24 @@ Change the Brightness of the screen.
 
 Switch bluetooth ON or OFF.
 
+### Wardriving
+
+Scan wifi network around and link it to position in Wigle format, you can upload it to wigle to earn point and generate KLM file for Google earth.
+You need a GPS for this. 
+
+- PIN for Core2 : 
+use RX2/TX2 | GND | 5v or 3.3v
+
+GPIO 13
+
+GPIO 14
+
+- PIN for Fire on C-PORT :
+
+GPIO 16
+
+GPIO 17
+
 ### Change startup image 
 Upload a startup.jpg 320x240 image to replace original startup.jpg and make your Evil-M5Core2 more special.
 
@@ -344,7 +354,7 @@ PIN G1/TXD0
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/flipper-friends.jpg" width="500" />
 </div>
 
-### NEW ! from v1.1.3 : Serial Command 
+### Serial Command 
 
 You can control almost all functionnaly with serial command:
 
@@ -369,6 +379,49 @@ Available Commands:
 - list_probes - Show Probes
 - select_probes <index> - Choose Probe <index>
 - karma_auto - Auto Karma Attack Mode stop automatically when successfull
+
+## !! Adopt a Parasite !!
+
+Your Evil-Core2 or Flipper Zero feels lonely?
+  
+**Add a small parasite to it !!!**
+</div>
+
+<div align="center">
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/evil-atom.jpg" width="200" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/evil-atom2.jpg" width="200" />
+</div>
+
+<div align="center">
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/atom-flipper.jpg" width="200" />
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/atom-flipper-probes.jpg" width="200" />
+  
+He can also be used standalone but he needs a host for energy like a phone or a powersupply to survive or he die. 
+</div>
+</div>
+</div>
+
+Parasite Functionnality : 
+
+- **Cute** (yes it's a useful feature to survive).
+- **Accelerometer interaction** (don't shake it or it get mad).
+- **AutoKarmaAttack** when face is pressed ( when a karma attack is successfull your little parasiste tell the name of the SSID in a textbubble until the next karma successfull or death).
+- **Whitelist** (hardcoded, need to be change by compiling the code again)
+
+(For the moment no portal is sent it just tests if a device connect).
+
+Hardware Requirement :
+- M5AtomS3
+  
+Software Requirement :
+This little parasite use m5stack-avatar to render face, donwload avatar librairie before compile.
+- https://github.com/meganetaaan/m5stack-avatar
+
+It pretty small so you can also check serial on USB to get information.
+
+----------------------------------------------------------
+</div>
+</div>
 
 ## Discord 
 
