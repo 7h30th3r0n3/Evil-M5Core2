@@ -425,7 +425,9 @@ It pretty small so you can also check serial on USB to get information.
 
 ## Discord 
 
-https://discord.com/invite/V3FDEC6Q
+https://discord.com/invite/Cyw9DbQK
+
+(ask if broken)
 
 # License
 
