@@ -30,6 +30,8 @@
 */
 // remember to change hardcoded webpassword below in the code to ensure no unauthorized access to web interface : !!!!!! CHANGE THIS !!!!! 
 // Also remember that bluetooth is not protected and anyone can connect to it without pincode ( esp librairies issue) to ensure protection serial password is implemented
+// Change PIN below For GPS On Fire even if no GPS, GPIO issue cause BlackScreen
+
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
@@ -38,7 +40,7 @@
 #include <vector>
 #include <string>
 #include <set>
-
+#include <TinyGPS++.h>
 #include <Adafruit_NeoPixel.h> //led
 
 #include "BluetoothSerial.h"
@@ -69,7 +71,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF" };
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF", "Wardriving" };
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 10;
@@ -95,7 +97,17 @@ const char* accessWebPassword = "7h30th3r0n3"; // !!!!!! CHANGE THIS !!!!!
 const char* bluetoothName = "E7vhi3l0tMh53Cro0rne32"; // !!!!!! CHANGE THIS !!!!!
 #define bluetoothSerialPassword "7h30th3r0n3" // !!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
+
+#define GPS_RX_PIN 13 
+#define GPS_TX_PIN 14 
+
+// change this for fire to configure PORT C!!!
+//#define GPS_RX_PIN 16 
+//#define GPS_RX_PIN 17 
+
 //!!!!!! CHANGE THIS !!!!!
+//!!!!!! CHANGE THIS !!!!
+
 
 String portalFiles[30]; // 30 portals max 
 int numPortalFiles = 0;
@@ -187,11 +199,16 @@ void setColorRange(int startPixel, int endPixel, uint32_t color) {
 //led part end 
 
 
+
+// Créer un objet TinyGPS++
+TinyGPSPlus gps;
+
 bool isItSerialCommand = false;
 
 void setup() {
   M5.begin();
   Serial.begin(115200);
+  Serial2.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);  // Pour la communication avec le GPS, remplacez RX_PIN et TX_PIN par les numéros de pin réels
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.setTextFont(1);
@@ -405,7 +422,7 @@ if (batteryLevel < 15) {
   M5.Display.setCursor(75, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   M5.Display.setCursor(102, textY + 45);
-  M5.Display.println("v1.1.4 2024");
+  M5.Display.println("v1.1.5 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
   M5.Display.setCursor(10, textY + 120);
@@ -608,6 +625,9 @@ void executeMenuItem(int index) {
       break;    
     case 17: 
       onOffBleSerial();
+      break;
+    case 18: 
+      wardrivingMode();
       break;
   }
   isOperationInProgress = false;
@@ -3772,3 +3792,207 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 }
 
 //Auto karma end 
+
+
+String createPreHeader() {
+    String preHeader = "WigleWifi-1.4";
+    preHeader += ",appRelease=v1.1.5"; // Remplacez [version] par la version de votre application
+    preHeader += ",model=Core2";
+    preHeader += ",release=v1.1.5"; // Remplacez [release] par la version de l'OS de l'appareil
+    preHeader += ",device=Evil-M5Core2"; // Remplacez [device name] par un nom de périphérique, si souhaité
+    preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
+    preHeader += ",board=M5Stack Core2"; 
+    preHeader += ",brand=M5Stack";
+    return preHeader;
+}
+
+String createHeader() {
+    return "MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type";
+}
+
+int nearPrevousWifi = 0;
+double lat = 0.0, lng = 0.0, alt = 0.0; // Déclaration des variables pour la latitude, la longitude et l'altitude
+float accuracy = 0.0; // Déclaration de la variable pour la précision
+
+void wardrivingMode() {
+  
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    Serial.println("-------------------");
+    Serial.println("Starting Wardriving");
+    Serial.println("-------------------");    
+    M5.Lcd.fillScreen(TFT_BLACK);
+    M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK); 
+    M5.Lcd.setTextSize(2);
+    M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
+    M5.Display.setCursor(135, M5.Display.height() - 40);
+    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.println("Stop");
+    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5.Lcd.setCursor(0, 10);
+    M5.Lcd.printf("Scanning...");
+    M5.Lcd.setCursor(0, 40);
+    M5.Lcd.println("No GPS Data");
+    delay(1000);
+    if (!SD.exists("/wardriving")) {
+        SD.mkdir("/wardriving");
+    }
+
+    File root = SD.open("/wardriving");
+    int maxIndex = 0;
+    while (true) {
+        File entry = root.openNextFile();
+        if (!entry) break;
+        String name = entry.name();
+        int startIndex = name.indexOf('-') + 1;
+        int endIndex = name.indexOf('.');
+        if (startIndex > 0 && endIndex > startIndex) {
+            int fileIndex = name.substring(startIndex, endIndex).toInt();
+            if (fileIndex > maxIndex) maxIndex = fileIndex;
+        }
+        entry.close();
+    }
+    root.close();
+
+    bool exitWardriving = false;
+    bool scanStarted = false;
+    while (!exitWardriving) {
+        M5.update();
+        handleDnsRequestSerial();
+
+        if (!scanStarted) {
+            WiFi.scanNetworks(true, true); // Start async scan
+            scanStarted = true;
+        }
+
+        bool gpsDataAvailable = false;
+        String gpsData;
+
+        while (Serial2.available() > 0 && !gpsDataAvailable) {
+            if (gps.encode(Serial2.read())) {
+                if (gps.location.isValid() && gps.date.isValid() && gps.time.isValid()) {
+                    lat = gps.location.lat();
+                    lng = gps.location.lng();
+                    alt = gps.altitude.meters();
+                    accuracy = gps.hdop.value();
+                    gpsDataAvailable = true;
+
+                    // Affichage des informations GPS sur l'écran
+                    M5.Lcd.setCursor(0, 40);
+                    M5.Lcd.println("Latitude:  ");
+                    M5.Lcd.setCursor(0, 60);
+                    M5.Lcd.println(String(gps.location.lat(), 6));
+                    
+                    M5.Lcd.setCursor(170, 40);
+                    M5.Lcd.println("Longitude:");
+                    M5.Lcd.setCursor(170, 60);
+                    M5.Lcd.println(String(gps.location.lng(), 6));
+                   
+                    M5.Lcd.setCursor(0, 90);
+                    M5.Lcd.println("Satellites:");
+                    M5.Lcd.setCursor(0, 110);
+                    M5.Lcd.println(String(gps.satellites.value()));
+                    // Altitude
+                    M5.Lcd.setCursor(170, 90);
+                    M5.Lcd.println("Altitude:");
+                    M5.Lcd.setCursor(170, 110);
+                    M5.Lcd.println(String(gps.altitude.meters(), 2) + "m");
+
+                    // Date et Heure
+                    String dateTime = formatTimeFromGPS();
+                    M5.Lcd.setCursor(0, 140);
+                    M5.Lcd.println("Date/Time:");
+                    M5.Lcd.setCursor(0, 160);
+                    M5.Lcd.println(dateTime);
+                }
+            }
+        }
+
+    
+        int n = WiFi.scanComplete();
+        if (n > -1) {
+            String currentTime = formatTimeFromGPS();
+            String wifiData = "\n";
+            for (int i = 0; i < n; ++i) {
+                // Formater les données pour chaque SSID trouvé
+                String line = WiFi.BSSIDstr(i) + "," + WiFi.SSID(i) + "," + getCapabilities(WiFi.encryptionType(i)) + ",";
+                line += currentTime + ",";
+                line += String(WiFi.channel(i)) + ",";
+                line += String(WiFi.RSSI(i)) + ",";
+                line += String(lat, 6) + "," + String(lng, 6) + ",";
+                line += String(alt) + "," + String(accuracy) + ",";
+                line += "WIFI";
+                wifiData += line + "\n";
+            }
+            
+            Serial.println("----------------------------------------------------");
+            Serial.print("WiFi Networks: " + String(n));
+            Serial.print(wifiData);
+            Serial.println("----------------------------------------------------");
+            
+            String fileName = "/wardriving/wardriving-0" + String(maxIndex + 1) + ".csv";
+            
+            // Ouvrir le fichier en mode lecture pour vérifier s'il existe et sa taille
+            File file = SD.open(fileName, FILE_READ);
+            bool isNewFile = !file || file.size() == 0;
+            if (file) {
+                file.close();
+            }
+            
+            // Ouvrir le fichier en mode écriture ou append
+            file = SD.open(fileName, isNewFile ? FILE_WRITE : FILE_APPEND);
+            
+            if (file) {
+                if (isNewFile) {
+                    // Écrire les en-têtes pour un nouveau fichier
+                    file.println(createPreHeader());
+                    file.println(createHeader());
+                }
+                file.print(wifiData);
+                file.close();
+            }
+
+            scanStarted = false; // Reset for the next scan
+                     // Mettre à jour le nombre de WiFi à proximité sur l'écran
+            M5.Lcd.setCursor(0, 10);
+            M5.Lcd.printf("Near WiFi: %d\n", n);
+        }
+
+        if (M5.BtnB.isPressed()) {
+            exitWardriving = true;
+            waitAndReturnToMenu("Stopping Wardriving.");
+            Serial.println("-------------------");
+            Serial.println("Stopping Wardriving");
+            Serial.println("-------------------");  
+        }
+    }
+
+    Serial.println("-------------------");
+    Serial.println("Session Saved.");
+    Serial.println("-------------------");  
+}
+
+
+String getCapabilities(wifi_auth_mode_t encryptionType) {
+    switch (encryptionType) {
+        case WIFI_AUTH_OPEN: return "[OPEN][ESS]";
+        case WIFI_AUTH_WEP: return "[WEP][ESS]";
+        case WIFI_AUTH_WPA_PSK: return "[WPA-PSK][ESS]";
+        case WIFI_AUTH_WPA2_PSK: return "[WPA2-PSK][ESS]";
+        case WIFI_AUTH_WPA_WPA2_PSK: return "[WPA-WPA2-PSK][ESS]";
+        case WIFI_AUTH_WPA2_ENTERPRISE: return "[WPA2-ENTERPRISE][ESS]";
+        default: return "[UNKNOWN]";
+    }
+}
+
+
+String formatTimeFromGPS() {
+    if (gps.time.isValid() && gps.date.isValid()) {
+        char dateTime[30];
+        sprintf(dateTime, "%04d-%02d-%02d %02d:%02d:%02d", gps.date.year(), gps.date.month(), gps.date.day(),
+                                                         gps.time.hour(), gps.time.minute(), gps.time.second());
+        return String(dateTime);
+    } else {
+        return "0000-00-00 00:00:00"; // Retourner une valeur par défaut si l'heure GPS n'est pas valide
+    }
+}
