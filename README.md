@@ -50,7 +50,7 @@ Evil-AtomS3 Functionnality :
 - All Evil-M5Core2 functionnality except bluetooth serial.
 
 Consumption:
-- Tests show 200mAh draw 
+- Tests show max 200mA draw with 100% brightness and using WiFi/GPS
 
 Hardware Requirement :
 - M5AtomS3 [link](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
