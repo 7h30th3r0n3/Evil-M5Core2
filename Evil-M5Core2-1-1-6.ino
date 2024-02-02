@@ -208,8 +208,8 @@ void setup() {
       break;
     case m5::board_t::board_M5Stack: // Présumé ici comme étant le modèle Fire
       // Configuration pour Fire
-      GPS_RX_PIN = 21;
-      GPS_TX_PIN = 22;
+      GPS_RX_PIN = 16;
+      GPS_TX_PIN = 17;
       Serial.println("M5Fire Board detected.");
       break;
     default:
@@ -219,7 +219,7 @@ void setup() {
       Serial.println("Error detecting board.");
       break;
   }
-  Serial2.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);  //  GPS, change RX_PIN et TX_PIN if needed
+
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.setTextFont(1);
@@ -492,7 +492,7 @@ if (ledOn){
     }
 
     pixels.begin(); // led 
-
+    Serial2.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);  //  GPS, change RX_PIN et TX_PIN if needed
 }
 
 
