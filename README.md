@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.5 - Wardriving
+# Evil-M5Core2 v1.1.6 - Karma Spear
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -22,6 +22,21 @@
 With more than 100 references at each boot.
 
 <div align="center">
+
+
+If you like this project, support me by buying me a coffee on [Ko-fi](https://ko-fi.com/7h30th3r0n3) !
+
+[![Support the project on Ko-fi !](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/7h30th3r0n3)
+
+Or use this affiliate link to buy M5 product [Support the project on M5 shop](https://shop.m5stack.com/?ref=7h30th3r0n3) !
+
+<div>
+    <a href="https://shop.m5stack.com/?ref=7h30th3r0n3">
+        <img src="https://static.goaffpro.com/4973/images/1561376655877.png" alt="Support my on M5 shop" width="100" style="display:block; margin:auto;" />
+    </a>
+</div>
+
+
 
 ----------------------------------------------------------
 
@@ -67,6 +82,17 @@ The parasite project still exist but rename to Evil-Face and should be updated i
 </div>
 </div>
 
+
+
+### NEW ! from v1.1.6 : Karma Spear !
+
+For those who do not have GPS but still want to have a use for the wardriving function, 
+
+now at the end of a wardriving you can directly record the open networks that you have crossed in order to do targeted karma, 
+
+at the end From the scan a KarmaList.txt file is created and karma spear uses this list of SSIDs. You can also add custom SSIDs to the list.
+
+
 ### NEW ! from v1.1.5 : Wardriving !
 
 You can now use your Evil-M5Core2 and AtomS3 as a wardriving tool ! 
@@ -80,7 +106,6 @@ Waiting for test :
 - GPS Module with Internal & External Antenna [link](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3)
 - Mini GPS/BDS Unit [link](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
 
-!! Warning !! - PIN for GPS are different for M5Core2 and M5Fire ! Please change the PIN on the code or you may have screen issues !  
 
 Also if you don't have any GPS wait few days to get an usage of this functionality in V1.1.6 with and without GPS.
 
@@ -289,6 +314,10 @@ This feature is inspired by the pwnagotchi project but with probe request and ka
 You can add SSID on KarmaAutoWhitelist line like this : KarmaAutoWhitelist=notmybox,thisonetoo 
 
 Probe should be ignored and serial message send to notify that this network is whitelisted, it also work on probe sniffing and karma attack.
+
+### Karma Spear 
+
+Same as Karma Auto but with Open SSID captured with wardriving. You can also add custom SSIDs to KarmaList.txt.
 
 ### Select Probe
 
