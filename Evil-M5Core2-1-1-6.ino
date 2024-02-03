@@ -208,8 +208,8 @@ void setup() {
       break;
     case m5::board_t::board_M5Stack: // Présumé ici comme étant le modèle Fire
       // Configuration pour Fire
-      GPS_RX_PIN = 16;
-      GPS_TX_PIN = 17;
+      GPS_RX_PIN = 21;
+      GPS_TX_PIN = 22;
       Serial.println("M5Fire Board detected.");
       break;
     default:
