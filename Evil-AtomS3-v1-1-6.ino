@@ -399,7 +399,7 @@ if (batteryLevel < 15) {
   M5.Display.setCursor(18, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   M5.Display.setCursor(28, textY + 45);
-  M5.Display.println("v1.1.5 2024");
+  M5.Display.println("v1.1.6 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
   M5.Display.setCursor(0, textY + 80);
