@@ -290,7 +290,7 @@ void setup() {
     "  Escaping the Matrix...",
     " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
-    "Redirecting your bandwidth\nfor Leska free WiFi..." // Donation on Ko-fi // Thx Leska !
+    "Redirecting your bandwidth\nfor Leska free WiFi...", // Donation on Ko-fi // Thx Leska !
     "           42           ",
     "    Don't be a Skidz !",
     "  Hack,Eat,Sleep,Repeat",
