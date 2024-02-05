@@ -290,6 +290,7 @@ void setup() {
     "  Escaping the Matrix...",
     " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
+    "Redirecting your bandwidth\nfor Leska free WiFi..." // Donation on Ko-fi // Thx Leska !
     "           42           ",
     "    Don't be a Skidz !",
     "  Hack,Eat,Sleep,Repeat",
@@ -436,7 +437,7 @@ if (batteryLevel < 15) {
   M5.Display.println("v1.1.6 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
-  M5.Display.setCursor(10, textY + 120);
+  M5.Display.setCursor(5, textY + 120);
   M5.Display.println(randomMessage);
   Serial.println(" ");
   Serial.println(randomMessage);
