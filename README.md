@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.6 - Karma Spear
+# Evil-M5Core2 v1.1.7 - Beacon Spam
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -82,7 +82,10 @@ The parasite project still exist but rename to Evil-Face and should be updated i
 </div>
 </div>
 
+### NEW ! from v1.1.7 : Beacon Spam !
 
+Beacon Spam create multiple networks on all channels to render multiples SSIDs in wifi search and sniffing equipement.
+You can use custom Beacon with config file.
 
 ### NEW ! from v1.1.6 : Karma Spear !
 
@@ -121,6 +124,7 @@ Also if you don't have any GPS wait few days to get an usage of this functionali
 - **Automated Karma Attack**: Try Karma Attack on near probe automatically.
 - **Bluetooth Serial Control**: You can control it with bluetooth.
 - **Wardriving**: Wardriving with Wigle format output on SD.
+- **Beacon Spam**: Generate mutliple SSIDs arround you.
 
  ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
 
@@ -344,6 +348,11 @@ Switch bluetooth ON or OFF.
 
 Scan wifi network around and link it to position in Wigle format, you can upload it to wigle to earn point and generate KLM file for Google earth.
 You need a GPS for this. 
+
+### Beacon Spam
+
+Beacon Spam create multiple networks on all channels to render multiples SSIDs in wifi search and sniffing equipement.
+You can use custom Beacon with config file. 
 
 - PIN for Core2 : 
 use RX2/TX2 | GND | 5v or 3.3v
