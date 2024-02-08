@@ -68,8 +68,8 @@ Consumption:
 - Tests show max 200mA draw with 100% brightness and using WiFi/GPS
 
 Hardware Requirement :
-- M5AtomS3 [link](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
-- ATOMIC GPS Base [link](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3)
+- M5AtomS3 [link M5Stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DeeJXGz)
+- ATOMIC GPS Base [link M5Stack](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_Dm2opRj)
 
 Optional: 
 - ATOM TailBat(45min) [link](https://shop.m5stack.com/products/atom-tailbat?ref=7h30th3r0n3) 
@@ -100,11 +100,11 @@ Scan wifi network around and link it to position in Wigle format, you can upload
 You need a GPS for this. 
 
 Tested device working on Core2/Fire/AtomS3 :
-- ATOMIC GPS Base [link](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3)
+- ATOMIC GPS Base [link M5Stack](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DnqzH61)
 
 Waiting for test : 
-- GPS Module with Internal & External Antenna [link](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3)
-- Mini GPS/BDS Unit [link](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
+- GPS Module with Internal & External Antenna [link M5Stack](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3) 
+- Mini GPS/BDS Unit [link M5Stack](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
 
 
 Also if you don't have any GPS wait few days to get an usage of this functionality in V1.1.6 with and without GPS.
@@ -126,7 +126,8 @@ Also if you don't have any GPS wait few days to get an usage of this functionali
 
 ## Hardware Requirements
 
-- M5Stack Core2 [link](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit-v1-1?ref=7h30th3r0n3) (this project is coded with M5Unified, it should work on other M5Stack).
+- M5Stack Core2 [link M5Stack](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit-v1-1?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DBIMh8l)
+ (this project is coded with M5Unified, it should work on other M5Stack).
 - SD card (fat32 max 32Go, consider 8Go is already more than enough).
 
 Tested working others device :
