@@ -291,6 +291,9 @@ void setup() {
     " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
     "Redirecting your bandwidth\nfor Leska free WiFi...", // Donation on Ko-fi // Thx Leska !
+    "Where we're going We don't\nneed roads   Nefast - 1985",// Donation on Ko-fi // Thx Nefast !
+    "Never leave a trace always\n behind you by CyberOzint",// Donation on Ko-fi // Thx CyberOzint !
+    "   Injecting hook.worm \nransomware to your android",// Donation on Ko-fi // Thx hook.worm !
     "           42           ",
     "    Don't be a Skidz !",
     "  Hack,Eat,Sleep,Repeat",
@@ -437,7 +440,7 @@ if (batteryLevel < 15) {
   M5.Display.println("v1.1.6 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
-  M5.Display.setCursor(5, textY + 120);
+  M5.Display.setCursor(0, textY + 120);
   M5.Display.println(randomMessage);
   Serial.println(" ");
   Serial.println(randomMessage);
