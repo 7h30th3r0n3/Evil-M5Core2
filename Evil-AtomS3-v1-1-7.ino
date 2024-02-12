@@ -259,6 +259,7 @@ void setup() {
     " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
     "Redirecting your bandwidth for Leska WiFi...", // Donation on Ko-fi // Thx Leska !
+    "Compressing wook.worm      algorithm", // Donation on Ko-fi // Thx wook.worm !
     "           42           ",
     "    Don't be a Skidz !",
     "  Hack,Eat,Sleep,Repeat",
