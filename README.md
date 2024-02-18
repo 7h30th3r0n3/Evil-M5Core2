@@ -146,7 +146,7 @@ Also if you don't have any GPS wait few days to get an usage of this functionali
 
 - M5Stack Core2 [link M5Stack](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit-v1-1?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DBIMh8l)
  (this project is coded with M5Unified, it should work on other M5Stack).
-- SD card (fat32 max 32Go, consider 8Go is already more than enough).
+- SD card (fat32 max 16Go, consider 8Go is already more than enough).
 
 Tested working others device :
 - M5stack fire (with LED effect) [link](https://shop.m5stack.com/products/m5stack-fire-iot-development-kit-psram-v2-7?ref=7h30th3r0n3)
@@ -157,7 +157,7 @@ Tested working others device :
 
 1. Connect your M5Core2 to your computer.
 2. Open the Arduino IDE and load the provided code.
-3. Ensure M5unified, TinyGpsPlus and adafruit_neopixel libraries are installed.
+3. Ensure M5unified, TinyGpsPlus, ArduinoJson and adafruit_neopixel libraries are installed.
 4. Ensure esp32 and M5stack board are installed (Error occur with esp32 3.0.0-alpha3, please use esp32 v2.0.14 and below).
 5. Place SD file content needed on the SD card. ( Needed to get IMG startup and sites folder).
 6. Ensure that the baudrates is at 115200.
