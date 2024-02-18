@@ -4448,15 +4448,22 @@ void deauthDetect() {
   M5.Display.clear();
   M5.Lcd.setTextSize(2);
   M5.Lcd.setTextColor(WHITE, BLACK);
+  ESP_BT.end();
+  bluetoothEnabled = false;
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); //petite pause
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
   WiFi.mode(WIFI_STA);
   esp_wifi_start();
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(snifferCallback);
-  wifi_promiscuous_filter_t filter = {};
-  filter.filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT;
-  esp_wifi_set_promiscuous_filter(&filter);
-  
   esp_wifi_set_channel(currentChannelDeauth, WIFI_SECOND_CHAN_NONE);
+  
   int x_btnA = 32; 
   int x_btnB = 140;
   int x_btnC = 245; 
