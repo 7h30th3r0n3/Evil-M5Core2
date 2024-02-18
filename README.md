@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.8 - Deaut detection
+# Evil-M5Core2 v1.1.8 - Deauth detection
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
