@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.7 - Beacon Spam
+# Evil-M5Core2 v1.1.8 - Deaut detection
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -56,6 +56,11 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
   
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/tail.jpg" width="100" />
   
+Thx to samxplogs for the video : 
+
+<a href="https://www.youtube.com/watch?v=C6QV2cgQGs0">
+    <img alt="Samxplogs" src="https://img.youtube.com/vi/C6QV2cgQGs0/0.jpg" width="33%" height="33%"/>
+</a>
 </div>
 </div>
 </div>
@@ -77,10 +82,20 @@ Optional:
 It pretty small so you can also check and control serial on USB from your phone or IDE.
 
 The parasite project still exist but rename to Evil-Face and should be updated in futur too.
-
 ----------------------------------------------------------
 </div>
 </div>
+
+
+
+### NEW ! from v1.1.8 : Deauth Detection !
+
+Detect deauthentication packets near you, when a machine disconnects from an access point, it sends a deauthentication packet to close the connection, 
+deauthentication packets can also be spoofed to disconnect the device and attacker use automatic reconnection to sniff the 4-way handshake, 
+many deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
+This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
+in this way you can know if you are under attacked.
+
 
 ### NEW ! from v1.1.7 : Beacon Spam !
 
@@ -94,7 +109,6 @@ For those who do not have GPS but still want to have a use for the wardriving fu
 now at the end of a wardriving you can directly record the open networks that you have crossed in order to do targeted karma, 
 
 at the end From the scan a KarmaList.txt file is created and karma spear uses this list of SSIDs. You can also add custom SSIDs to the list.
-
 
 ### NEW ! from v1.1.5 : Wardriving !
 
@@ -366,6 +380,15 @@ GPIO 14
 GPIO 16
 
 GPIO 17
+
+
+### Deauth Detection
+
+Detect deauthentication packets near you, when a machine disconnects from an access point, it sends a deauthentication packet to close the connection, 
+deauthentication packets can also be spoofed to disconnect the device and attacker use automatic reconnection to sniff the 4-way handshake, 
+many deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
+This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
+in this way you can know if you are under attacked.
 
 ### Change startup image 
 Upload a startup.jpg 320x240 image to replace original startup.jpg and make your Evil-M5Core2 more special.
