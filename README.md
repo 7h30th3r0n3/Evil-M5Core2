@@ -363,11 +363,6 @@ Switch bluetooth ON or OFF.
 Scan wifi network around and link it to position in Wigle format, you can upload it to wigle to earn point and generate KLM file for Google earth.
 You need a GPS for this. 
 
-### Beacon Spam
-
-Beacon Spam create multiple networks on all channels to render multiples SSIDs in wifi search and sniffing equipement.
-You can use custom Beacon with config file. 
-
 - PIN for Core2 : 
 use RX2/TX2 | GND | 5v or 3.3v
 
@@ -381,6 +376,10 @@ GPIO 16
 
 GPIO 17
 
+### Beacon Spam
+
+Beacon Spam create multiple networks on all channels to render multiples SSIDs in wifi search and sniffing equipement.
+You can use custom Beacon with config file. 
 
 ### Deauth Detection
 
