@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.8 - Deauth detection
+# Evil-M5Core2 v1.1.9 - Wall Of Flipper ! (from K3YOMI)
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -82,11 +82,34 @@ Optional:
 It pretty small so you can also check and control serial on USB from your phone or IDE.
 
 The parasite project still exist but rename to Evil-Face and should be updated in futur too.
+
 ----------------------------------------------------------
 </div>
 </div>
 
+## NEW ! from v1.1.9 : Wall of Flipper !!! 
+### You can run it but you can't hide !!!! 
 
+Based on an original idea from K3YOMI, thanks to him for the fantastic work ! 
+
+You absolutely must see the original project here from which I took inspiration and from which I used the code :
+
+https://github.com/K3YOMI/Wall-of-Flippers
+
+Flipper Zero detection via bluetooth :
+
+Discover Flipper Zero Devices :
+- Discovering Flipper Name
+- Discovering Flipper Mac Address and if it's spoofed (normal/spoofed)
+- Discovering Flipper color (Detection of Transparent, White, & Black Flipper)
+- Saving Flipper Zero Devices Discovered near you on SD Card. 
+
+Capability to Identify Potential Bluetooth Advertisement Attacks from Flipper and Other Devices :
+- Suspected Advertisement Attacks
+- iOS Popup Advertisement Attacks
+- Samsung and Android BLE Advertisement Attacks
+- Windows Swift Pair Advertisement Attacks
+- LoveSpouse Advertisement Attacks (Denial of Pleasure)
 
 ### NEW ! from v1.1.8 : Deauth Detection !
 
@@ -95,36 +118,6 @@ deauthentication packets can also be spoofed to disconnect the device and attack
 many deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
 This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
 in this way you can know if you are under attacked.
-
-
-### NEW ! from v1.1.7 : Beacon Spam !
-
-Beacon Spam create multiple networks on all channels to render multiples SSIDs in wifi search and sniffing equipement.
-You can use custom Beacon with config file.
-
-### NEW ! from v1.1.6 : Karma Spear !
-
-For those who do not have GPS but still want to have a use for the wardriving function, 
-
-now at the end of a wardriving you can directly record the open networks that you have crossed in order to do targeted karma, 
-
-at the end From the scan a KarmaList.txt file is created and karma spear uses this list of SSIDs. You can also add custom SSIDs to the list.
-
-### NEW ! from v1.1.5 : Wardriving !
-
-You can now use your Evil-M5Core2 and AtomS3 as a wardriving tool ! 
-Scan wifi network around and link it to position in Wigle format, you can upload it to wigle and generate KLM file for Google earth.
-You need a GPS for this. 
-
-Tested device working on Core2/Fire/AtomS3 :
-- ATOMIC GPS Base [link M5Stack](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DnqzH61)
-
-Waiting for test : 
-- GPS Module with Internal & External Antenna [link M5Stack](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3) 
-- Mini GPS/BDS Unit [link M5Stack](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
-
-
-Also if you don't have any GPS wait few days to get an usage of this functionality in V1.1.6 with and without GPS.
 
 ## Features Evil-M5core2
 
@@ -139,6 +132,8 @@ Also if you don't have any GPS wait few days to get an usage of this functionali
 - **Bluetooth Serial Control**: You can control it with bluetooth.
 - **Wardriving**: Wardriving with Wigle format output on SD.
 - **Beacon Spam**: Generate mutliple SSIDs arround you.
+- **Deauther detection**: Detect deauthentification packet and pwnagotchi near you.
+- **Wall Of Flipper**: Detect and save Flipper Zero with bluetooth enable near you and detect BLE SPAM.
 
  ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
 
@@ -362,6 +357,16 @@ Switch bluetooth ON or OFF.
 
 Scan wifi network around and link it to position in Wigle format, you can upload it to wigle to earn point and generate KLM file for Google earth.
 You need a GPS for this. 
+
+Tested device working on Core2/Fire/AtomS3 :
+- ATOMIC GPS Base [link M5Stack](https://shop.m5stack.com/products/atomic-gps-base-m8030-kt?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DnqzH61)
+
+Tested device working on Core2/Fire:
+- GPS Module with Internal & External Antenna [link M5Stack](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3)
+  
+Waiting for test : 
+
+- Mini GPS/BDS Unit [link M5Stack](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
 
 - PIN for Core2 : 
 use RX2/TX2 | GND | 5v or 3.3v
