@@ -41,6 +41,8 @@
 #include <TinyGPS++.h>
 #include <Adafruit_NeoPixel.h> //led
 #include <ArduinoJson.h>
+#include "BLEDevice.h"
+#include <vector>
 
 #include "BluetoothSerial.h"
 BluetoothSerial ESP_BT; 
@@ -70,7 +72,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF", "Wardriving", "Beacon Spam", "Deauth Detection"};
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF", "Wardriving", "Beacon Spam", "Deauth Detection", "Wall Of Flipper"};
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 10;
@@ -310,6 +312,7 @@ void setup() {
     "Where we're going We don't\nneed roads   Nefast - 1985",// Donation on Ko-fi // Thx Nefast !
     "Never leave a trace always\n behind you by CyberOzint",// Donation on Ko-fi // Thx CyberOzint !
     "   Injecting hook.worm \nransomware to your android",// Donation on Ko-fi // Thx hook.worm !
+    "    You know Kiyomi ?   ", // for collab on Wof 
     "           42           ",
     "    Don't be a Skidz !",
     "  Hack,Eat,Sleep,Repeat",
@@ -453,7 +456,7 @@ if (batteryLevel < 15) {
   M5.Display.setCursor(75, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   M5.Display.setCursor(102, textY + 45);
-  M5.Display.println("v1.1.8 2024");
+  M5.Display.println("v1.1.9 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------"); 
   M5.Display.setCursor(0 , textY + 120);
@@ -668,6 +671,9 @@ void executeMenuItem(int index) {
       break;
     case 21: 
       deauthDetect();
+      break;
+    case 22: 
+      wallOfFlipper();
       break;
   }
   isOperationInProgress = false;
@@ -3858,9 +3864,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
     String preHeader = "WigleWifi-1.4";
-    preHeader += ",appRelease=v1.1.8"; // Remplacez [version] par la version de votre application
+    preHeader += ",appRelease=v1.1.9"; // Remplacez [version] par la version de votre application
     preHeader += ",model=Core2";
-    preHeader += ",release=v1.1.8"; // Remplacez [release] par la version de l'OS de l'appareil
+    preHeader += ",release=v1.1.9"; // Remplacez [release] par la version de l'OS de l'appareil
     preHeader += ",device=Evil-M5Core2"; // Remplacez [device name] par un nom de périphérique, si souhaité
     preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
     preHeader += ",board=M5Stack Core2"; 
@@ -3953,7 +3959,7 @@ void wardrivingMode() {
                     M5.Lcd.setCursor(0, 90);
                     M5.Lcd.println("Satellites:");
                     M5.Lcd.setCursor(0, 110);
-                    M5.Lcd.println(String(gps.satellites.value()));
+                    M5.Lcd.println(String(gps.satellites.value()) + "  ");
                     // Altitude
                     M5.Lcd.setCursor(170, 90);
                     M5.Lcd.println("Altitude:");
@@ -4013,7 +4019,7 @@ void wardrivingMode() {
 
             scanStarted = false;
             M5.Lcd.setCursor(0, 10);
-            M5.Lcd.printf("Near WiFi: %d\n", n);
+            M5.Lcd.printf("Near WiFi: %d  \n", n);
         }
 
         if (M5.BtnB.isPressed()) {
@@ -4545,3 +4551,176 @@ esp_wifi_set_promiscuous(false);
 autoChannelHop = !autoChannelHop;
 waitAndReturnToMenu("Stop detection...");
 }
+
+
+// Wof part // from a really cool idea of Kiyomi // https://github.com/K3YOMI/Wall-of-Flippers
+unsigned long lastFlipperFoundMillis = 0;
+static bool isBLEInitialized = false; 
+
+struct ForbiddenPacket {
+    const char* pattern;
+    const char* type;
+};
+
+std::vector<ForbiddenPacket> forbiddenPackets = {
+    {"4c0007190_______________00_____", "APPLE_DEVICE_POPUP"}, // not working ?
+    {"4c000f05c0_____________________", "APPLE_ACTION_MODAL"}, // refactored for working
+    {"4c00071907_____________________", "APPLE_DEVICE_CONNECT"}, // working
+    {"4c0004042a0000000f05c1__604c950", "APPLE_DEVICE_SETUP"}, // working
+    {"2cfe___________________________", "ANDROID_DEVICE_CONNECT"}, // not working cant find raw data in sniff
+    {"750000000000000000000000000000_", "SAMSUNG_BUDS_POPUP"},// refactored for working
+    {"7500010002000101ff000043_______", "SAMSUNG_WATCH_PAIR"},//working
+    {"0600030080_____________________", "WINDOWS_SWIFT_PAIR"},//working
+    {"ff006db643ce97fe427c___________", "LOVE_TOYS"} // working 
+};
+
+bool matchPattern(const char* pattern, const uint8_t* payload, size_t length) {
+    size_t patternLength = strlen(pattern);
+    for(size_t i = 0, j = 0; i < patternLength && j < length; i+=2, j++) {
+        char byteString[3] = {pattern[i], pattern[i+1], 0};
+        if(byteString[0] == '_' && byteString[1] == '_') continue;
+        
+        uint8_t byteValue = strtoul(byteString, nullptr, 16);
+        if(payload[j] != byteValue) return false;
+    }
+    return true;
+}
+
+class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
+    int lineCount = 0; 
+    const int maxLines = 10;
+    void onResult(BLEAdvertisedDevice advertisedDevice) override {
+        String deviceColor = "Unknown"; // Défaut
+        bool isValidMac = false; // validité de l'adresse MAC
+        bool isFlipper = false; // Flag pour identifier si le dispositif est un Flipper
+    
+        // Vérifier directement les UUIDs pour déterminer la couleur
+        if (advertisedDevice.isAdvertisingService(BLEUUID("00003082-0000-1000-8000-00805f9b34fb"))) {
+            deviceColor = "White";
+            isFlipper = true;
+        } else if (advertisedDevice.isAdvertisingService(BLEUUID("00003081-0000-1000-8000-00805f9b34fb"))) {
+            deviceColor = "Black";
+            isFlipper = true;
+        } else if (advertisedDevice.isAdvertisingService(BLEUUID("00003083-0000-1000-8000-00805f9b34fb"))) {
+            deviceColor = "Transparent";
+            isFlipper = true;
+        }
+    
+        // Continuer uniquement si un Flipper est identifié
+        if (isFlipper) {
+            String macAddress = advertisedDevice.getAddress().toString().c_str();
+            if (macAddress.startsWith("80:e1:26") || macAddress.startsWith("80:e1:27")) {
+                isValidMac = true;
+            }
+    
+            M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5.Display.setCursor(0, 10);
+            String name = advertisedDevice.getName().c_str();
+    
+              M5.Display.printf("Name: %s\nRSSI: %d \nMAC: %s\n", 
+                                name.c_str(), 
+                                advertisedDevice.getRSSI(), 
+                                macAddress.c_str());
+            recordFlipper(name, macAddress, deviceColor, isValidMac); // Passer le statut de validité de l'adresse MAC
+            lastFlipperFoundMillis = millis();
+          }
+    
+          std::string advData = advertisedDevice.getManufacturerData();
+          if (!advData.empty()) {
+              const uint8_t* payload = reinterpret_cast<const uint8_t*>(advData.data());
+              size_t length = advData.length();
+              for(auto& packet : forbiddenPackets) {
+                  if(matchPattern(packet.pattern, payload, length)) {
+                      if (lineCount >= maxLines) {
+                          M5.Display.fillRect(0, 58, 325, 185, BLACK); // Réinitialiser la zone d'affichage des paquets interdits
+                          M5.Display.setCursor(0, 59);
+                          lineCount = 0; // Réinitialiser si le maximum est atteint
+                      }
+                      M5.Display.printf("%s\n", packet.type);
+                      lineCount++;
+                      break; 
+                  }
+              }
+          }
+    }
+};
+
+bool isMacAddressRecorded(const String& macAddress) {
+  File file = SD.open("/WoF.txt", FILE_READ);
+  if (!file) {
+    return false;
+  }
+  while (file.available()) {
+    String line = file.readStringUntil('\n');
+    if (line.indexOf(macAddress) >= 0) {
+      file.close();
+      return true;
+    }
+  }
+
+  file.close();
+  return false;
+}
+
+void recordFlipper(const String& name, const String& macAddress, const String& color, bool isValidMac) {
+    if (!isMacAddressRecorded(macAddress)) {
+        File file = SD.open("/WoF.txt", FILE_APPEND);
+        if (file) {
+            String status = isValidMac ? " - normal" : " - spoofed"; // Détermine le statut basé sur isValidMac
+            file.println(name + " - " + macAddress + " - " + color + status);
+            Serial.println("Flipper saved: \n" + name + " - " + macAddress + " - " + color + status);
+        }
+        file.close();
+    }
+}
+
+void initializeBLEIfNeeded() {
+    if (!isBLEInitialized) {
+        BLEDevice::init("");
+        isBLEInitialized = true;
+        Serial.println("BLE initialized for scanning.");
+    }
+}
+
+
+void wallOfFlipper(){
+  bool btnBPressed = false; //debounce
+  M5.Display.fillScreen(BLACK);
+  M5.Display.setCursor(0, 10);
+  M5.Display.setTextSize(2);
+  M5.Display.setTextColor(WHITE);
+  M5.Display.println("Waiting for Flipper");
+
+  M5.Lcd.setCursor(140, 220);
+  M5.Lcd.println("Stop");
+  initializeBLEIfNeeded();
+  delay(200);
+  while (!btnBPressed) {
+  M5.update(); // Mettre à jour l'état des boutons
+  // Gestion du bouton B pour basculer entre le mode auto et statique
+  if (M5.BtnB.isPressed()) {
+      unsigned long currentPressTime = millis();
+      if (currentPressTime - lastBtnBPressTime > debounceDelay) {
+        lastBtnBPressTime = currentPressTime;
+        btnBPressed = true; // Mettre à jour le drapeau pour indiquer que le bouton B a été pressé après le debounce
+      }
+    }
+  if (millis() - lastFlipperFoundMillis > 10000) { // 30000 millisecondes = 30 secondes
+    M5.Display.fillScreen(BLACK);
+    M5.Display.setCursor(0, 10);
+    M5.Display.setTextSize(2);
+    M5.Display.setTextColor(WHITE);
+    M5.Display.println("Waiting for Flipper");
+    M5.Lcd.setCursor(140, 220);
+    M5.Lcd.println("Stop");
+    
+    lastFlipperFoundMillis = millis();
+  }
+  BLEScan* pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks(), true);
+  pBLEScan->setActiveScan(true);
+  pBLEScan->start(1, false);  
+  }
+  waitAndReturnToMenu("Stop detection...");
+}
+// Wof part end
