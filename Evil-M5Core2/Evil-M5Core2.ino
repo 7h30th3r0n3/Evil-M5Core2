@@ -721,6 +721,10 @@ void drawMenu() {
 
 
 void handleDnsRequestSerial() {
+    if (!isCaptivePortalOn) {
+        return;
+    }
+
     dnsServer.processNextRequest();
     server.handleClient();
     if (Serial.available()) {
