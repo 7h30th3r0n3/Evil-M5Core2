@@ -491,7 +491,7 @@ It pretty small so you can also check serial on USB to get information.
 
 ## Discord 
 
-https://discord.com/invite/JApAxeY2
+https://discord.com/invite/r68guFb6
 
 (ask if broken)
 
