@@ -312,6 +312,7 @@ void setup() {
     "Where we're going We don't\nneed roads   Nefast - 1985",// Donation on Ko-fi // Thx Nefast !
     "Never leave a trace always\n behind you by CyberOzint",// Donation on Ko-fi // Thx CyberOzint !
     "   Injecting hook.worm \nransomware to your android",// Donation on Ko-fi // Thx hook.worm !
+    "   Summoning the void             \nby kdv88", // Donation on Ko-fi // Thx kdv88 ! 
     "    You know Kiyomi ?   ", // for collab on Wof 
     "           42           ",
     "    Don't be a Skidz !",
