@@ -344,7 +344,7 @@ void setup() {
     Serial.println("SD card initialized !! ");
     Serial.println("----------------------");
     restoreConfigParameter("brightness");
-    drawImage("/img/startup.jpg");
+    drawImage("/img/startup-atom.jpg");
     if (ledOn){
         pixels.setPixelColor(4, pixels.Color(255,0,0)); 
         pixels.setPixelColor(5, pixels.Color(255,0,0)); 
