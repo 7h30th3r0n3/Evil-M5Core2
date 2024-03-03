@@ -4155,12 +4155,12 @@ void wardrivingMode() {
           M5.Lcd.setCursor(0, 90);
           M5.Lcd.println("Satellites:");
           M5.Lcd.setCursor(0, 110);
-          M5.Lcd.println(String(gps.satellites.value()));
+          M5.Lcd.println(String(gps.satellites.value()) + "  ");
           // Altitude
           M5.Lcd.setCursor(170, 90);
           M5.Lcd.println("Altitude:");
           M5.Lcd.setCursor(170, 110);
-          M5.Lcd.println(String(gps.altitude.meters(), 2) + "m");
+          M5.Lcd.println(String(gps.altitude.meters(), 2) + "m ");
 
           // Date et Heure
           String dateTime = formatTimeFromGPS();
@@ -4215,7 +4215,7 @@ void wardrivingMode() {
 
       scanStarted = false;
       M5.Lcd.setCursor(0, 10);
-      M5.Lcd.printf("Near WiFi: %d\n", n);
+      M5.Lcd.printf("Near WiFi: %d \n", n);
     }
 
     if (M5.Touch.getCount()) {
