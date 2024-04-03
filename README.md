@@ -367,6 +367,8 @@ Tested device working on Core2/Fire:
 Tested device working on Core2/Fire/CoreS3/Cardputer :
 - Mini GPS/BDS Unit [link M5Stack](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
 
+
+PIN : 
 - PIN for Core2 : 
 use RX2/TX2 | GND | 5v or 3.3v
 
