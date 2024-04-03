@@ -182,7 +182,7 @@ void setColorRange(int startPixel, int endPixel, uint32_t color) {
 
 
 TinyGPSPlus gps;
-
+HardwareSerial cardgps(2); // Create a HardwareSerial object on UART2
 
 bool isItSerialCommand = false;
 
@@ -467,8 +467,8 @@ if (ledOn){
     }
 
     pixels.begin(); // led init
-    Serial2.begin(9600, SERIAL_8N1, 5, -1); // Assurez-vous que les pins RX/TX sont correctement configurées pour votre matériel
-
+    cardgps.begin(9600, SERIAL_8N1, 1, 2); // Assurez-vous que les pins RX/TX sont correctement configurées pour votre matériel
+    drawMenu();
 }
 
 
@@ -3792,8 +3792,8 @@ void wardrivingMode() {
         bool gpsDataAvailable = false;
         String gpsData;
 
-        while (Serial2.available() > 0 && !gpsDataAvailable) {
-            if (gps.encode(Serial2.read())) {
+        while (cardgps.available() > 0 && !gpsDataAvailable) {
+            if (gps.encode(cardgps.read())) {
                 if (gps.location.isValid() && gps.date.isValid() && gps.time.isValid()) {
                     lat = gps.location.lat();
                     lng = gps.location.lng();
