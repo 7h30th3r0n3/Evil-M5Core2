@@ -363,9 +363,8 @@ Tested device working on Core2/Fire/AtomS3 :
 
 Tested device working on Core2/Fire:
 - GPS Module with Internal & External Antenna [link M5Stack](https://shop.m5stack.com/products/gps-module?ref=7h30th3r0n3)
-  
-Waiting for test : 
 
+Tested device working on Core2/Fire/CoreS3/Cardputer :
 - Mini GPS/BDS Unit [link M5Stack](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
 
 - PIN for Core2 : 
