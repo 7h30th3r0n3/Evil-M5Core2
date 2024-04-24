@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.1.9 - Wall Of Flipper ! (from K3YOMI)
+# Evil-M5Core2 v1.2.0 - EAPOL Sniffing
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -35,6 +35,66 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
         <img src="https://static.goaffpro.com/4973/images/1561376655877.png" alt="Support my on M5 shop" width="100" style="display:block; margin:auto;" />
     </a>
 </div>
+</div>
+</div>
+
+## NEW ! from v1.2.0 : EAPOL Sniffing !!! 
+### You can now capture EAPOL (4-wayhandshakes and PMKID) ! 
+
+
+Based on an original idea from G4lile0 the Wifi-Hash-Monster.
+
+You absolutely must see the original project here from which I took inspiration:
+
+[https://github.com/G4lile0/ESP32-WiFi-Hash-Monster
+](https://github.com/G4lile0/ESP32-WiFi-Hash-Monster)
+
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/1713957998859.jpg" width="300" />
+</div>
+
+- Channel : Current Channel
+- Mode : Static : Stay on same channel / Auto: Hopping trough all channel
+- PPS : Packets Per Second on the channel (if no activities on the channel the PPS could be locked to the last know number of packets because the refresh occur when a packet is reveived)
+- H : Numbers of new PCAP created ( at least one EAPOL and beacon frame)
+- EAPOL : Numbers of EAPOL packets captures
+- DEAUTH : Numbers of Deauth seen
+- RSSI : The transmission power (gives an idea of ​​the distance from the transmitter)
+
+If a EAPOL packet is detected, its stored in a pcap file with the mac address of the AP and a beacon frames wih the BSSID.
+ You can crack a Wifi password with a 4-way handshakes or a PMKID with Aircrack-ng or Hashcat.
+
+A python tool to process multiple pcap to hashcat format is provided in utilities.
+
+Detect deauthentication packets near you, when a machine disconnects from an access point, it sends a deauthentication packet to close the connection, 
+deauthentication packets can also be spoofed to disconnect the device and attacker use automatic reconnection to sniff the 4-way handshake, 
+a lot of deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
+This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
+in this way you can know if you are under attacked.
+
+## NEW ! from v1.1.9 : Wall of Flipper !!! 
+### You can run it but you can't hide !!!! 
+
+Based on an original idea from K3YOMI, thanks to him for the fantastic work ! 
+
+You absolutely must see the original project here from which I took inspiration and from which I used the code :
+
+https://github.com/K3YOMI/Wall-of-Flippers
+
+Flipper Zero detection via bluetooth :
+
+Discover Flipper Zero Devices :
+- Discovering Flipper Name
+- Discovering Flipper Mac Address and if it's spoofed (normal/spoofed)
+- Discovering Flipper color (Detection of Transparent, White, & Black Flipper)
+- Saving Flipper Zero Devices Discovered near you on SD Card. 
+
+Capability to Identify Potential Bluetooth Advertisement Attacks from Flipper and Other Devices :
+- Suspected Advertisement Attacks
+- iOS Popup Advertisement Attacks
+- Samsung and Android BLE Advertisement Attacks
+- Windows Swift Pair Advertisement Attacks
+- LoveSpouse Advertisement Attacks (Denial of Pleasure)
+
 
 
 
@@ -87,38 +147,6 @@ The parasite project still exist but rename to Evil-Face and should be updated i
 </div>
 </div>
 
-## NEW ! from v1.1.9 : Wall of Flipper !!! 
-### You can run it but you can't hide !!!! 
-
-Based on an original idea from K3YOMI, thanks to him for the fantastic work ! 
-
-You absolutely must see the original project here from which I took inspiration and from which I used the code :
-
-https://github.com/K3YOMI/Wall-of-Flippers
-
-Flipper Zero detection via bluetooth :
-
-Discover Flipper Zero Devices :
-- Discovering Flipper Name
-- Discovering Flipper Mac Address and if it's spoofed (normal/spoofed)
-- Discovering Flipper color (Detection of Transparent, White, & Black Flipper)
-- Saving Flipper Zero Devices Discovered near you on SD Card. 
-
-Capability to Identify Potential Bluetooth Advertisement Attacks from Flipper and Other Devices :
-- Suspected Advertisement Attacks
-- iOS Popup Advertisement Attacks
-- Samsung and Android BLE Advertisement Attacks
-- Windows Swift Pair Advertisement Attacks
-- LoveSpouse Advertisement Attacks (Denial of Pleasure)
-
-### NEW ! from v1.1.8 : Deauth Detection !
-
-Detect deauthentication packets near you, when a machine disconnects from an access point, it sends a deauthentication packet to close the connection, 
-deauthentication packets can also be spoofed to disconnect the device and attacker use automatic reconnection to sniff the 4-way handshake, 
-many deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
-This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
-in this way you can know if you are under attacked.
-
 ## Features Evil-M5core2
 
 - **WiFi Network Scanning**: Identify and display nearby WiFi networks.
@@ -132,7 +160,7 @@ in this way you can know if you are under attacked.
 - **Bluetooth Serial Control**: You can control it with bluetooth.
 - **Wardriving**: Wardriving with Wigle format output on SD.
 - **Beacon Spam**: Generate mutliple SSIDs arround you.
-- **Deauther detection**: Detect deauthentification packet and pwnagotchi near you.
+- **EAPOL/Deauth detection**: Detect deauthentification packet, 4-Way handshakes, PMKID and pwnagotchi near you.
 - **Wall Of Flipper**: Detect and save Flipper Zero with bluetooth enable near you and detect BLE SPAM.
 
  ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
@@ -367,7 +395,6 @@ Tested device working on Core2/Fire:
 Tested device working on Core2/Fire/CoreS3/Cardputer :
 - Mini GPS/BDS Unit [link M5Stack](https://shop.m5stack.com/products/mini-gps-bds-unit?ref=7h30th3r0n3)
 
-
 PIN : 
 - PIN for Core2 : 
 use RX2/TX2 | GND | 5v or 3.3v
@@ -387,13 +414,30 @@ GPIO 17
 Beacon Spam create multiple networks on all channels to render multiples SSIDs in wifi search and sniffing equipement.
 You can use custom Beacon with config file. 
 
-### Deauth Detection
 
-Detect deauthentication packets near you, when a machine disconnects from an access point, it sends a deauthentication packet to close the connection, 
-deauthentication packets can also be spoofed to disconnect the device and attacker use automatic reconnection to sniff the 4-way handshake, 
-many deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
-This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
-in this way you can know if you are under attacked.
+### Wall of Flipper : You can run it but you can't hide !!!! 
+
+Based on an original idea from K3YOMI, thanks to him for the fantastic work ! 
+
+You absolutely must see the original project here from which I took inspiration and from which I used the code :
+
+https://github.com/K3YOMI/Wall-of-Flippers
+
+Flipper Zero detection via bluetooth :
+
+Discover Flipper Zero Devices :
+- Discovering Flipper Name
+- Discovering Flipper Mac Address and if it's spoofed (normal/spoofed)
+- Discovering Flipper color (Detection of Transparent, White, & Black Flipper)
+- Saving Flipper Zero Devices Discovered near you on SD Card. 
+
+Capability to Identify Potential Bluetooth Advertisement Attacks from Flipper and Other Devices :
+- Suspected Advertisement Attacks
+- iOS Popup Advertisement Attacks
+- Samsung and Android BLE Advertisement Attacks
+- Windows Swift Pair Advertisement Attacks
+- LoveSpouse Advertisement Attacks (Denial of Pleasure)
+
 
 ### Change startup image 
 Upload a startup.jpg 320x240 image to replace original startup.jpg and make your Evil-M5Core2 more special.
