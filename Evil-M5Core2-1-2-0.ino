@@ -199,7 +199,7 @@ bool isItSerialCommand = false;
 
 // deauth and pwnagotchi detector part
 
-const long channelHopInterval = 500;
+const long channelHopInterval = 5000;
 unsigned long lastChannelHopTime = 0;
 int currentChannelDeauth = 1;
 bool autoChannelHop = true; // Commence en mode auto
