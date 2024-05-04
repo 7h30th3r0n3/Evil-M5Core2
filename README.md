@@ -200,8 +200,9 @@ Tested working others device :
 4. Ensure esp32 and M5stack board are installed (Error occur with esp32 3.0.0-alpha3, please use esp32 v2.0.14 and below).
 5. Place SD file content needed on the SD card. ( Needed to get IMG startup and sites folder).
 6. Ensure that the baudrates is at 115200.
-7. Upload the script to your M5Core2 device.
-8. Restart the device if needed.
+7. Ensure that PSRAM is disabled in tools menu.
+8. Upload the script to your M5Core2 device.
+9. Restart the device if needed.
 
 It's your first time with arduino IDE or something not working correctly? You should check out video section ! 
 
