@@ -176,6 +176,7 @@ The parasite project still exist but rename to Evil-Face and should be updated i
 - **Bluetooth Serial Control**: You can control it with bluetooth.
 - **Wardriving**: Wardriving with Wigle format output on SD.
 - **Beacon Spam**: Generate mutliple SSIDs arround you.
+- **Deauther**: send deauthentification frames, and sniff 4-Way handshakes and PMKID.
 - **EAPOL/Deauth detection**: Detect deauthentification packet, 4-Way handshakes, PMKID and pwnagotchi near you.
 - **Wall Of Flipper**: Detect and save Flipper Zero with bluetooth enable near you and detect BLE SPAM.
 
