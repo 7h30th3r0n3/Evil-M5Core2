@@ -2,7 +2,7 @@
 
 All of these scripts and instructions are from nemo project https://github.com/n0xa/m5stick-nemo/tree/main/deauth_prerequisites
 
-#DEAUTHENTIFICATION
+# DEAUTHENTIFICATION
 In order to make the Deauthentication broadcast work properly, you must follow some steps before compiling
 
 
