@@ -39,16 +39,12 @@ To do that, we must change some flags on the board "platform.txt" file and decla
 * Note: everytime you update your M5 boards to a new version, you will need to do this again..
 
 
-## What did I do to help..
-I Created a batch file to meka all these changes automatically, you just need to download the "install-prerequisites.bat" file and run.
+## What did I n0xa do to help..
+n0xa created a batch file to meka all these changes automatically, you just need to download the "install-prerequisites.bat" file and run.
 
 Mac users: You can use install-prerequisites_MAC.sh (thanks to @danny8972)
 
 Linux users: You can use install-prerequisites_Linux.sh (thanks to @danny8972, Just changed folder address might work just fine)
-
-
-## Helps?
-I'm all ears!
 
 ## Thanks
 * Thanks to @danny8972 (https://github.com/danny8972) for dev the MAC batch file.
