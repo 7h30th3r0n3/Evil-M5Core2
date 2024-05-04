@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.2.0 - EAPOL Sniffing
+# Evil-M5Core2 v1.2.1 - Deauther
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -37,6 +37,22 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
 </div>
 </div>
 </div>
+
+## NEW ! from v1.2.1 : Deauther !!! 
+### You can now send deauthentification frame ! 
+### !! Warning !! You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
+ 
+Based on an original idea from spacehuhn the deauther 
+
+You absolutely must see the original project here from which I took inspiration:
+
+[https://github.com/SpacehuhnTech/esp8266_deauther](https://github.com/SpacehuhnTech/esp8266_deauther)
+
+Evil-M5core2 is now able to send deauthentification frames and you can sniff the EPAOL in same time.
+
+Just select the network and go to deauther, answer asked question, and start to deauth and sniff at same time !
+
+Special thanks to Aro2142 and n0xa for the help and work. 
 
 ## NEW ! from v1.2.0 : EAPOL Sniffing !!! 
 ### You can now capture EAPOL (4-wayhandshakes and PMKID) ! 
