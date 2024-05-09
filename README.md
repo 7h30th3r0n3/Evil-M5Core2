@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Core2 v1.2.1 - Deauther
+# Evil-M5Core2 v1.2.2 - Client Sniff And Deauth
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -37,6 +37,41 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
 </div>
 </div>
 </div>
+</div></div>
+
+## NEW ! from v1.2.2 : Client Sniff And Deauth !!! 
+### You can now sniff connected client and send deauthentification frame automatically! 
+
+### !! Warning !! You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
+
+Based on an original idea from evilsocket the pwnagotchi 
+
+You absolutely must see the original project here from which I took inspiration:
+
+[https://github.com/evilsocket/pwnagotchi](https://github.com/evilsocket/pwnagotchi)
+
+
+On screen:
+- AP: Number of APs near you 
+- C : Current Channel
+- H : Numbers of new PCAP created ( at least one EAPOL and beacon frame)
+- E : Numbers of EAPOL packets captures
+- D : 0 = no deauth only sniffing / 1 = active deauth
+- DF: Fast Mode 
+
+Left Button : ON/OFF deauth 
+middle : back to menu 
+right Button : Fast/slow mode 
+
+So what ? 
+
+It does :
+- Scan for near AP
+- Sniff if client is connected
+- Send broadcast deauth frame to each AP which have client
+- Send spoofed deauth frame for each client
+- Sniff EAPOL at same time
+- Loop at Scan near AP
 
 ## NEW ! from v1.2.1 : Deauther !!! 
 ### You can now send deauthentification frame ! 
@@ -84,35 +119,9 @@ A python tool to process multiple pcap to hashcat format is provided in utilitie
 Detect deauthentication packets near you, when a machine disconnects from an access point, it sends a deauthentication packet to close the connection, 
 deauthentication packets can also be spoofed to disconnect the device and attacker use automatic reconnection to sniff the 4-way handshake, 
 a lot of deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
+
 This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
 in this way you can know if you are under attacked.
-
-## NEW ! from v1.1.9 : Wall of Flipper !!! 
-### You can run it but you can't hide !!!! 
-
-Based on an original idea from K3YOMI, thanks to him for the fantastic work ! 
-
-You absolutely must see the original project here from which I took inspiration and from which I used the code :
-
-https://github.com/K3YOMI/Wall-of-Flippers
-
-Flipper Zero detection via bluetooth :
-
-Discover Flipper Zero Devices :
-- Discovering Flipper Name
-- Discovering Flipper Mac Address and if it's spoofed (normal/spoofed)
-- Discovering Flipper color (Detection of Transparent, White, & Black Flipper)
-- Saving Flipper Zero Devices Discovered near you on SD Card. 
-
-Capability to Identify Potential Bluetooth Advertisement Attacks from Flipper and Other Devices :
-- Suspected Advertisement Attacks
-- iOS Popup Advertisement Attacks
-- Samsung and Android BLE Advertisement Attacks
-- Windows Swift Pair Advertisement Attacks
-- LoveSpouse Advertisement Attacks (Denial of Pleasure)
-
-
-
 
 ----------------------------------------------------------
 
