@@ -60,7 +60,9 @@ On screen:
 - DF: Fast Mode 
 
 Left Button : ON/OFF deauth 
+
 middle : back to menu 
+
 right Button : Fast/slow mode 
 
 So what ? 
