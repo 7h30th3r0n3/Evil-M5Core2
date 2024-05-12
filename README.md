@@ -214,6 +214,8 @@ Tested working others device :
 8. Upload the script to your M5Core2 device.
 9. Restart the device if needed.
 
+Warning : for Cardputer you need to change the Flash size to 8MB and the Partition Scheme to 8M with spiffs (3MB APP/1.5MB SPIFFS) or space error may occur.
+
 It's your first time with arduino IDE or something not working correctly? You should check out video section ! 
 
 <div align="center">
