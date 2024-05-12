@@ -186,10 +186,33 @@ The parasite project still exist but rename to Evil-Face and should be updated i
 - **Wardriving**: Wardriving with Wigle format output on SD.
 - **Beacon Spam**: Generate mutliple SSIDs arround you.
 - **Deauther**: send deauthentification frames, and sniff 4-Way handshakes and PMKID.
+- **Client Sniff And Deauth**: Sniff clients connected to AP and auto deauth while sniffing EAPOL.
 - **EAPOL/Deauth detection**: Detect deauthentification packet, 4-Way handshakes, PMKID and pwnagotchi near you.
 - **Wall Of Flipper**: Detect and save Flipper Zero with bluetooth enable near you and detect BLE SPAM.
 
  ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
+
+Features may vary depending on the firmware/device you are using:
+| Feature                       | Evil-M5Core2 1.2.2 | Evil-Cardputer v1.2.2 | Evil-M5Core3 1.1.9 | Evil-AtomS3 v1.1.7 | Evil-Face v1.0 |
+|-------------------------------|--------------------|-----------------------|--------------------|--------------------|----------------|
+| WiFi Network Scanning         | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Network Cloning               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Captive Portal Management     | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Credential Handling           | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Remote Web Server             | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Sniffing probes               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Karma Attack                  | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Automated Karma Attack        | ✅                  | ✅                     | ✅                  | ✅                  | ✅              |
+| Bluetooth Serial Control      | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Wardriving                    | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Beacon Spam                   | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Deauther                      | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Client Sniff And Deauth       | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
+| EAPOL/Deauth detection        | ✅                  | ✅                     | ✅ (No EAPOL)       | ❌                  | ❌              |
+| Wall Of Flipper               | ✅                  | ✅                     | ✅                  | ❌                  | ❌              |
+
+
+
 
 ## Hardware Requirements
 
@@ -209,10 +232,11 @@ Tested working others device :
 3. Ensure M5unified, TinyGpsPlus, ArduinoJson and adafruit_neopixel libraries are installed.
 4. Ensure esp32 and M5stack board are installed (Error occur with esp32 3.0.0-alpha3, please use esp32 v2.0.14 and below).
 5. Place SD file content needed on the SD card. ( Needed to get IMG startup and sites folder).
-6. Ensure that the baudrates is at 115200.
-7. Ensure that PSRAM is disabled in tools menu.
-8. Upload the script to your M5Core2 device.
-9. Restart the device if needed.
+6. Ensure to run the script in utilities to bypass the esp32 firmware. (be sure that the folder in the script exist, change if needed (M5stack/eso32))
+7. Ensure that the baudrates is at 115200.
+8. Ensure that PSRAM is disabled in tools menu.
+9. Upload the script to your M5Core2 device.
+10. Restart the device if needed.
 
 Warning : for Cardputer you need to change the Flash size to 8MB and the Partition Scheme to 8M with spiffs (3MB APP/1.5MB SPIFFS) or space error may occur.
 
