@@ -205,7 +205,7 @@ Features may vary depending on the firmware/device you are using:
 | Sniffing probes               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
 | Karma Attack                  | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
 | Automated Karma Attack        | ✅                  | ✅                     | ✅                  | ✅                  | ✅              |
-| Bluetooth Serial Control      | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Bluetooth Serial Control      | ✅                  | ❌                     | ❌                  | ❌                  | ❌              |
 | Wardriving                    | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
 | Beacon Spam                   | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
 | Deauther                      | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
