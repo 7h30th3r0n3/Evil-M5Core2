@@ -1,4 +1,4 @@
 brightness=33
-KarmaAutoWhitelist=OSINX,Actimac,Actimac-Invites,Atelier
+KarmaAutoWhitelist=network1,network2,network3
 CustomProbes=Never,Gonna,Give,You,Up,never,gonna,Let,you:,Down,never:,gonna:,Run,Around,And,Desert,you!,never!,gonna!,Make,you-, Cry,never-,gonna-,Say,Goodbye,never<,gonna<,Tell,A,Lie,and<,Hurt,you<
 CustomBeacons=Never Gonna Give You Up,never gonna Let you Down,never gonna Run Around,And Desert you,never gonna Make you Cry,never gonna Say Goodbye,never gonna Tell A Lie, and Hurt you
