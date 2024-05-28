@@ -2,7 +2,7 @@ This folder is to bring together the different pages that the community can crea
 
 please respect the following standard for the name before all PR requests: 
 
-name-ISO.html
+ISO-name.html
 
-exemple : Holy-Portal-FR.html
+exemple : FR-Holy-Portal.html
 
