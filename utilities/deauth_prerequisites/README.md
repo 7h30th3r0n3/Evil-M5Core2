@@ -4,7 +4,8 @@ All of these scripts and instructions are from nemo project https://github.com/n
 
 # DEAUTHENTIFICATION
 In order to make the Deauthentication broadcast work properly, you must follow some steps before compiling
-n0xa created a batch file to make all these changes automatically, you just need to download the "install-prerequisites" file depending on your system and run it.
+
+!! n0xa created a batch file to make all these changes automatically, you just need to download the "install-prerequisites" file depending on your system and run it.!! 
 
 
 ## Why these prerequisites
