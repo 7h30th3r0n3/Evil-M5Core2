@@ -77,7 +77,7 @@ bool inMenu = true;
 const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Set Wifi SSID", "Set Wifi Password", "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Creds", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Wardriving", "Beacon Spam" , "Deauther", "Client Sniffing and Deauth", "Handshake/Deauth Sniffing", "Check Handshakes", "Wall Of Flipper"};
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
-const int maxMenuDisplay = 11;
+const int maxMenuDisplay = 8;
 int menuStartIndex = 0;
 
 String ssidList[100];
@@ -256,7 +256,7 @@ void setup() {
   M5.begin();
   Serial.begin(115200);
   M5.Lcd.setRotation(1);
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.setTextFont(1);
 
@@ -467,17 +467,45 @@ void setup() {
   M5.Display.drawLine(0, lineY1, M5.Display.width(), lineY1, TFT_WHITE);
   M5.Display.drawLine(0, lineY2, M5.Display.width(), lineY2, TFT_WHITE);
 
-  M5.Display.setCursor(60, textY);
-  M5.Display.println(" Evil-Cardputer");
+  // Largeur de l'écran
+  int screenWidth = M5.Lcd.width();
+
+  // Textes à afficher
+  const char* text1 = "Evil-Cardputer";
+  const char* text2 = "By 7h30th3r0n3";
+  const char* text3 = "v1.2.2 2024";
+
+  // Mesure de la largeur du texte et calcul de la position du curseur
+  int text1Width = M5.Lcd.textWidth(text1);
+  int text2Width = M5.Lcd.textWidth(text2);
+  int text3Width = M5.Lcd.textWidth(text3);
+
+  int cursorX1 = (screenWidth - text1Width) / 2;
+  int cursorX2 = (screenWidth - text2Width) / 2;
+  int cursorX3 = (screenWidth - text3Width) / 2;
+
+  // Position de Y pour chaque ligne
+  int textY1 = textY;
+  int textY2 = textY + 20;
+  int textY3 = textY + 45;
+
+  // Affichage sur l'écran
+  M5.Lcd.setCursor(cursorX1, textY1);
+  M5.Lcd.println(text1);
+
+  M5.Lcd.setCursor(cursorX2, textY2);
+  M5.Lcd.println(text2);
+
+  M5.Lcd.setCursor(cursorX3, textY3);
+  M5.Lcd.println(text3);
+
+  // Affichage en série
   Serial.println("-------------------");
-  Serial.println(" Evil-Cardputer");
-  M5.Display.setCursor(64, textY + 20);
-  M5.Display.println("By 7h30th3r0n3");
-  M5.Display.setCursor(84, textY + 45);
-  M5.Display.println("v1.2.2 2024");
+  Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
+  Serial.println("v1.2.2 2024");
   Serial.println("-------------------");
-  M5.Display.setCursor(34, textY + 80);
+  M5.Display.setCursor(0, textY + 80);
   M5.Display.println(randomMessage);
   Serial.println(" ");
   Serial.println(randomMessage);
@@ -759,12 +787,12 @@ void handleMenuInput() {
 
 void drawMenu() {
   M5.Display.clear();
-  M5.Display.setTextSize(1); // Assurez-vous que la taille du texte est correcte
+  M5.Display.setTextSize(1.5); // Assurez-vous que la taille du texte est correcte
   M5.Display.setTextFont(1);
 
-  int lineHeight = 12; // Augmentez la hauteur de ligne si nécessaire
+  int lineHeight = 16; // Augmentez la hauteur de ligne si nécessaire
   int startX = 0;
-  int startY = 3;
+  int startY = 0;
 
   for (int i = 0; i < maxMenuDisplay; i++) {
     int menuIndex = menuStartIndex + i;
@@ -776,11 +804,12 @@ void drawMenu() {
     } else {
       M5.Display.setTextColor(TFT_WHITE);
     }
-    M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 2); // Ajustez ici
+    M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 3); // Ajustez ici
     M5.Display.println(menuItems[menuIndex]);
   }
   M5.Display.display();
 }
+
 
 void handleDnsRequestSerial() {
   dnsServer.processNextRequest();
@@ -1147,7 +1176,6 @@ void scanWifiNetworks() {
 
 }
 
-
 void showWifiList() {
   bool needsDisplayUpdate = true;  // Flag pour déterminer si l'affichage doit être mis à jour
 
@@ -1161,18 +1189,18 @@ void showWifiList() {
   while (!inMenu) {
     if (needsDisplayUpdate) {
       M5.Display.clear();
-      const int listDisplayLimit = M5.Display.height() / 9;
+      const int listDisplayLimit = M5.Display.height() / 13; // Ajuster en fonction de la nouvelle taille du texte
       int listStartIndex = max(0, min(currentListIndex, numSsid - listDisplayLimit));
 
-      M5.Display.setTextSize(0);
+      M5.Display.setTextSize(1.5);
       for (int i = listStartIndex; i < min(numSsid, listStartIndex + listDisplayLimit + 1); i++) {
         if (i == currentListIndex) {
-          M5.Display.fillRect(0, (i - listStartIndex) * 10, M5.Display.width(), 10, TFT_NAVY);
+          M5.Display.fillRect(0, (i - listStartIndex) * 13, M5.Display.width(), 13, TFT_NAVY); // Ajuster la hauteur
           M5.Display.setTextColor(TFT_GREEN);
         } else {
           M5.Display.setTextColor(TFT_WHITE);
         }
-        M5.Display.setCursor(2, (i - listStartIndex) * 10);
+        M5.Display.setCursor(2, (i - listStartIndex) * 13); // Ajuster la hauteur
         M5.Display.println(ssidList[i]);
       }
       M5.Display.display();
@@ -1212,6 +1240,7 @@ void showWifiList() {
 }
 
 
+
 void showWifiDetails(int networkIndex) {
   inMenu = false;
   bool keyHandled = false;  // Pour gérer la réponse à la touche une fois
@@ -1219,7 +1248,7 @@ void showWifiDetails(int networkIndex) {
   auto updateDisplay = [&]() {
     if (networkIndex >= 0 && networkIndex < numSsid) {
       M5.Display.clear();
-      M5.Display.setTextSize(0);
+      M5.Display.setTextSize(1.5);
       int y = 2;
       int x = 0;
 
@@ -1232,26 +1261,26 @@ void showWifiDetails(int networkIndex) {
       int channel = WiFi.channel(networkIndex);
       M5.Display.setCursor(x, y);
       M5.Display.println("Channel:" + (channel > 0 ? String(channel) : "N/A"));
-      y += 10;
+      y += 16;
 
       // Security
       String security = getWifiSecurity(networkIndex);
       M5.Display.setCursor(x, y);
       M5.Display.println("Security:" + (security.length() > 0 ? security : "N/A"));
-      y += 10;
+      y += 16;
 
       // Signal Strength
       int32_t rssi = WiFi.RSSI(networkIndex);
       M5.Display.setCursor(x, y);
       M5.Display.println("Signal:" + (rssi != 0 ? String(rssi) + " dBm" : "N/A"));
-      y += 10;
+      y += 16;
 
       // MAC Address
       uint8_t* bssid = WiFi.BSSID(networkIndex);
       String macAddress = bssidToString(bssid);
       M5.Display.setCursor(x, y);
       M5.Display.println("MAC:" + (macAddress.length() > 0 ? macAddress : "N/A"));
-      y += 10;
+      y += 16;
 
       M5.Display.setCursor(80, 110);
       M5.Display.println("ENTER:Clone");
@@ -1960,7 +1989,7 @@ void changePortal() {
       int listStartIndex = max(0, min(portalFileIndex, numPortalFiles - listDisplayLimit));
 
       M5.Display.clear();
-      M5.Display.setTextSize(1);
+      M5.Display.setTextSize(1.5);
       M5.Display.setTextColor(TFT_WHITE);
       M5.Display.setCursor(10, 10);
 
@@ -2083,9 +2112,10 @@ void checkCredentials() {
 void displayCredentials(int index) {
   // Clear the display and set up text properties
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
 
-  int maxVisibleLines = M5.Display.height() / 18; // Nombre maximum de lignes affichables à l'écran
+  const int lineHeight = 15; // Réduire l'espace entre les lignes
+  int maxVisibleLines = 9; // Nombre maximum de lignes affichables à l'écran
   int currentLine = 0; // Ligne actuelle en cours de traitement
   int firstLineIndex = index; // Index de la première ligne de l'entrée sélectionnée
   int linesBeforeIndex = 0; // Nombre de lignes avant l'index sélectionné
@@ -2108,11 +2138,11 @@ void displayCredentials(int index) {
     int neededLines = 1 + M5.Display.textWidth(credential) / (M5.Display.width() - 20);
 
     if (i == index) {
-      M5.Display.fillRect(0, currentLine * 18, M5.Display.width(), 18 * neededLines, TFT_NAVY);
+      M5.Display.fillRect(0, currentLine * lineHeight, M5.Display.width(), lineHeight * neededLines, TFT_NAVY);
     }
 
     for (int line = 0; line < neededLines; line++) {
-      M5.Display.setCursor(10, (currentLine + line) * 18);
+      M5.Display.setCursor(10, (currentLine + line) * lineHeight);
       M5.Display.setTextColor(i == index ? TFT_GREEN : TFT_WHITE);
 
       int startChar = line * (credential.length() / neededLines);
@@ -2132,7 +2162,7 @@ bool confirmPopup(String message) {
 
   M5.Display.clear();
 
-  int messageWidth = message.length() * 6;  // Each character is 6 pixels wide
+  int messageWidth = message.length() * 9;  // Each character is 6 pixels wide
   int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
 
   M5.Display.setCursor(startX, M5.Display.height() / 2);
@@ -2216,7 +2246,7 @@ int oldNumPasswords = -1;
 
 void displayMonitorPage1() {
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
 
   M5.Display.setCursor(0, 45);
@@ -2304,7 +2334,7 @@ void updateConnectedMACs() {
 }
 void displayMonitorPage2() {
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
   updateConnectedMACs();
 
@@ -2400,7 +2430,7 @@ const long updateInterval = 1000;
 
 void displayMonitorPage3() {
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
 
 
@@ -2532,15 +2562,15 @@ void karmaAttack() {
 
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
 
-  int messageWidth = message.length() * 6;  // Each character is 6 pixels wide
+  int messageWidth = message.length() * 9;  // Each character is 6 pixels wide
   int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
 
   // Set the cursor to the calculated position
   M5.Display.setCursor(startX, M5.Display.height() / 2);
   M5.Display.println(message);
-  M5.Display.fillRect(0, M5.Display.height() - 20, M5.Display.width(), 20, TFT_BLACK);
+  M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_BLACK);
 
   M5.Display.display();
   delay(1500);
@@ -2555,7 +2585,7 @@ void brightness() {
   int maxBrightness = 255;
 
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
   M5.Display.setTextColor(TFT_WHITE);
 
   bool brightnessAdjusted = true;
@@ -2593,7 +2623,7 @@ void brightness() {
       float brightnessPercentage = 100.0 * (currentBrightness - minBrightness) / (maxBrightness - minBrightness);
       M5.Display.fillScreen(TFT_BLACK);
       M5.Display.setCursor(50, M5.Display.height() / 2);
-      M5.Display.print("   Brightness: ");
+      M5.Display.print("Brightness: ");
       M5.Display.print((int)brightnessPercentage);
       M5.Display.println("%");
       M5.Display.setBrightness(currentBrightness);
@@ -2765,7 +2795,7 @@ void saveSSIDToFile(const char* ssid) {
 
 
 void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
-  const int maxLength = 17;
+  const int maxLength = 23;
   char truncatedSSID[18];
 
   M5.Display.fillRect(0, 0, M5.Display.width(), M5.Display.height() - 30, TFT_BLACK);
@@ -2773,7 +2803,7 @@ void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
 
   for (int i = startIndexKarma; i < count; i++) {
     int lineIndexKarma = i - startIndexKarma;
-    M5.Display.setCursor(0, lineIndexKarma * 10);
+    M5.Display.setCursor(0, lineIndexKarma * 12);
 
     if (strlen(ssidsKarma[i]) > maxLength) {
       strncpy(truncatedSSID, ssidsKarma[i], maxLength);
@@ -2783,22 +2813,22 @@ void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
       M5.Display.printf("%d.%s", i + 1, ssidsKarma[i]);
     }
   }
-  if ( count <= 9) {
-    M5.Display.fillRect(M5.Display.width() - 15 / 2, 0, 15 / 2, 15, TFT_DARKGREEN);
-    M5.Display.setCursor(M5.Display.width() - 13 / 2, 3);
-  } else if ( count >= 10 && count <= 99) {
-    M5.Display.fillRect(M5.Display.width() - 30 / 2, 0, 30 / 2, 15, TFT_DARKGREEN);
-    M5.Display.setCursor(M5.Display.width() - 27 / 2, 3);
-  } else if ( count >= 100 && count < MAX_SSIDS_Karma * 0.7) {
-    M5.Display.fillRect(M5.Display.width() - 45 / 2, 0, 45 / 2, 15, TFT_ORANGE);
+ if (count <= 9) {
+    M5.Display.fillRect(M5.Display.width() - 15 * 1.5 / 2, 0, 15 * 1.5 / 2, 15, TFT_DARKGREEN);
+    M5.Display.setCursor(M5.Display.width() - 13 * 1.5 / 2, 3);
+  } else if (count >= 10 && count <= 99) {
+    M5.Display.fillRect(M5.Display.width() - 30 * 1.5 / 2, 0, 30 * 1.5 / 2, 15, TFT_DARKGREEN);
+    M5.Display.setCursor(M5.Display.width() - 27 * 1.5 / 2, 3);
+  } else if (count >= 100 && count < MAX_SSIDS_Karma * 0.7) {
+    M5.Display.fillRect(M5.Display.width() - 45 * 1.5 / 2, 0, 45 * 1.5 / 2, 15, TFT_ORANGE);
     M5.Display.setTextColor(TFT_BLACK);
-    M5.Display.setCursor(M5.Display.width() - 42 / 2, 3);
+    M5.Display.setCursor(M5.Display.width() - 42 * 1.5 / 2, 3);
     M5.Display.setTextColor(TFT_WHITE);
   } else {
-    M5.Display.fillRect(M5.Display.width() - 45 / 2, 0, 45 / 2, 15, TFT_RED);
-    M5.Display.setCursor(M5.Display.width() - 42 / 2, 3);
+    M5.Display.fillRect(M5.Display.width() - 45 * 1.5 / 2, 0, 45 * 1.5 / 2, 15, TFT_RED);
+    M5.Display.setCursor(M5.Display.width() - 42 * 1.5 / 2, 3);
   }
-  if (count == MAX_SSIDS_Karma) {
+ if (count == MAX_SSIDS_Karma) {
     M5.Display.printf("MAX");
   } else {
     M5.Display.printf("%d", count);
@@ -2960,10 +2990,10 @@ void handleMenuInputKarma() {
 
 void drawMenuKarma() {
   M5.Display.clear();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
   M5.Display.setTextFont(1);
 
-  int lineHeight = 10;
+  int lineHeight = 12;
   int startX = 0;
   int startY = 6;
 
@@ -3108,8 +3138,8 @@ void listProbes() {
     return;
   }
 
-  const int lineHeight = 18; // Hauteur de ligne pour l'affichage des SSIDs
-  const int maxDisplay = (128 - 10) / lineHeight; // Nombre maximum de lignes affichables
+  const int lineHeight = 15; // Hauteur de ligne pour l'affichage des SSIDs
+  const int maxDisplay = 9; // Nombre maximum de lignes affichables
   int currentListIndex = 0;
   bool needDisplayUpdate = true;
   bool keyHandled = false;
@@ -3151,8 +3181,8 @@ void listProbes() {
 
     if (needDisplayUpdate) {
       M5.Display.clear();
-      M5.Display.setTextSize(1);
-      int y = 10; // Début de l'affichage en y
+      M5.Display.setTextSize(1.5);
+      int y = 1; // Début de l'affichage en y
 
       for (int i = 0; i < maxDisplay; i++) {
         int probeIndex = (currentListIndex + i) % numProbes;
@@ -3210,8 +3240,8 @@ void deleteProbe() {
     return;
   }
 
-  const int lineHeight = 18;  // Adapté à l'écran de 128x128
-  const int maxDisplay = (128 - 10) / lineHeight;  // Calcul du nombre maximal de lignes affichables
+  const int lineHeight = 15;  // Adapté à l'écran de 128x128
+  const int maxDisplay = 8;  // Calcul du nombre maximal de lignes affichables
   int currentListIndex = 0;
   bool needDisplayUpdate = true;
   bool keyHandled = false;
@@ -3267,7 +3297,7 @@ void deleteProbe() {
 
     if (needDisplayUpdate) {
       M5.Display.clear();
-      M5.Display.setTextSize(0);
+      M5.Display.setTextSize(1.5);
 
       for (int i = 0; i < maxDisplay && i + currentListIndex < numProbes; i++) {
         int probeIndex = currentListIndex + i;
@@ -3326,7 +3356,7 @@ int showProbesAndSelect(String probes[], int numProbes) {
 
     if (needDisplayUpdate) {
       M5.Display.clear();
-      M5.Display.setTextSize(0);
+      M5.Display.setTextSize(1.5);
 
       for (int i = 0; i < maxDisplay && currentListIndex + i < numProbes; i++) {
         int displayIndex = currentListIndex + i;
@@ -3513,10 +3543,10 @@ void probeAttack() {
 
   int probesTextX = 0;
   String probesText = "Probe Attack running.";
-  M5.Display.setCursor(probesTextX, 50);
+  M5.Display.setCursor(probesTextX, 37);
   M5.Display.println(probesText);
   probesText = "Probes sent: ";
-  M5.Display.setCursor(probesTextX, 70);
+  M5.Display.setCursor(probesTextX, 52);
   M5.Display.print(probesText);
   Serial.println("-------------------");
   Serial.println("Starting Probe Attack");
@@ -3547,8 +3577,8 @@ void probeAttack() {
       }
       WiFi.begin(ssid.c_str(), "");
 
-      M5.Display.setCursor(probesTextX + 12, 80);
-      M5.Display.fillRect(probesTextX +  12, 80, 40, 10, TFT_BLACK);
+      M5.Display.setCursor(probesTextX + 12, 67); // Ajuster la position verticale
+      M5.Display.fillRect(probesTextX +  12, 67, 40, 15, TFT_BLACK); // Ajuster la taille de la zone à remplir
       M5.Display.print(++probeCount);
 
       M5.Display.fillRect(100, M5.Display.height() / 2, 140, 20, TFT_BLACK);
@@ -3574,6 +3604,7 @@ void probeAttack() {
   inMenu = true;
   drawMenu();
 }
+
 
 int currentChannel = 1;
 int originalChannel = 1;
@@ -3864,6 +3895,7 @@ void activateAPForAutoKarma(const char* ssid) {
       M5.Display.println("On : " + clonedSSID);
       delay(7000);
       WiFi.softAPdisconnect(true);
+      karmaSuccess = true;
       return;
     }
 
@@ -3887,7 +3919,7 @@ void displayWaitingForProbe() {
   M5.Display.setCursor(0, 0);
   if (!isWaitingForProbeDisplayed) {
     M5.Display.clear();
-    M5.Display.setTextSize(0);
+    M5.Display.setTextSize(1.5);
     M5.Display.setTextColor(TFT_WHITE);
     M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 60, TFT_RED);
     M5.Display.setCursor(M5.Display.width() / 2 - 54, M5.Display.height() - 20);
@@ -3922,7 +3954,7 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
   unsigned long currentTime = millis();
   int remainingTime = autoKarmaAPDuration / 1000 - ((currentTime - startTime) / 1000);
   int clientCount = WiFi.softAPgetStationNum();
-  M5.Display.setTextSize(0);
+  M5.Display.setTextSize(1.5);
   M5.Display.setCursor(0, 0);
   if (!isInitialDisplayDone) {
     M5.Display.clear();
@@ -3963,7 +3995,7 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
   preHeader += ",appRelease=v1.2.2"; // Remplacez [version] par la version de votre application
-  preHeader += ",model=Cardpiuter";
+  preHeader += ",model=Cardputer";
   preHeader += ",release=v1.2.2"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
@@ -4043,16 +4075,29 @@ void wardrivingMode() {
           alt = gps.altitude.meters();
           accuracy = gps.hdop.value();
           gpsDataAvailable = true;
-
           // Affichage des informations GPS sur l'écran
           M5.Lcd.setCursor(0, 30);
-          M5.Lcd.println("Longitude:");
+          M5.Lcd.print("Longitude:");
           M5.Lcd.println(String(gps.location.lng(), 6));
-          M5.Lcd.setCursor(0, 60);
-          M5.Lcd.println("Latitude:");
+          M5.Lcd.setCursor(0, 45);
+          M5.Lcd.print("Latitude:");
           M5.Lcd.println(String(gps.location.lat(), 6));
-          M5.Lcd.setCursor(90, 60);
-          M5.Lcd.println("S:" + String(gps.satellites.value()));
+          M5.Lcd.setCursor(0, 60);
+          M5.Lcd.print("Sattelites:" + String(gps.satellites.value()));
+          M5.Lcd.println("  ");
+          
+          // Altitude
+          M5.Lcd.setCursor(0, 75);
+          M5.Lcd.print("Altitude:");
+          M5.Lcd.print(String(gps.altitude.meters(), 2) + "m");
+          M5.Lcd.println("  ");
+          
+          // Date et Heure
+          String dateTime = formatTimeFromGPS();
+          M5.Lcd.setCursor(0, 90); 
+          M5.Lcd.print("Time:");
+          M5.Lcd.print(dateTime);
+          M5.Lcd.println("  ");
         }
       }
     }
@@ -4110,7 +4155,7 @@ void wardrivingMode() {
     if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
       exitWardriving = true;
       delay(1000);
-      M5.Display.setTextSize(1);
+      M5.Display.setTextSize(1.5);
       if (confirmPopup("List Open Networks?")) {
         M5.Lcd.fillScreen(TFT_BLACK);
         M5.Display.setCursor(0, M5.Display.height() / 2);
@@ -4253,8 +4298,8 @@ void karmaSpear() {
       Serial.println("Created Karma AP for SSID: " + ssid);
       displayAPStatus(ssid.c_str(), millis(), autoKarmaAPDuration);
       if (karmaSuccess) {
-        M5.Display.clear();
-        break;
+        waitAndReturnToMenu("return to menu");
+        return;
       }
       delay(200);
     }
@@ -4322,7 +4367,7 @@ void beaconAttack() {
   M5.Display.setCursor(beaconTextX, 18);
   M5.Display.println(beaconText);
   beaconText = "Beacon sent:" ;
-  M5.Display.setCursor(beaconTextX, 27);
+  M5.Display.setCursor(beaconTextX, 32);
   M5.Display.print(beaconText);
   Serial.println("-------------------");
   Serial.println("Starting Beacon Spam");
@@ -4341,12 +4386,13 @@ void beaconAttack() {
       }
 
       // Effacer la zone d'affichage précédente de l'SSID
-      int x = 0;
+      int x = 5;
       int y = 45;
       M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
       // Réécrire le nouvel SSID
       M5.Display.setCursor(x, y);
       M5.Display.print(ssid);
+      M5.Display.print("                                  ");
       M5.Display.setTextColor(TFT_WHITE);
       WiFi.softAP(ssid.c_str());
       delay(50);
@@ -4381,12 +4427,12 @@ void beaconAttack() {
 // Set wifi and password ssid
 
 void setWifiSSID() {
+  M5.Display.setTextSize(1.5); // Définissez la taille du texte pour l'affichage
   M5.Display.clear(); // Effacez l'écran avant de rafraîchir le texte
   M5.Display.setCursor(0, 10); // Positionnez le curseur pour le texte
   M5.Display.println("Enter SSID:"); // Entête ou instruction
   M5.Display.setCursor(0, 30); // Définissez la position pour afficher le SSID
   String nameSSID = ""; // Initialisez la chaîne de données pour stocker le SSID entré
-  M5.Display.setTextSize(1); // Définissez la taille du texte pour l'affichage
   // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
   while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
     M5.update();
@@ -4447,13 +4493,15 @@ void setWifiSSID() {
 
 void setWifiPassword() {
   String newPassword = ""; // Initialisez la chaîne pour stocker le mot de passe entré
-  M5.Display.setTextSize(1); // Définissez la taille du texte pour l'affichage
+  M5.Display.setTextSize(1.5); // Définissez la taille du texte pour l'affichage
   // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
   M5.Display.clear(); // Effacez l'écran avant de rafraîchir le texte
   M5.Display.setCursor(0, 10); // Positionnez le curseur pour le texte
   M5.Display.println("Enter Password:"); // Entête ou instruction
   M5.Display.setCursor(0, M5.Display.height() - 12); // Définissez la position pour afficher le SSID
+  M5.Display.setTextSize(1); // Définissez la taille du texte pour l'affichage
   M5.Display.println("Should be greater than 8 or egal 0"); // Entête ou instruction
+  M5.Display.setTextSize(1.5); // Définissez la taille du texte pour l'affichage
   while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
     M5.update();
     M5Cardputer.update();
@@ -4532,9 +4580,9 @@ void snifferCallback(void* buf, wifi_promiscuous_pkt_type_t type) {
   unsigned long currentTime = millis();
   if (currentTime - lastTime >= 1000) {
     if (packetCount < 100) {
-      M5.Lcd.setCursor(M5.Display.width() - 48, 0);
+      M5.Lcd.setCursor(M5.Display.width() - 72, 0);
     } else {
-      M5.Lcd.setCursor(M5.Display.width() - 54, 0);
+      M5.Lcd.setCursor(M5.Display.width() - 81, 0);
     }
     M5.Lcd.printf(" PPS:%d ", packetCount);
 
@@ -4566,13 +4614,13 @@ void snifferCallback(void* buf, wifi_promiscuous_pkt_type_t type) {
 
     enregistrerDansFichierPCAP(pkt, false);
     nombreDeEAPOL++;
-    M5.Lcd.setCursor(M5.Display.width() - 30, 10);
+    M5.Lcd.setCursor(M5.Display.width() - 45, 14);
     M5.Lcd.printf("H:");
     M5.Lcd.print(nombreDeHandshakes);
     if (nombreDeEAPOL < 999) {
-      M5.Lcd.setCursor(M5.Display.width() - 54, 20);
+      M5.Lcd.setCursor(M5.Display.width() - 81, 28);
     } else {
-      M5.Lcd.setCursor(M5.Display.width() - 60, 20);
+      M5.Lcd.setCursor(M5.Display.width() - 90, 28);
     }
     M5.Lcd.printf("EAPOL:");
     M5.Lcd.print(nombreDeEAPOL);
@@ -4652,24 +4700,26 @@ void snifferCallback(void* buf, wifi_promiscuous_pkt_type_t type) {
 
     // Affichage sur l'écran
     M5.Lcd.setTextColor(WHITE, BLACK);
-    M5.Lcd.setCursor(0, M5.Display.height() / 3 - 16);
+    M5.Lcd.setCursor(0, M5.Display.height() / 3 - 14);
     M5.Lcd.printf("Deauth Detected!");
-    M5.Lcd.setCursor(0, M5.Display.height() / 3 - 8);
-    M5.Lcd.printf("CH: %d RSSI: %d  ", ctrl.channel, ctrl.rssi);
     M5.Lcd.setCursor(0, M5.Display.height() / 3 );
+    M5.Lcd.printf("CH: %d RSSI: %d  ", ctrl.channel, ctrl.rssi);
+    M5.Lcd.setCursor(0, M5.Display.height() / 3 + 14);
     M5.Lcd.print("Send: "); printAddressLCD(senderAddr);
-    M5.Lcd.setCursor(0, M5.Display.height() / 3 + 8);
+    M5.Lcd.setCursor(0, M5.Display.height() / 3 + 28);
     M5.Lcd.print("Receive: "); printAddressLCD(receiverAddr);
     nombreDeDeauth++;
     if (nombreDeDeauth < 999) {
-      M5.Lcd.setCursor(M5.Display.width() - 60, 30);
+      M5.Lcd.setCursor(M5.Display.width() - 90, 42);
     } else {
-      M5.Lcd.setCursor(M5.Display.width() - 68, 30);
+      M5.Lcd.setCursor(M5.Display.width() - 102, 42);
     }
     M5.Lcd.printf("DEAUTH:");
     M5.Lcd.print(nombreDeDeauth);
 
   }
+  esp_task_wdt_reset();  // S'assurer que le watchdog est réinitialisé fréquemment
+  vTaskDelay(pdMS_TO_TICKS(10));  // Pause pour éviter de surcharger le CPU
 }
 
 void displayPwnagotchiDetails(const String& name, const String& pwndnb) {
@@ -4678,7 +4728,7 @@ void displayPwnagotchiDetails(const String& name, const String& pwndnb) {
 
   // Préparer l'affichage
   M5.Lcd.setTextColor(WHITE, BLACK);
-  M5.Lcd.setCursor(0, M5.Display.height() - 50);
+  M5.Lcd.setCursor(0, M5.Display.height() - 40);
 
   // Afficher les informations
   M5.Lcd.println(displayText);
@@ -4710,7 +4760,7 @@ void deauthDetect() {
   const unsigned long debounceDelay = 300;  // Delai de debounce en millisecondes
 
   M5.Display.clear();
-  M5.Lcd.setTextSize(1);
+  M5.Lcd.setTextSize(1.5);
   M5.Lcd.setTextColor(WHITE, BLACK);
 
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -4793,7 +4843,7 @@ void deauthDetect() {
     }
 
     if (autoChannelHop != lastDisplayedMode) {
-      M5.Lcd.setCursor(0, 10);
+      M5.Lcd.setCursor(0, 12);
       M5.Lcd.printf("Mode: %s  \n", autoChannelHop ? "Auto" : "Static");
       lastDisplayedMode = autoChannelHop;
     }
@@ -4881,6 +4931,8 @@ void ecrireEntetePCAP(File &file) {
 }
 
 void enregistrerDansFichierPCAP(const wifi_promiscuous_pkt_t* packet, bool beacon) {
+  esp_task_wdt_reset();  // S'assurer que le watchdog est réinitialisé fréquemment
+  vTaskDelay(pdMS_TO_TICKS(10));  // Pause pour éviter de surcharger le CPU
   // Construire le nom du fichier en utilisant les adresses MAC de l'AP et du client
   const uint8_t *addr1 = packet->payload + 4;  // Adresse du destinataire (Adresse 1)
   const uint8_t *addr2 = packet->payload + 10; // Adresse de l'expéditeur (Adresse 2)
@@ -4973,15 +5025,15 @@ void snifferCallbackDeauth(void* buf, wifi_promiscuous_pkt_type_t type) {
 
     enregistrerDansFichierPCAP(pkt, false);
     nombreDeEAPOL++;
-    M5.Lcd.setCursor(M5.Display.width() - 30, 0);
+    M5.Lcd.setCursor(M5.Display.width() - 36, 0);
     M5.Lcd.printf("H:");
     M5.Lcd.print(nombreDeHandshakes);
     if (nombreDeEAPOL < 99) {
-      M5.Lcd.setCursor(M5.Display.width() - 30, 12);
+      M5.Lcd.setCursor(M5.Display.width() - 36, 12);
     } else if (nombreDeEAPOL < 999) {
-      M5.Lcd.setCursor(M5.Display.width() - 38, 12);
+      M5.Lcd.setCursor(M5.Display.width() - 40, 12);
     } else {
-      M5.Lcd.setCursor(M5.Display.width() - 46, 12);
+      M5.Lcd.setCursor(M5.Display.width() - 52, 12);
     }
     M5.Lcd.printf("E:");
     M5.Lcd.print(nombreDeEAPOL);
@@ -5041,7 +5093,7 @@ void deauthAttack(int networkIndex) {
     }
   }
   String ssid = WiFi.SSID(networkIndex);
-  if (!confirmPopup("Deauth attack on: " + ssid)) {
+  if (!confirmPopup("      Deauth attack on:\n      " + ssid)) {
     inMenu = true;
     drawMenu();
     return;
@@ -5058,7 +5110,7 @@ void deauthAttack(int networkIndex) {
   esp_wifi_set_mode(WIFI_MODE_STA); // Set station mode
   esp_wifi_start(); // start Wi-Fi
 
-  if (confirmPopup("   Do you want to sniff EAPOL ?")) {
+  if (confirmPopup("   Do you want to sniff\n          EAPOL ?")) {
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(snifferCallbackDeauth);
   }
@@ -5102,12 +5154,12 @@ void deauthAttack(int networkIndex) {
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setCursor(10, 20);
   M5.Display.println("SSID: " + ssid);
-  M5.Display.setCursor(10, 32);
+  M5.Display.setCursor(10, 34);
   M5.Display.println("MAC: " + macAddress);
-  M5.Display.setCursor(10, 44);
+  M5.Display.setCursor(10, 48);
   M5.Display.println("Channel : " + String(channel));
 
-  M5.Display.setCursor(10, 56);
+  M5.Display.setCursor(10, 62);
   M5.Display.print("Deauth sent: ");
   Serial.println("-------------------");
   Serial.println("Starting Deauth Attack");
@@ -5126,10 +5178,10 @@ void deauthAttack(int networkIndex) {
       sendDeauthPacket();
       deauthCount++;
 
-      M5.Display.setCursor(88, 56);
+      M5.Display.setCursor(132, 62);
       M5.Display.print(String(deauthCount));
 
-      M5.Display.setCursor(10, 68);
+      M5.Display.setCursor(10, 76);
       M5.Display.print("Delay: " + String(delayTime) + "ms    ");
 
       Serial.println("-------------------");
@@ -5257,14 +5309,14 @@ void sendDeauthToClient(const uint8_t* client_mac, const uint8_t* ap_mac, int ch
 
   // Envoyer la trame modifiée
   esp_wifi_80211_tx(WIFI_IF_STA, deauth_frame, sizeof(deauth_frame), false);
-/*
-  //Debugging output of packet contents
-  Serial.println("Deauthentication Frame Sent:");
-  for (int i = 0; i < sizeof(deauth_frame); i++) {
-    Serial.print(deauth_frame[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println();*/
+  /*
+    //Debugging output of packet contents
+    Serial.println("Deauthentication Frame Sent:");
+    for (int i = 0; i < sizeof(deauth_frame); i++) {
+      Serial.print(deauth_frame[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();*/
 }
 
 void sendBroadcastDeauths() {
@@ -5277,7 +5329,7 @@ void sendBroadcastDeauths() {
         Serial.print("Sending Broadcast Deauth to AP: ");
         Serial.println(ap_names[ap.first].c_str());
 
-        M5.Lcd.setCursor(M5.Display.width() / 2 - 48 , M5.Display.height() / 2 + 24);
+        M5.Lcd.setCursor(M5.Display.width() / 2 - 80 , M5.Display.height() / 2 + 28);
         M5.Lcd.printf(ap_names[ap.first].c_str());
 
         int channel = ap_channels_map[ap.first];
@@ -5294,7 +5346,7 @@ void sendBroadcastDeauths() {
               Serial.print(" to AP MAC ");
               Serial.println(mac_to_string(ap_mac_address).c_str());
 
-              M5.Lcd.setCursor(M5.Display.width() / 2 - 51 , M5.Display.height() / 2 + 16);
+              M5.Lcd.setCursor(M5.Display.width() / 2 - 83 , M5.Display.height() / 2 + 16);
               M5.Lcd.printf("Sending Deauth to");
 
               for (int i = 0; i < nbDeauthSend; i++) {
@@ -5303,12 +5355,12 @@ void sendBroadcastDeauths() {
             }
           }
           vTaskDelay(deauthWaitingTime);
-          M5.Lcd.setCursor(M5.Display.width() / 2 - 48, M5.Display.height() / 2 + 24);
+          M5.Lcd.setCursor(M5.Display.width() / 2 - 80, M5.Display.height() / 2 + 28);
           M5.Lcd.printf("                                ");
         } else {
           Serial.println("Failed to convert AP MAC address from string.");
         }
-        M5.Lcd.setCursor(M5.Display.width() / 2 - 51  , M5.Display.height() / 2 + 16);
+        M5.Lcd.setCursor(M5.Display.width() / 2 - 83  , M5.Display.height() / 2 + 16);
         M5.Lcd.printf("                       ");
       }
     }
@@ -5371,7 +5423,7 @@ void wifi_scan() {
   Serial.println("-----------------------------");
   Serial.println("Scanning WiFi networks...");
   ap_channels.clear();
-  M5.Lcd.setCursor(M5.Display.width() / 2 - 78, M5.Display.height() - 32 );
+  M5.Lcd.setCursor(0, M5.Display.height() - 32 );
   M5.Lcd.printf("Scanning nearby networks..");
 
   int n = WiFi.scanNetworks(false, false);
@@ -5410,9 +5462,9 @@ void wifi_scan() {
   M5.Lcd.printf("AP:");
   M5.Lcd.print(n);
   M5.Lcd.print("  ");
-  M5.Lcd.drawLine(0, 9, M5.Lcd.width(), 9, TFT_WHITE);
+  M5.Lcd.drawLine(0, 13, M5.Lcd.width(), 13, TFT_WHITE);
   delay(30);
-  M5.Lcd.setCursor(M5.Display.width() / 2 - 78, M5.Display.height() - 32);
+  M5.Lcd.setCursor(0, M5.Display.height() - 32);
   M5.Lcd.printf("                          ");
 }
 
@@ -5423,7 +5475,7 @@ bool isRegularAP(const std::string& mac) {
   return !std::regex_search(mac, multicastRegex);
 }
 void print_connections() {
-  int yPos = 12;  // Initial Y position for text on the screen
+  int yPos = 15;  // Initial Y position for text on the screen
 
   for (auto& ap : connections) {
     if (isRegularAP(ap.first)) {
@@ -5452,10 +5504,10 @@ void print_connections() {
         M5.Lcd.setCursor(0, yPos);
         M5.Lcd.println(displayText);
 
-        yPos += 10;  // Move the Y position for the next line
+        yPos += 12;  // Move the Y position for the next line
 
         // Ensure there is enough screen space for the next line
-        if (yPos > M5.Lcd.height() - 11) {
+        if (yPos > M5.Lcd.height() - 15) {
           break;  // Exit the loop if there's not enough space for more lines
         }
       }
@@ -5492,7 +5544,7 @@ void promiscuous_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
     Serial.print("EAPOL Detected from AP: ");
     if (!apName.empty()) {
       Serial.println(apName.c_str());
-      M5.Lcd.setCursor(0 , M5.Display.height() - 8);
+      M5.Lcd.setCursor(0 , M5.Display.height() - 10);
       String eapolapname = apName.c_str();
       M5.Lcd.print("EAPOL!:" + eapolapname + "                         ");
     } else {
@@ -5505,13 +5557,13 @@ void promiscuous_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
 
     enregistrerDansFichierPCAP(pkt, false);
     nombreDeEAPOL++;
-    M5.Lcd.setCursor(114, 1);
+    M5.Lcd.setCursor(116, 1);
     M5.Lcd.printf("H:");
     M5.Lcd.print(nombreDeHandshakes);
     if (nombreDeEAPOL < 99) {
-      M5.Lcd.setCursor(162, 1);
+      M5.Lcd.setCursor(164, 1);
     } else {
-      M5.Lcd.setCursor(153, 1);
+      M5.Lcd.setCursor(155, 1);
     }
     M5.Lcd.printf("E:");
     M5.Lcd.print(nombreDeEAPOL);
@@ -5555,7 +5607,7 @@ void promiscuous_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
 
 void purgeAllAPData() {
   connections.clear();  // Clears all client associations
-  M5.Lcd.fillRect(0, 10, M5.Lcd.width(), M5.Lcd.height() - 11, BLACK);
+  M5.Lcd.fillRect(0, 14, M5.Lcd.width(), M5.Lcd.height() - 14, BLACK);
   Serial.println("All AP and client data have been purged.");
 }
 
@@ -5589,12 +5641,12 @@ void deauthClients() {
   purgeAllAPData();
   wifi_scan();
 
-  M5.Lcd.fillRect(0, 10, M5.Lcd.width(), M5.Lcd.height() - 11, BLACK);
+  M5.Lcd.fillRect(0, 14, M5.Lcd.width(), M5.Lcd.height() - 14, BLACK);
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(promiscuous_callback);
 
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-  M5.Lcd.setCursor(M5.Display.width() - 24, 1);
+  M5.Lcd.setCursor(M5.Display.width() - 30, 1);
   M5.Lcd.printf("D:");
   if (isDeauthActive) {
     M5.Lcd.print("1");
@@ -5621,7 +5673,7 @@ void deauthClients() {
     if (M5Cardputer.Keyboard.isKeyPressed('d') && (currentPressTime - lastKeyPressTime > debounceDelay)) {
       isDeauthActive = !isDeauthActive;
       Serial.println(isDeauthActive ? "Deauther activated !" : "Deauther disabled !");
-      M5.Lcd.setCursor(M5.Display.width() - 24, 1);
+      M5.Lcd.setCursor(M5.Display.width() - 30, 1);
       M5.Lcd.printf("D:%d", isDeauthActive ? 1 : 0);
       lastKeyPressTime = currentPressTime;
     }
@@ -5641,7 +5693,7 @@ void deauthClients() {
         deauthWaitingTime = 5000;
         nbDeauthSend = 5;
         Serial.println("Fast mode enabled !");
-        M5.Lcd.setCursor(M5.Display.width() - 30, 1);
+        M5.Lcd.setCursor(M5.Display.width() - 40, 1);
         M5.Lcd.printf("F");
       } else {
         isDeauthFast = false;
@@ -5651,7 +5703,7 @@ void deauthClients() {
         deauthWaitingTime = 7500;
         nbDeauthSend = 10;
         Serial.println("Fast mode disabled !");
-        M5.Lcd.setCursor(M5.Display.width() - 30, 1);
+        M5.Lcd.setCursor(M5.Display.width() - 40, 1);
         M5.Lcd.printf(" ");
       }
       lastKeyPressTime = currentPressTime;
@@ -5756,7 +5808,7 @@ void displayPcapList() {
   int listStartIndex = max(0, min(currentListIndexPcap, int(pcapFiles.size()) - listDisplayLimit));
 
   M5.Display.clear();
-  M5.Display.setTextSize(1);
+  M5.Display.setTextSize(1.5);
   for (int i = listStartIndex; i < min(int(pcapFiles.size()), listStartIndex + listDisplayLimit); i++) {
     if (i == currentListIndexPcap) {
       M5.Display.fillRect(0, (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
@@ -5931,7 +5983,7 @@ void wallOfFlipper() {
   bool btnBPressed = false; //debounce
   M5.Display.fillScreen(BLACK);
   M5.Display.setCursor(0, 10);
-  M5.Display.setTextSize(1);
+  M5.Display.setTextSize(1.5);
   M5.Display.setTextColor(WHITE);
   M5.Display.println("Waiting for Flipper");
 
@@ -5953,7 +6005,7 @@ void wallOfFlipper() {
     if (millis() - lastFlipperFoundMillis > 10000) { // 30000 millisecondes = 30 secondes
       M5.Display.fillScreen(BLACK);
       M5.Display.setCursor(0, 10);
-      M5.Display.setTextSize(1);
+      M5.Display.setTextSize(1.5);
       M5.Display.setTextColor(WHITE);
       M5.Display.println("Waiting for Flipper");
 

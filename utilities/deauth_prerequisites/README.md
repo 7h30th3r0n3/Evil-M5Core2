@@ -5,6 +5,8 @@ All of these scripts and instructions are from nemo project https://github.com/n
 # DEAUTHENTIFICATION
 In order to make the Deauthentication broadcast work properly, you must follow some steps before compiling
 
+!! n0xa created a batch file to make all these changes automatically, you just need to download the "install-prerequisites" file depending on your system and run it.!! 
+
 
 ## Why these prerequisites
 Every time you build your project, using ESP boards, compiler will look uppon your code to see if you are trying to use their boards to something not allowed..
@@ -14,7 +16,7 @@ As sending deauthentication frames (and some others wifi packets) is not somethi
 To do that, we must change some flags on the board "platform.txt" file and declare this function in your code, returning 0, you will see this funcion in the deauth.h file
 
 
-## What you need to do..
+## What you need to do without the n0xa fantastic work 
 * Win+R, and run: %localappdata%\Arduino15\packages\m5stack\hardware\esp32
 * open the folder with the version of your board, it will be something like: 2.1.0, or 2.0.9, or whatever
 * in this floder, open the file "platform.txt", you will need to edit this badboy.
