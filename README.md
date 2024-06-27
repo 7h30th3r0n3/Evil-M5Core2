@@ -218,15 +218,17 @@ Features may vary depending on the firmware/device you are using:
 
 ## Hardware Requirements
 
-- M5Stack Core2 [link M5Stack](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit-v1-1?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DBIMh8l)
+- M5Stack Core2 [M5Stack](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit-v1-1?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DBIMh8l)
  (this project is coded with M5Unified, it should work on other M5Stack).
 - SD card (fat32 max 16Go, consider 8Go is already more than enough).
 
 Tested working others device :
-- M5stack fire (with LED effect) [link](https://shop.m5stack.com/products/m5stack-fire-iot-development-kit-psram-v2-7?ref=7h30th3r0n3)
-- M5stack core1 [link](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
-- M5stack AWS [link](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
- 
+- M5Cardputer [M5stack](https://shop.m5stack.com/products/m5stack-cardputer-kit-w-m5stamps3?ref=7h30th3r0n3)  [link AliExpress (not offical M5store](https://s.click.aliexpress.com/e/_Dd0qrDz)
+- M5stack fire (with LED effect) [M5stack](https://shop.m5stack.com/products/m5stack-fire-iot-development-kit-psram-v2-7?ref=7h30th3r0n3) 
+- M5stack core1 [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
+- M5stack AWS [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
+- M5stack CoreS3 [M5stack]  [link AliExpress]([https://s.click.aliexpress.com/e/_DBIMh8l](https://s.click.aliexpress.com/e/_DlFvqIT)
+
 ## Installation
 
 1. Connect your M5Core2 to your computer.
