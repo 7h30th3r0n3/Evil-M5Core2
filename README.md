@@ -1,10 +1,10 @@
 <div align="center">
 
-# Evil-M5Core2 v1.2.2 - Client Sniff And Deauth
+# Evil-M5Project v1.2.6 - Web crawling
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
-<b>Evil-M5Core2</b> is an innovative tool developed for ethical testing and exploration of WiFi networks. It harnesses the power of the M5Core2 device to scan, monitor, and interact with WiFi networks in a controlled environment. This project is designed for educational purposes, aiding in understanding network security and vulnerabilities.
+<b>Evil-M5Project</b> is an innovative tool developed for ethical testing and exploration of WiFi networks. It harnesses the power of the M5Core2 device to scan, monitor, and interact with WiFi networks in a controlled environment. This project is designed for educational purposes, aiding in understanding network security and vulnerabilities.
 
 > <i>Disclaimer</i>: The creator of Evil-M5Core2 is not responsible for any misuse of this tool. It is intended solely for ethical and educational purposes. Users are reminded to comply with all applicable laws and regulations in their jurisdiction. All files provided with Evil-M5Core2 are designed to be used in a controlled environment and must be used in compliance with all applicable laws and regulations. Misuse or illegal use of this tool is strictly prohibited and not supported by the creator.
 
@@ -39,91 +39,46 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
 </div>
 </div></div>
 
-## NEW ! from v1.2.2 : Client Sniff And Deauth !!! 
-### You can now sniff connected client and send deauthentification frame automatically! 
+## NEW ! from v1.2.6 : Web Crawler !!!
+### You can now crawl websites and extract useful information!
 
-### !! Warning !! You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
-
-Based on an original idea from evilsocket the pwnagotchi 
-
-You absolutely must see the original project here from which I took inspiration:
-
-[https://github.com/evilsocket/pwnagotchi](https://github.com/evilsocket/pwnagotchi)
-
+### !! Warning !! Ensure you are authorized to crawl the website before using this feature.
 
 On screen:
-- AP: Number of APs near you 
-- C : Current Channel
-- H : Numbers of new PCAP created ( at least one EAPOL and beacon frame)
-- E : Numbers of EAPOL packets captures
-- D : 0 = no deauth only sniffing / 1 = active deauth
-- DF: Fast Mode 
+- URL: The website URL being crawled
+- Pages: current of page crawled
+- Dictonnary on SD card so it could be swaped
+- Scrolling list at the end to see all the content crawled
 
-Left Button : ON/OFF deauth 
+---
 
-middle : back to menu 
+## NEW ! from v1.2.5 : Connect to SSH !!!
+### You can now connect to SSH servers directly from the device!
 
-right Button : Fast/slow mode 
+On screen:
+- A real SSH Shell with CTRL+C
+- Can be used from the Scan Hosts after menu
 
-So what ? 
+---
 
-It does :
-- Scan for near AP
-- Sniff if client is connected
-- Send broadcast deauth frame to each AP which have client
-- Send spoofed deauth frame for each client
-- Sniff EAPOL at same time
-- Loop at Scan near AP
-
-## NEW ! from v1.2.1 : Deauther !!! 
-### You can now send deauthentification frame ! 
-### !! Warning !! You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
- 
-Based on an original idea from spacehuhn the deauther 
-
-You absolutely must see the original project here from which I took inspiration:
-
-[https://github.com/SpacehuhnTech/esp8266_deauther](https://github.com/SpacehuhnTech/esp8266_deauther)
-
-Evil-M5core2 is now able to send deauthentification frames and you can sniff the EPAOL in same time.
-
-Just select the network and go to deauther, answer asked question, and start to deauth and sniff at same time !
-
-Special thanks to Aro2142 and n0xa for the help and work. 
-
-## NEW ! from v1.2.0 : EAPOL Sniffing !!! 
-### You can now capture EAPOL (4-wayhandshakes and PMKID) ! 
+## NEW ! from v1.2.4 : Scan Network and port !!!
+### You can now scan networks and ports to discover devices and services!
 
 
-Based on an original idea from G4lile0 the Wifi-Hash-Monster.
+It does:
+- ARP broadcast on all the network 
+- Check Hosts up
+- List them to let you choose actions (Scan ports / SSH connect / Web Crawling)
 
-You absolutely must see the original project here from which I took inspiration:
+---
 
-[https://github.com/G4lile0/ESP32-WiFi-Hash-Monster
-](https://github.com/G4lile0/ESP32-WiFi-Hash-Monster)
+## NEW ! from v1.2.3 : Send tesla code !!! ( RFunit neeeded) 
+### You can now send Tesla codes using the RFunit!
 
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/1713957998859.jpg" width="300" />
-</div>
+On screen:
+- Status: Transmission status (e.g., Sending, Finished)
 
-- Channel : Current Channel
-- Mode : Static : Stay on same channel / Auto: Hopping trough all channel
-- PPS : Packets Per Second on the channel (if no activities on the channel the PPS could be locked to the last know number of packets because the refresh occur when a packet is reveived)
-- H : Numbers of new PCAP created ( at least one EAPOL and beacon frame)
-- EAPOL : Numbers of EAPOL packets captures
-- DEAUTH : Numbers of Deauth seen
-- RSSI : The transmission power (gives an idea of ​​the distance from the transmitter)
-
-If a EAPOL packet is detected, its stored in a pcap file with the mac address of the AP and a beacon frames wih the BSSID.
- You can crack a Wifi password with a 4-way handshakes or a PMKID with Aircrack-ng or Hashcat.
-
-A python tool to process multiple pcap to hashcat format is provided in utilities.
-
-Detect deauthentication packets near you, when a machine disconnects from an access point, it sends a deauthentication packet to close the connection, 
-deauthentication packets can also be spoofed to disconnect the device and attacker use automatic reconnection to sniff the 4-way handshake, 
-a lot of deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
-
-This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
-in this way you can know if you are under attacked.
+( This functionnality has been not totally tested, it send the same signal than the flipper zero best-tesla-opener )
 
 ----------------------------------------------------------
 
@@ -212,7 +167,10 @@ Features may vary depending on the firmware/device you are using:
 | Client Sniff And Deauth       | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
 | EAPOL/Deauth detection        | ✅                  | ✅                     | ✅ (No EAPOL)       | ❌                  | ❌              |
 | Wall Of Flipper               | ✅                  | ✅                     | ✅                  | ❌                  | ❌              |
-
+| Send tesla code with RFunit   | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Scan Network and port         | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| SSH Shell                     | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Web Crawler                   | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
 
 
 
@@ -494,6 +452,94 @@ Capability to Identify Potential Bluetooth Advertisement Attacks from Flipper an
 - Samsung and Android BLE Advertisement Attacks
 - Windows Swift Pair Advertisement Attacks
 - LoveSpouse Advertisement Attacks (Denial of Pleasure)
+
+
+
+## Client Sniff And Deauth
+### You can now sniff connected client and send deauthentification frame automatically! 
+
+### !! Warning !! You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
+
+Based on an original idea from evilsocket the pwnagotchi 
+
+You absolutely must see the original project here from which I took inspiration:
+
+[https://github.com/evilsocket/pwnagotchi](https://github.com/evilsocket/pwnagotchi)
+
+
+On screen:
+- AP: Number of APs near you 
+- C : Current Channel
+- H : Numbers of new PCAP created ( at least one EAPOL and beacon frame)
+- E : Numbers of EAPOL packets captures
+- D : 0 = no deauth only sniffing / 1 = active deauth
+- DF: Fast Mode 
+
+Left Button : ON/OFF deauth 
+
+middle : back to menu 
+
+right Button : Fast/slow mode 
+
+So what ? 
+
+It does :
+- Scan for near AP
+- Sniff if client is connected
+- Send broadcast deauth frame to each AP which have client
+- Send spoofed deauth frame for each client
+- Sniff EAPOL at same time
+- Loop at Scan near AP
+
+## Deauther 
+### You can now send deauthentification frame ! 
+### !! Warning !! You need to bypass the esp32 firmware with scripts in utilities before compiling or deauth is not working due to restrictions on ESP32 firmware
+ 
+Based on an original idea from spacehuhn the deauther 
+
+You absolutely must see the original project here from which I took inspiration:
+
+[https://github.com/SpacehuhnTech/esp8266_deauther](https://github.com/SpacehuhnTech/esp8266_deauther)
+
+Evil-M5core2 is now able to send deauthentification frames and you can sniff the EPAOL in same time.
+
+Just select the network and go to deauther, answer asked question, and start to deauth and sniff at same time !
+
+Special thanks to Aro2142 and n0xa for the help and work. 
+
+## EAPOL Sniffing
+### You can now capture EAPOL (4-wayhandshakes and PMKID) ! 
+
+
+Based on an original idea from G4lile0 the Wifi-Hash-Monster.
+
+You absolutely must see the original project here from which I took inspiration:
+
+[https://github.com/G4lile0/ESP32-WiFi-Hash-Monster
+](https://github.com/G4lile0/ESP32-WiFi-Hash-Monster)
+
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/1713957998859.jpg" width="300" />
+</div>
+
+- Channel : Current Channel
+- Mode : Static : Stay on same channel / Auto: Hopping trough all channel
+- PPS : Packets Per Second on the channel (if no activities on the channel the PPS could be locked to the last know number of packets because the refresh occur when a packet is reveived)
+- H : Numbers of new PCAP created ( at least one EAPOL and beacon frame)
+- EAPOL : Numbers of EAPOL packets captures
+- DEAUTH : Numbers of Deauth seen
+- RSSI : The transmission power (gives an idea of ​​the distance from the transmitter)
+
+If a EAPOL packet is detected, its stored in a pcap file with the mac address of the AP and a beacon frames wih the BSSID.
+ You can crack a Wifi password with a 4-way handshakes or a PMKID with Aircrack-ng or Hashcat.
+
+A python tool to process multiple pcap to hashcat format is provided in utilities.
+
+Detect deauthentication packets near you, when a machine disconnects from an access point, it sends a deauthentication packet to close the connection, 
+deauthentication packets can also be spoofed to disconnect the device and attacker use automatic reconnection to sniff the 4-way handshake, 
+a lot of deauthentication packets are not normal and should be considered as a possible Wi-Fi attack. 
+
+This feature also detects nearby pwnagotchi by printing the name and number of pwned network that it get, 
+in this way you can know if you are under attacked.
 
 
 ### Change startup image 
