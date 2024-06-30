@@ -638,7 +638,7 @@ It pretty small so you can also check serial on USB to get information.
 </div>
 
 ## Discord 
-
+<img src="https://7h30th3r0n3.com/discord.jpg" width="100" />
 https://discord.com/invite/qbwAJch25S
 
 
