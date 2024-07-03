@@ -51,6 +51,9 @@ Perfect for showcasing at events like DEFCON or BlackHat.😜
 
 It's also available standalone on any esp32 here : https://github.com/7h30th3r0n3/PwnGridSpam
 
+
+part of the code have been taken and refactored from https://github.com/viniciusbo/m5-palnagotchi
+
 ---
 
 ## NEW ! from v1.2.6 : Web Crawler !!!
