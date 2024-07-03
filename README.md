@@ -45,6 +45,8 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
 Designed to spam face and name on all pwnagotchi devices nearby and can be used to causing a DoSPWND (Denial Of Screen PWND part).
 You can change the face and message sended in a text file. 
 
+REMEMBER TO PUT THE FILE IN CONFIG FOLDER : https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/config/pwngridspam.txt
+
 Perfect for showcasing at events like DEFCON or BlackHat.😜
 
 It's also available standalone on any esp32 here : https://github.com/7h30th3r0n3/PwnGridSpam
