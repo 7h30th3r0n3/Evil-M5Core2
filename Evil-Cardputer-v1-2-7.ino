@@ -7553,7 +7553,7 @@ const uint8_t beacon_frame_template[] = {
   0x64, 0x00,  // Beacon interval
   0x11, 0x04   // Capability info
 };
-
+// taken and refactored from https://github.com/viniciusbo/m5-palnagotchi/tree/master/palnagotchi
 void send_pwnagotchi_beacon(uint8_t channel, const char* face, const char* name) {
   DynamicJsonDocument json(2048);
   json["pal"] = true;
