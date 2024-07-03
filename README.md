@@ -150,7 +150,7 @@ The parasite project still exist but rename to Evil-Face and should be updated i
  ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
 
 Features may vary depending on the firmware/device you are using:
-| Feature                       | Evil-M5Core2 1.2.2 | Evil-Cardputer v1.2.2 | Evil-M5Core3 1.1.9 | Evil-AtomS3 v1.1.7 | Evil-Face v1.0 |
+| Feature                       | Evil-M5Core2 1.2.2 | Evil-Cardputer v1.2.6 | Evil-M5Core3 1.1.9 | Evil-AtomS3 v1.1.7 | Evil-Face v1.0 |
 |-------------------------------|--------------------|-----------------------|--------------------|--------------------|----------------|
 | WiFi Network Scanning         | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
 | Network Cloning               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
