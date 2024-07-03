@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Project v1.2.6 - Web crawling
+# Evil-M5Project v1.2.7 - PwnGrid Spam
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -38,6 +38,18 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
 </div>
 </div>
 </div></div>
+
+## NEW ! from v1.2.7 : PwnGrid Spam !!!
+### You can now spam with face and message near pwnagotchi
+
+Designed to spam face and name on all pwnagotchi devices nearby and can be used to causing a DoSPWND (Denial Of Screen PWND part).
+You can change the face and message sended in a text file. 
+
+Perfect for showcasing at events like DEFCON or BlackHat.😜
+
+It's also available standalone on any esp32 here : https://github.com/7h30th3r0n3/PwnGridSpam
+
+---
 
 ## NEW ! from v1.2.6 : Web Crawler !!!
 ### You can now crawl websites and extract useful information!
