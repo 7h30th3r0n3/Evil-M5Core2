@@ -369,7 +369,8 @@ void setup() {
     "Never leave a trace always\n behind you by CyberOzint",// Donation on Ko-fi // Thx CyberOzint !
     "   Injecting hook.worm \nransomware to your android",// Donation on Ko-fi // Thx hook.worm !
     "   Summoning the void  \n          by kdv88", // Donation on Ko-fi // Thx kdv88 !
-    "  Egg sandwich - robt2d2",// Donation on Ko-fi // Thx hook.worm ! Thx robt2d2 !
+    "  Egg sandwich - robt2d2",// Donation on Ko-fi // Thx robt2d2 !
+    " Scared of the .bat?\n        KNAX", // Donation on Ko-fi // Thx KNAX !
     "    You know Kiyomi ?   ", // for collab on Wof
     "           42           ",
     "    Don't be a Skidz !",
