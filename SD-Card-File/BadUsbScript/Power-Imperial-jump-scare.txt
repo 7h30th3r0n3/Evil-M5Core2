@@ -1,0 +1,13 @@
+REM Title: Power Imperial Jump Scare
+REM Author: 7h30th3r0n3
+REM Target:  Tested on Windows 7/8/10 
+REM Version: 1.1
+REM Category: Prank
+REM Launches Powershell and play Imperial theme with pc buzzer when the mouse is moved
+REM Taked from jumpscare from I-Am-Jakoby : https://github.com/I-Am-Jakoby/Flipper-Zero-BadUSB/blob/main/Payloads/Flip-JumpScare-2.0/
+DELAY 1000
+REM Open PowerShell
+GUI r
+DELAY 500
+STRING powershell -w h -c "Add-Type -A System.Windows.Forms;$p=[Windows.Forms.Cursor]::Position.X;while([Windows.Forms.Cursor]::Position.X-eq$p){sleep 0.1};@(440,440,440,349,523,440,349,523,440,659,659,659,698,523,415,349,523,440)|%{[console]::beep($_,300)}"
+ENTER

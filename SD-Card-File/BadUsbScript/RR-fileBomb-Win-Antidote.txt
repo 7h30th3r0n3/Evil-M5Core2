@@ -1,0 +1,20 @@
+REM Title: Powershell RickRoll FileBomb Antidote
+REM Author: 7h30th3r0n3
+REM Props: UberGuidoZ for the playground database: https://github.com/UberGuidoZ/Flipper
+REM Target: Windows 7/8/10/11
+REM Version: 1.0
+REM Category: Prank
+REM start a powershell and fill the default windows folders with all Rick's lyrics
+REM 
+GUI r
+DELAY 200
+STRING powershell
+ENTER
+DELAY 300
+STRING function RRfolder {del Desert_you;del Ooh-ooh-ooh-ooh;del Hurt_you;del We-re_no_strangers_to_love;del You_know_the_rules_and_so_do_I;del A_full_commitment-s_what_I-m_thinking_of;del You_wouldn-t_get_this_from_any_other_guy;del Gotta_make_you_understand;del Never_gonna_give_you_up;del Never_gonna_let_you_down;del Never_gonna_run_around_and_desert_you;del Never_gonna_make_you_cry;del Never_gonna_say_goodbye;del Never_gonna_tell_a_lie_and_hurt_you;del We-ve_known_each_other_for_so_long;del Your_heart-s_been_aching_but_you-re_too_shy_to_say_it;del Inside_we_both_know_what-s_been_going_on;del We_know_the_game_and_we-re_gonna_play_it;del And_if_you_ask_me_how_I-m_feeling;del Don-t_tell_me_you-re_too_blind_to_see;del Ooh__Give_you_up_;del Ooh-ooh__Give_you_up_;del Ooh-ooh;del Never_gonna_give_never_gonna_give;del I_just_wanna_tell_you_how_I-m_feeling;}
+ENTER
+DELAY 200
+STRING cd C:\Users\$env:UserName\Desktop;RRfolder;cd C:\Users\$env:UserName\Downloads;RRfolder;cd C:\Users\$env:UserName\Documents;RRfolder;cd C:\Users\$env:UserName\Favorites;RRfolder;cd C:\Users\$env:UserName\Links;RRfolder;cd C:\Users\$env:UserName\Music;RRfolder;cd C:\Users\$env:UserName\Videos;RRfolder;cd C:\Users\$env:UserName\Contacts;RRfolder;
+ENTER
+STRING exit
+ENTER

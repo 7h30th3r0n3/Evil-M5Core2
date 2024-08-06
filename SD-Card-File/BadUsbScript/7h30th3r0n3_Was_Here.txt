@@ -1,0 +1,43 @@
+REM Title: 7h30th3r0n3 was here
+REM Author: 7h30th3r0n3
+REM Target: Windows 7/8/10/11
+REM Version: 1.0
+REM Category: Prank
+REM ASCCI ART in Notepad with zoom
+DELAY 500
+GUI r
+DELAY 500
+STRING notepad
+ENTER
+DELAY 1000
+STRING  _____ _     _____  ___  _   _     _____       ___        _____ 
+ENTER
+STRING |___  | |__ |___ / / _ \| |_| |__ |___ / _ __ / _ \ _ __ |___ / 
+ENTER
+STRING    / /| '_ \  |_ \| | | | __| '_ \  |_ \| '__| | | | '_ \  |_ \ 
+ENTER
+STRING   / / | | | |___) | |_| | |_| | | |___) | |  | |_| | | | |___) |
+ENTER
+STRING _/_/  |_| |_|____/ \___/ \__|_| |_|____/|_|   \___/|_| |_|____/ 
+ENTER
+STRING \ \      / /_ _ ___  | | | | ___ _ __ ___                      
+ENTER
+STRING  \ \ /\ / / _`  / __| | |_| |/ _ \ '__/ _ \                      
+ENTER
+STRING   \ V  V / (_| \__ \ |  _  |  __/ | |  __/                      
+ENTER
+STRING    \_/\_/ \__,_|___/ |_| |_|\___|_|  \___|                      
+ENTER
+DELAY 200
+GUI UPARROW
+DELAY 100
+CTRL =
+CTRL =
+CTRL =
+CTRL =
+CTRL =
+CTRL =
+CTRL =
+CTRL =
+CTRL =
+CTRL =

