@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Project v1.2.7 - PwnGrid Spam
+# Evil-M5Project v1.2.9 - BadUSB
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -37,65 +37,129 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
 </div>
 </div>
 </div>
+
+</br>
+
+Join the Evil-M5 discord here : 
+
+<a href="https://discord.com/invite/qbwAJch25S">
+  <img src="https://7h30th3r0n3.com/discord.jpg" width="75" alt="Join Discord" />
+</a>
+
+
 </div></div>
 
-## NEW ! from v1.2.7 : PwnGrid Spam !!!
-### You can now spam with face and message near pwnagotchi
 
-Designed to spam face and name on all pwnagotchi devices nearby and can be used to causing a DoSPWND (Denial Of Screen PWND part).
-You can change the face and message sended in a text file. 
+## NEW ! from v1.2.9 : BadUSB !!!
+### You can now use BadUSB attacks directly from the device!
 
-REMEMBER TO PUT THE FILE IN CONFIG FOLDER : https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/config/pwngridspam.txt
+This feature allows the device to act as a BadUSB, emulating keyboard inputs to execute predefined scripts or commands on a connected computer. Ideal for security testing and demonstrations.
 
-Perfect for showcasing at events like DEFCON or BlackHat.😜
-
-It's also available standalone on any esp32 here : https://github.com/7h30th3r0n3/PwnGridSpam
-
-
-part of the code have been taken and refactored from https://github.com/viniciusbo/m5-palnagotchi
+**Usage:**
+- Prepare your script in a text file and upload it to the `BadUsbScript` folder on the device.
+- Activate the BadUSB mode from the menu and select the script to execute or change the layout.
+- 20 Scripts are provided but you can add more.
+**Caution:** Use responsibly and ensure you have permission before executing any scripts.
 
 ---
 
-## NEW ! from v1.2.6 : Web Crawler !!!
-### You can now crawl websites and extract useful information!
+## NEW ! from v1.2.8 : Skimmer Detector !!!
+### Detect Bluetooth-based skimmers with ease!
 
-### !! Warning !! Ensure you are authorized to crawl the website before using this feature.
+The Skimmer Detector feature helps identify potential Bluetooth-based skimmers by scanning for common Bluetooth modules such as HC-03, HC-05, and HC-06. While detection does not guarantee the presence of a skimmer, it's a useful tool for identifying suspicious devices.
 
-On screen:
-- URL: The website URL being crawled
-- Pages: current of page crawled
-- Dictonnary on SD card so it could be swaped
-- Scrolling list at the end to see all the content crawled
+**How it works:**
+- Initiate a Bluetooth scan from the device.
+- View a list of detected devices with their IDs and signal strength.
+- If a suspicious device is near an alert appear.
 
----
+**Note:** Detection of a device does not necessarily mean it is a skimmer, but caution is advised.
 
-## NEW ! from v1.2.5 : Connect to SSH !!!
-### You can now connect to SSH servers directly from the device!
+## All Evil-M5Project Features 
+- **WiFi Network Scanning**: Identify and display nearby WiFi networks.
+- **Network Cloning**: Check information and replicate networks for in-depth analysis.
+- **Captive Portal Management**: Create and operate a captive portal to prompt users with a page upon connection.
+- **Credential Handling**: Capture and manage portal credentials.
+- **Remote Web Server**: Monitor the device remotely via a simple web interface that can provide credentials and upload portals that store files on an SD card.
+- **Sniffing probes**: Sniff and store nearby probes on an SD card.
+- **Karma Attack**: Try a simple Karma Attack on a captured probe.
+- **Automated Karma Attack**: Try Karma Attack on nearby probes automatically.
+- **Bluetooth Serial Control**: You can control it with Bluetooth.
+- **Wardriving**: Wardriving with Wigle format output on SD.
+- **Beacon Spam**: Generate multiple SSIDs around you.
+- **Deauther**: Send deauthentication frames and sniff 4-Way handshakes and PMKID.
+- **Client Sniff And Deauth**: Sniff clients connected to AP and auto deauth while sniffing EAPOL.
+- **EAPOL/Deauth detection**: Detect deauthentication packets, 4-Way handshakes, PMKID, and pwnagotchi near you.
+- **Wall Of Flipper**: Detect and save Flipper Zero with Bluetooth enabled near you and detect BLE SPAM.
+- **Send Tesla code with RFunit**: Use RFunit to send Tesla codes, mimicking Flipper Zero capabilities.
+- **Scan Network and Port**: Perform network and port scans to discover devices and services, checking hosts' status.
+- **SSH Shell**: Connect to SSH servers directly from the device, allowing command execution via an on-device shell.
+- **Web Crawler**: Crawl websites to extract information, ensuring authorization to crawl before use.
+- **PwnGrid**: Spam face and message on pwnagotchi devices nearby, causing a Denial of Screen PWND.
+- **Skimmer Detector**: Detect potential Bluetooth skimmers using HC-03, HC-05, and HC-06 modules.
+- **BadUSB**: Simulate BadUSB attacks by emulating keyboard/mouse inputs to execute predefined scripts or commands.
 
-On screen:
-- A real SSH Shell with CTRL+C
-- Can be used from the Scan Hosts after menu
+ ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
 
----
+Features may vary depending on the firmware/device you are using:
+| Feature                       | Evil-M5Core2 1.2.2 | Evil-Cardputer v1.2.9 | Evil-M5Core3 1.1.9 | Evil-AtomS3 v1.1.7 | Evil-Face v1.0 |
+|-------------------------------|--------------------|-----------------------|--------------------|--------------------|----------------|
+| WiFi Network Scanning         | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Network Cloning               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Captive Portal Management     | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Credential Handling           | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Remote Web Server             | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Sniffing probes               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Karma Attack                  | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Automated Karma Attack        | ✅                  | ✅                     | ✅                  | ✅                  | ✅              |
+| Bluetooth Serial Control      | ✅                  | ❌                     | ❌                  | ❌                  | ❌              |
+| Wardriving                    | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Beacon Spam                   | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Deauther                      | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Client Sniff And Deauth       | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
+| EAPOL/Deauth detection        | ✅                  | ✅                     | ✅ (No EAPOL)       | ❌                  | ❌              |
+| Wall Of Flipper               | ✅                  | ✅                     | ✅                  | ❌                  | ❌              |
+| Send tesla code with RFunit   | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Scan Network and port         | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| SSH Shell                     | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Web Crawler                   | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| PwnGrid                       | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Skimmer Detector              | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| BadUSB                        | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
 
-## NEW ! from v1.2.4 : Scan Network and port !!!
-### You can now scan networks and ports to discover devices and services!
+## Hardware Requirements
+
+- M5Stack Core2 [M5Stack](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit-v1-1?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DBIMh8l)
+ (this project is coded with M5Unified, it should work on other M5Stack).
+- SD card (fat32 max 16Go, consider 8Go is already more than enough).
+
+Tested working others device :
+- M5Cardputer [M5stack](https://shop.m5stack.com/products/m5stack-cardputer-kit-w-m5stamps3?ref=7h30th3r0n3)  [link AliExpress (not offical M5store](https://s.click.aliexpress.com/e/_Dd0qrDz)
+- M5stack fire (with LED effect) [M5stack](https://shop.m5stack.com/products/m5stack-fire-iot-development-kit-psram-v2-7?ref=7h30th3r0n3) 
+- M5stack core1 [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
+- M5stack AWS [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
+- M5stack CoreS3 [M5stack]  [link AliExpress](https://s.click.aliexpress.com/e/_DlFvqIT)
+
+## Installation
+
+1. Connect your M5Core2 to your computer.
+2. Open the Arduino IDE and load the provided code.
+3. Ensure the Board tutorial from M5 and `M5Unified`, `TinyGPSPlus`, `ArduinoJson`, and `Adafruit_NeoPixel` libraries are installed. Follow these tutorials for guidance on M5 Board tutorial:
+   - [Arduino Board Setup](https://docs.m5stack.com/en/arduino/arduino_board)
+   - [Arduino Library Installation](https://docs.m5stack.com/en/arduino/arduino_library)
+4. Ensure the ESP32 and M5Stack board definitions are installed. **Note:** Errors occur with ESP32 version `3.0.0-alpha3`. Please use ESP32 version `2.1.1` and below.
+5. Place the necessary SD file content at the root of SD card. (This is needed to access the `IMG` startup and `sites` folder).
+6. Ensure to run the script in `utilities` to bypass the ESP32 firmware. Also, add libraries for BadUSB functionality.
+7. Ensure that the baud rate is set to `115200`.
+8. Ensure that `PSRAM` is disabled in the tools menu.
+9. Upload the script to your M5Core2 device.
+10. Restart the device if needed.
+
+Warning : for Cardputer you need to change the Flash size to 8MB and the Partition Scheme to 8M with spiffs (3MB APP/1.5MB SPIFFS) or space error may occur.
+
+It's your first time with arduino IDE or something not working correctly? You should check out video section or ask help on the discord ! 
 
 
-It does:
-- ARP broadcast on all the network 
-- Check Hosts up
-- List them to let you choose actions (Scan ports / SSH connect / Web Crawling)
-
----
-
-## NEW ! from v1.2.3 : Send tesla code !!! ( RFunit neeeded) 
-### You can now send Tesla codes using the RFunit!
-
-On screen:
-- Status: Transmission status (e.g., Sending, Finished)
-
-( This functionnality has been not totally tested, it send the same signal than the flipper zero best-tesla-opener )
 
 ----------------------------------------------------------
 
@@ -146,80 +210,6 @@ The parasite project still exist but rename to Evil-Face and should be updated i
 </div>
 </div>
 
-## Features Evil-M5core2
-
-- **WiFi Network Scanning**: Identify and display nearby WiFi networks.
-- **Network Cloning**: Check information and replicate networks for in-depth analysis.
-- **Captive Portal Management**: Create and operate a captive portal to prompt users with a page upon connection.
-- **Credential Handling**: Capture and manage portal credentials.
-- **Remote Web Server**: Monitor the device remotely via a simple web interface that can provide credentials and upload portal that store file on SD card.
-- **Sniffing probes**: Sniff and store on SD near probes.
-- **Karma Attack**: Try a simple Karma Attack on a captured probe. 
-- **Automated Karma Attack**: Try Karma Attack on near probe automatically.
-- **Bluetooth Serial Control**: You can control it with bluetooth.
-- **Wardriving**: Wardriving with Wigle format output on SD.
-- **Beacon Spam**: Generate mutliple SSIDs arround you.
-- **Deauther**: send deauthentification frames, and sniff 4-Way handshakes and PMKID.
-- **Client Sniff And Deauth**: Sniff clients connected to AP and auto deauth while sniffing EAPOL.
-- **EAPOL/Deauth detection**: Detect deauthentification packet, 4-Way handshakes, PMKID and pwnagotchi near you.
-- **Wall Of Flipper**: Detect and save Flipper Zero with bluetooth enable near you and detect BLE SPAM.
-
- ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
-
-Features may vary depending on the firmware/device you are using:
-| Feature                       | Evil-M5Core2 1.2.2 | Evil-Cardputer v1.2.6 | Evil-M5Core3 1.1.9 | Evil-AtomS3 v1.1.7 | Evil-Face v1.0 |
-|-------------------------------|--------------------|-----------------------|--------------------|--------------------|----------------|
-| WiFi Network Scanning         | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Network Cloning               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Captive Portal Management     | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Credential Handling           | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Remote Web Server             | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Sniffing probes               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Karma Attack                  | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Automated Karma Attack        | ✅                  | ✅                     | ✅                  | ✅                  | ✅              |
-| Bluetooth Serial Control      | ✅                  | ❌                     | ❌                  | ❌                  | ❌              |
-| Wardriving                    | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Beacon Spam                   | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Deauther                      | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
-| Client Sniff And Deauth       | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
-| EAPOL/Deauth detection        | ✅                  | ✅                     | ✅ (No EAPOL)       | ❌                  | ❌              |
-| Wall Of Flipper               | ✅                  | ✅                     | ✅                  | ❌                  | ❌              |
-| Send tesla code with RFunit   | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| Scan Network and port         | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| SSH Shell                     | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| Web Crawler                   | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-
-
-
-## Hardware Requirements
-
-- M5Stack Core2 [M5Stack](https://shop.m5stack.com/products/m5stack-core2-esp32-iot-development-kit-v1-1?ref=7h30th3r0n3) [link AliExpress](https://s.click.aliexpress.com/e/_DBIMh8l)
- (this project is coded with M5Unified, it should work on other M5Stack).
-- SD card (fat32 max 16Go, consider 8Go is already more than enough).
-
-Tested working others device :
-- M5Cardputer [M5stack](https://shop.m5stack.com/products/m5stack-cardputer-kit-w-m5stamps3?ref=7h30th3r0n3)  [link AliExpress (not offical M5store](https://s.click.aliexpress.com/e/_Dd0qrDz)
-- M5stack fire (with LED effect) [M5stack](https://shop.m5stack.com/products/m5stack-fire-iot-development-kit-psram-v2-7?ref=7h30th3r0n3) 
-- M5stack core1 [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
-- M5stack AWS [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
-- M5stack CoreS3 [M5stack]  [link AliExpress]([https://s.click.aliexpress.com/e/_DBIMh8l](https://s.click.aliexpress.com/e/_DlFvqIT)
-
-## Installation
-
-1. Connect your M5Core2 to your computer.
-2. Open the Arduino IDE and load the provided code.
-3. Ensure M5unified, TinyGpsPlus, ArduinoJson and adafruit_neopixel libraries are installed.
-4. Ensure esp32 and M5stack board are installed (Error occur with esp32 3.0.0-alpha3, please use esp32 v2.0.14 and below).
-5. Place SD file content needed on the SD card. ( Needed to get IMG startup and sites folder).
-6. Ensure to run the script in utilities to bypass the esp32 firmware. (be sure that the folder in the script exist, change if needed (M5stack/eso32))
-7. Ensure that the baudrates is at 115200.
-8. Ensure that PSRAM is disabled in tools menu.
-9. Upload the script to your M5Core2 device.
-10. Restart the device if needed.
-
-Warning : for Cardputer you need to change the Flash size to 8MB and the Partition Scheme to 8M with spiffs (3MB APP/1.5MB SPIFFS) or space error may occur.
-
-It's your first time with arduino IDE or something not working correctly? You should check out video section ! 
 
 <div align="center">
   
@@ -559,6 +549,63 @@ This feature also detects nearby pwnagotchi by printing the name and number of p
 in this way you can know if you are under attacked.
 
 
+## PwnGrid Spam 
+### You can now spam with face and message near pwnagotchi
+
+Designed to spam face and name on all pwnagotchi devices nearby and can be used to causing a DoSPWND (Denial Of Screen PWND part).
+You can change the face and message sended in a text file. 
+
+REMEMBER TO PUT THE FILE IN CONFIG FOLDER : https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/config/pwngridspam.txt
+
+Perfect for showcasing at events like DEFCON or BlackHat.😜
+
+It's also available standalone on any esp32 here : https://github.com/7h30th3r0n3/PwnGridSpam
+
+
+part of the code have been taken and refactored from https://github.com/viniciusbo/m5-palnagotchi
+
+
+## Web Crawler 
+### You can now crawl websites and extract useful information!
+
+### !! Warning !! Ensure you are authorized to crawl the website before using this feature.
+
+On screen:
+- URL: The website URL being crawled
+- Pages: current of page crawled
+- Dictonnary on SD card so it could be swaped
+- Scrolling list at the end to see all the content crawled
+
+
+
+## Connect to SSH 
+### You can now connect to SSH servers directly from the device!
+
+On screen:
+- A real SSH Shell with CTRL+C
+- Can be used from the Scan Hosts after menu
+
+
+
+## Scan Network and port 
+### You can now scan networks and ports to discover devices and services!
+
+
+It does:
+- ARP broadcast on all the network 
+- Check Hosts up
+- List them to let you choose actions (Scan ports / SSH connect / Web Crawling)
+
+
+
+##  Send tesla code
+### You can now send Tesla codes using the RFunit!
+
+On screen:
+- Status: Transmission status (e.g., Sending, Finished)
+
+( This functionnality has been not totally tested, it send the same signal than the flipper zero best-tesla-opener )
+
 ### Change startup image 
 Upload a startup.jpg 320x240 image to replace original startup.jpg and make your Evil-M5Core2 more special.
 
@@ -611,6 +658,7 @@ Available Commands:
 - select_probes <index> - Choose Probe <index>
 - karma_auto - Auto Karma Attack Mode stop automatically when successfull
 
+
 ## !! Adopt a Parasite !!
 
 Your Evil-Core2 or Flipper Zero feels lonely?
@@ -653,13 +701,6 @@ It pretty small so you can also check serial on USB to get information.
 ----------------------------------------------------------
 </div>
 </div>
-
-## Discord 
-<img src="https://7h30th3r0n3.com/discord.jpg" width="100" />
-https://discord.com/invite/qbwAJch25S
-
-
-(ask if broken)
 
 # License
 
