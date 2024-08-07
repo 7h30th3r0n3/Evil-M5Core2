@@ -658,6 +658,19 @@ Available Commands:
 - select_probes <index> - Choose Probe <index>
 - karma_auto - Auto Karma Attack Mode stop automatically when successfull
 
+  
+# Acknowledgements
+
+- [@SpacehuhnTech](https://github.com/SpacehuhnTech) for the deauther bypass and for the fantastic work that is really inspiring.
+- [@evilsocket](https://github.com/evilsocket) for the concept of pwnagotchi and pwngrid.
+- [@G4lile0](https://github.com/G4lile0) for the wifi-hash-monster.
+- [@K3YOMI](https://github.com/K3YOMI) for the Wall Of Flipper.
+- [@pr3y](https://github.com/pr3y) for help and Bruce code.
+- [@bmorcelli](https://github.com/bmorcelli) for the help and Bruce code too.
+- [@justcallmekoko](https://github.com/justcallmekoko) for the Marauder.
+- [@Talking Sasquach](https://www.youtube.com/@TalkingSasquach) for creating video content about the project.
+- [@Sam X Plogs](https://www.youtube.com/@samxplogs) for creating video content about the project.
+
 
 ## !! Adopt a Parasite !!
 
