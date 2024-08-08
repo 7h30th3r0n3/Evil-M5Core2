@@ -40,7 +40,7 @@ Or use this affiliate link to buy M5 product [Support the project on M5 shop](ht
 
 </br>
 
-Join the Evil-M5 discord here : 
+Join the Evil-M5 discord for help and update 😉: 
 
 <a href="https://discord.com/invite/qbwAJch25S">
   <img src="https://7h30th3r0n3.com/discord.jpg" width="75" alt="Join Discord" />
