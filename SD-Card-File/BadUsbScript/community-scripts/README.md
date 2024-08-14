@@ -4,10 +4,10 @@ This folder is to bring together the different BadUSB scripts that the community
 
 Please respect the following standard header for the file before all PR requests:
 
-REM Title: Title of the payload 
-REM Author: The original author
-REM Reworked: The person that reworked it  
-REM Target:  Target OS
-REM Version: 1.0
-REM Category: Grabber
-REM Small explication of what the payload do exacty 
+REM Title: Title of the payload </br>
+REM Author: The original author</br>
+REM Reworked: The person that reworked it  </br>
+REM Target:  Target OS</br>
+REM Version: 1.0</br>
+REM Category: Grabber</br>
+REM Small explication of what the payload do exacty </br>
