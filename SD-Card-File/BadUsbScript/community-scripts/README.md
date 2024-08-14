@@ -1,4 +1,4 @@
-This folder is to bring together the different BadUSB scripts that the community can create,
+This folder is to bring together the different BadUSB scripts that the community can create, feel free to make a PR with your script here,
 
 ⚠️ Please don't take some payload from others repository to claim that you are the author. Always credit the original one before all.
 
