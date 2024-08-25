@@ -84,8 +84,6 @@ String scanIp = "";
 
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-
-
 String ssh_user = "";
 String ssh_host = "";
 String ssh_password = "";
@@ -106,7 +104,8 @@ extern "C" {
 #include "esp_system.h"
 }
 
-int ledOn = true;// change this to true to get cool led effect (only on fire)
+bool ledOn = true;// change this to true to get cool led effect (only on fire)
+bool soundOn = true;
 
 static constexpr const gpio_num_t SDCARD_CSPIN = GPIO_NUM_4;
 
@@ -122,6 +121,7 @@ const char* menuItems[] = {
     "Clone & Details",
     "Set Wifi SSID",
     "Set Wifi Password",
+    "Set Mac Address",
     "Start Captive Portal",
     "Stop Captive Portal",
     "Change Portal",
@@ -136,7 +136,7 @@ const char* menuItems[] = {
     "Select Probe",
     "Delete Probe",
     "Delete All Probes",
-    "Brightness",
+    "Settings",
     "Wardriving",
     "Beacon Spam",
     "Deauther",
@@ -242,6 +242,8 @@ bool karmaSuccess = false;
 const char* configFolderPath = "/config";
 const char* configFilePath = "/config/config.txt";
 int defaultBrightness = 255 * 0.35; //  35% default Brightness
+String selectedStartupImage = "/img/startup-cardputer.jpg"; // Valeur par défaut
+String selectedStartupSound = "/audio/sample.mp3"; // Valeur par défaut
 
 std::vector<std::string> whitelist;
 std::set<std::string> seenWhitelistedSSIDs;
@@ -250,9 +252,9 @@ std::set<std::string> seenWhitelistedSSIDs;
 
 //led part
 
-#define PIN 15
+#define PIN 21
 //#define PIN 25 // for M5Stack Core AWS comment above and uncomment this line
-#define NUMPIXELS 10
+#define NUMPIXELS 1
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB);
 int delayval = 100;
@@ -371,6 +373,84 @@ USBHIDKeyboard Kb;
 bool kbChosen = false;
 //badusb end
 
+
+
+//mp3
+
+#include <AudioOutput.h>
+#include <AudioFileSourceSD.h>
+#include <AudioFileSourceID3.h>
+#include <AudioGeneratorMP3.h>
+
+// Classe AudioOutputM5Speaker spécifique à votre projet
+class AudioOutputM5Speaker : public AudioOutput {
+public:
+    AudioOutputM5Speaker(m5::Speaker_Class* m5sound, uint8_t virtual_sound_channel = 0) {
+        _m5sound = m5sound;
+        _virtual_ch = virtual_sound_channel;
+    }
+    virtual ~AudioOutputM5Speaker(void) {};
+    virtual bool begin(void) override { return true; }
+    virtual bool ConsumeSample(int16_t sample[2]) override {
+        if (_tri_buffer_index < tri_buf_size) {
+            _tri_buffer[_tri_index][_tri_buffer_index  ] = sample[0];
+            _tri_buffer[_tri_index][_tri_buffer_index+1] = sample[1];
+            _tri_buffer_index += 2;
+            return true;
+        }
+        flush();
+        return false;
+    }
+    virtual void flush(void) override {
+        if (_tri_buffer_index) {
+            _m5sound->playRaw(_tri_buffer[_tri_index], _tri_buffer_index, hertz, true, 1, _virtual_ch);
+            _tri_index = _tri_index < 2 ? _tri_index + 1 : 0;
+            _tri_buffer_index = 0;
+        }
+    }
+    virtual bool stop(void) override {
+        flush();
+        _m5sound->stop(_virtual_ch);
+        return true;
+    }
+
+protected:
+    m5::Speaker_Class* _m5sound;
+    uint8_t _virtual_ch;
+    static constexpr size_t tri_buf_size = 640;
+    int16_t _tri_buffer[3][tri_buf_size];
+    size_t _tri_buffer_index = 0;
+    size_t _tri_index = 0;
+};
+
+// Initialisation des objets pour la lecture audio
+static AudioFileSourceSD file;
+static AudioOutputM5Speaker out(&M5.Speaker);
+static AudioGeneratorMP3 mp3;
+static AudioFileSourceID3* id3 = nullptr;
+
+// Fonction pour arrêter la lecture
+void stop(void) {
+    if (id3 == nullptr) return;
+    out.stop();
+    mp3.stop();
+    id3->close();
+    file.close();
+    delete id3;
+    id3 = nullptr;
+}
+
+// Fonction pour lire un fichier MP3
+void play(const char* fname) {
+    if (id3 != nullptr) { stop(); }
+    file.open(fname);
+    id3 = new AudioFileSourceID3(&file);
+    id3->open(fname);
+    mp3.begin(id3, &out);
+}
+
+
+//mp3 end
 
 void setup() {
   M5.begin();
@@ -682,37 +762,39 @@ void setup() {
     Serial.println("----------------------");
     Serial.println("SD card initialized !! ");
     Serial.println("----------------------");
-    restoreConfigParameter("brightness");
-    drawImage("/img/startup-cardputer.jpg");
-    if (ledOn) {
-      pixels.setPixelColor(4, pixels.Color(255, 0, 0));
-      pixels.setPixelColor(5, pixels.Color(255, 0, 0));
-      pixels.show();
-      delay(100);
-
-      pixels.setPixelColor(3, pixels.Color(255, 0, 0));
-      pixels.setPixelColor(6, pixels.Color(255, 0, 0));
-      pixels.show();
-      delay(100);
-
-      pixels.setPixelColor(2, pixels.Color(255, 0, 0));
-      pixels.setPixelColor(7, pixels.Color(255, 0, 0));
-      pixels.show();
-      delay(100);
-
-      pixels.setPixelColor(1, pixels.Color(255, 0, 0));
-      pixels.setPixelColor(8, pixels.Color(255, 0, 0));
-      pixels.show();
-      delay(100);
-
-      pixels.setPixelColor(0, pixels.Color(255, 0, 0));
-      pixels.setPixelColor(9, pixels.Color(255, 0, 0));
-      pixels.show();
-      delay(100);
-      delay(1000);
-    } else {
-      delay(2000);
+        // Vérifier et créer le dossier audio s'il n'existe pas
+    if (!SD.exists("/audio")) {
+        Serial.println("Audio folder not found, creating...");
+        if (SD.mkdir("/audio")) {
+            Serial.println("Audio folder created successfully.");
+        } else {
+            Serial.println("Failed to create audio folder.");
+        }
     }
+    restoreConfigParameter("brightness");
+    restoreConfigParameter("ledOn");
+    restoreConfigParameter("soundOn");
+    restoreConfigParameter("volume");
+    loadStartupImageConfig();
+    loadStartupSoundConfig(); 
+    
+    drawImage(selectedStartupImage.c_str());
+    if (ledOn) {
+      pixels.setPixelColor(0, pixels.Color(255, 0, 0));
+      pixels.show();
+    }
+    if (soundOn) {
+        play(selectedStartupSound.c_str());
+        while(mp3.isRunning()) {
+            if (!mp3.loop()) {
+                mp3.stop();
+            } else {
+                delay(1);
+            }
+        }
+    }else{
+    delay(2000);
+  }
   }
 
   /*String batteryLevelStr = getBatteryLevel();
@@ -780,30 +862,9 @@ void setup() {
   Serial.println("-------------------");
   firstScanWifiNetworks();
   if (ledOn) {
-    pixels.setPixelColor(4, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(5, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(3, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(6, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(2, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(7, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(1, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(8, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
     pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(9, pixels.Color(0, 0, 0));
     pixels.show();
-    delay(50);
+    delay(250);
   }
 
   if (strcmp(ssid, "") != 0) {
@@ -935,6 +996,11 @@ void drawTaskBar() {
 
   if (pageAccessFlag) {
     taskBarCanvas.print("" + String(dotState ? "■" : " "));
+    pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+    pixels.show();
+    delay(100);
+    pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+    pixels.show();
     pageAccessFlag = false; // Réinitialiser le flag après affichage
   } else {
     taskBarCanvas.print("  ");
@@ -1051,98 +1117,102 @@ void executeMenuItem(int index) {
       setWifiPassword();
       break;
     case 5:
-      createCaptivePortal();
+      setMacAddress();
       break;
     case 6:
-      stopCaptivePortal();
+      createCaptivePortal();
       break;
     case 7:
-      changePortal();
+      stopCaptivePortal();
       break;
     case 8:
-      checkCredentials();
+      changePortal();
       break;
     case 9:
-      deleteCredentials();
+      checkCredentials();
       break;
     case 10:
-      displayMonitorPage1();
+      deleteCredentials();
       break;
     case 11:
-      probeAttack();
+      displayMonitorPage1();
       break;
     case 12:
-      probeSniffing();
+      probeAttack();
       break;
     case 13:
-      karmaAttack();
+      probeSniffing();
       break;
     case 14:
-      startAutoKarma();
+      karmaAttack();
       break;
     case 15:
-      karmaSpear();
+      startAutoKarma();
       break;
     case 16:
-      listProbes();
+      karmaSpear();
       break;
     case 17:
-      deleteProbe();
+      listProbes();
       break;
     case 18:
-      deleteAllProbes();
+      deleteProbe();
       break;
     case 19:
-      brightness();
+      deleteAllProbes();
       break;
     case 20:
-      wardrivingMode();
+      showSettingsMenu();
       break;
     case 21:
-      beaconAttack();
+      wardrivingMode();
       break;
     case 22:
-      deauthAttack(currentListIndex);
+      beaconAttack();
       break;
     case 23:
-      deauthClients();
+      deauthAttack(currentListIndex);
       break;
     case 24:
-      deauthDetect();
+      deauthClients();
       break;
     case 25:
-      checkHandshakes();
+      deauthDetect();
       break;
     case 26:
-      wallOfFlipper();
+      checkHandshakes();
       break;
     case 27:
-      sendTeslaCode();
+      wallOfFlipper();
       break;
     case 28:
-      connectWifi(currentListIndex);
+      sendTeslaCode();
       break;
     case 29:
-      sshConnect();
+      connectWifi(currentListIndex);
       break;
     case 30:
-      scanIpPort();
+      sshConnect();
       break;
     case 31:
-      scanHosts();
+      scanIpPort();
       break;
     case 32:
-      webCrawling();
+      scanHosts();
       break;
     case 33:
-      send_pwnagotchi_beacon_main();
+      webCrawling();
       break;
     case 34:
-      skimmerDetection();
+      send_pwnagotchi_beacon_main();
       break;
     case 35:
+      skimmerDetection();
+      break;
+    case 36:
       badUSB();
       break;
+
   }
   isOperationInProgress = false;
 }
@@ -1158,36 +1228,59 @@ void enterDebounce() {
   }
 }
 
-void handleMenuInput() {
-  static bool keyHandled = false;
 
-  if (!keyHandled) {
-    if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+void handleMenuInput() {
+  static unsigned long lastKeyPressTime = 0;
+  const unsigned long keyRepeatDelay = 150; // Délai entre les répétitions d'appui
+  static bool keyHandled = false;
+  static int previousIndex = -1; // Pour suivre les changements d'index
+    enterDebounce();
+  M5.update();
+  M5Cardputer.update();
+
+  // Variable pour suivre les changements d'état du menu
+  bool stateChanged = false;
+
+  if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+    if (millis() - lastKeyPressTime > keyRepeatDelay) {
       currentIndex--;
       if (currentIndex < 0) {
-        currentIndex = menuSize - 1;
+        currentIndex = menuSize - 1;  // Boucle à la fin du menu
       }
-      keyHandled = true;
-    } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+      lastKeyPressTime = millis();
+      stateChanged = true;
+    }
+    keyHandled = true;
+  } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+    if (millis() - lastKeyPressTime > keyRepeatDelay) {
       currentIndex++;
       if (currentIndex >= menuSize) {
-        currentIndex = 0;
+        currentIndex = 0;  // Boucle au début du menu
       }
-      keyHandled = true;
-    } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-      executeMenuItem(currentIndex);
-      keyHandled = true;
+      lastKeyPressTime = millis();
+      stateChanged = true;
     }
-  }
-
-  // Check for key release to reset the keyHandled flag
-  if (!M5Cardputer.Keyboard.isKeyPressed('.') &&
-      !M5Cardputer.Keyboard.isKeyPressed(';') &&
-      !M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    keyHandled = true;
+  } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    executeMenuItem(currentIndex);
+    stateChanged = true;
+    keyHandled = true;
+  } else {
+    // Aucune touche pertinente n'est pressée, réinitialise le drapeau
     keyHandled = false;
   }
 
-  menuStartIndex = max(0, min(currentIndex, menuSize - maxMenuDisplay));
+  // Réinitialise l'heure de la dernière pression si aucune touche n'est pressée
+  if (!keyHandled) {
+    lastKeyPressTime = 0;
+  }
+
+  // Met à jour l'affichage uniquement si l'état du menu a changé
+  if (stateChanged || currentIndex != previousIndex) {
+    menuStartIndex = max(0, min(currentIndex, menuSize - maxMenuDisplay));
+    drawMenu();
+    previousIndex = currentIndex; // Mise à jour de l'index précédent
+  }
 }
 
 
@@ -1896,55 +1989,11 @@ void createCaptivePortal() {
   Serial.println("Portal " + ssid + " Deployed with " + selectedPortalFile.substring(7) + " Portal !");
   Serial.println("-------------------");
   if (ledOn) {
-    pixels.setPixelColor(4, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(5, pixels.Color(255, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(3, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(6, pixels.Color(255, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(4, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(5, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(2, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(7, pixels.Color(255, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(3, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(6, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(1, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(8, pixels.Color(255, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(2, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(7, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
     pixels.setPixelColor(0, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(9, pixels.Color(255, 0, 0));
     pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(1, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(8, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
+    delay(250);
     pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(9, pixels.Color(0, 0, 0));
     pixels.show();
-    delay(50);
   }
   if (!isProbeKarmaAttackMode && !isAutoKarmaActive) {
     waitAndReturnToMenu("Portal " + ssid + " Deployed");
@@ -2096,7 +2145,6 @@ void handleDownloadAllFiles() {
 
   dir.close();
 }
-
 
 
 void handleFileUpload() {
@@ -2276,54 +2324,10 @@ void stopCaptivePortal() {
   Serial.println("-------------------");
   if (ledOn) {
     pixels.setPixelColor(0, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(9, pixels.Color(255, 0, 0));
     pixels.show();
-    delay(50);
-
+    delay(250);
     pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(9, pixels.Color(0, 0, 0));
     pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(1, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(8, pixels.Color(255, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(1, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(8, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(2, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(7, pixels.Color(255, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(2, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(7, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(3, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(6, pixels.Color(255, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(3, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(6, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(4, pixels.Color(255, 0, 0));
-    pixels.setPixelColor(5, pixels.Color(255, 0, 0));
-    pixels.show();
-    delay(50);
-
-    pixels.setPixelColor(4, pixels.Color(0, 0, 0));
-    pixels.setPixelColor(5, pixels.Color(0, 0, 0));
-    pixels.show();
-    delay(50);
   }
   waitAndReturnToMenu("  Portal Stopped");
 }
@@ -3002,6 +3006,422 @@ void waitAndReturnToMenu(String message) {
 }
 
 
+void loopOptions(std::vector<std::pair<String, std::function<void()>>> &options, bool loop, bool displayTitle, const String &title = "") {
+    int currentIndex = 0;
+    bool selectionMade = false;
+    const int lineHeight = 12;
+    const int maxVisibleLines = 8;
+    int menuStartIndex = 0;
+
+    M5.Display.clear();
+    M5.Display.setTextSize(1.5);
+    M5.Display.setTextFont(1);
+    enterDebounce();
+
+    for (int i = 0; i < maxVisibleLines; ++i) {
+        int optionIndex = menuStartIndex + i;
+        if (optionIndex >= options.size()) break;
+
+        if (optionIndex == currentIndex) {
+            M5.Display.fillRect(0, 0 + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+            M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
+        } else {
+            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+        }
+        M5.Display.setCursor(0, 0 + i * lineHeight);
+        M5.Display.println(options[optionIndex].first);
+    }
+    M5.Display.display();
+
+    while (!selectionMade) {
+        M5.update();
+        M5Cardputer.update();
+
+        bool screenNeedsUpdate = false;
+
+        if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+            currentIndex = (currentIndex - 1 + options.size()) % options.size();
+            menuStartIndex = max(0, min(currentIndex, (int)options.size() - maxVisibleLines));
+            screenNeedsUpdate = true;
+            delay(150); // anti-rebond
+        } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+            currentIndex = (currentIndex + 1) % options.size();
+            menuStartIndex = max(0, min(currentIndex, (int)options.size() - maxVisibleLines));
+            screenNeedsUpdate = true;
+            delay(150); // anti-rebond
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+            options[currentIndex].second();
+            if (!loop) {
+                selectionMade = true;
+            }
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+            selectionMade = true;
+            delay(150); // anti-rebond
+            waitAndReturnToMenu("Back to menu");
+        }
+
+        if (screenNeedsUpdate) {
+            M5.Display.clear();
+
+            for (int i = 0; i < maxVisibleLines; ++i) {
+                int optionIndex = menuStartIndex + i;
+                if (optionIndex >= options.size()) break;
+
+                if (optionIndex == currentIndex) {
+                    M5.Display.fillRect(0, 0 + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
+                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
+                } else {
+                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+                }
+                M5.Display.setCursor(0, 0 + i * lineHeight);
+                M5.Display.println(options[optionIndex].first);
+            }
+
+            M5.Display.display();
+        }
+
+        delay(100);
+    }
+}
+
+void showSettingsMenu() { 
+    std::vector<std::pair<String, std::function<void()>>> options; 
+
+    bool continueSettingsMenu = true;
+
+    while (continueSettingsMenu) {
+        options.clear();  // Vider les options à chaque itération pour les mettre à jour dynamiquement
+
+        options.push_back({"Brightness", brightness}); 
+        options.push_back({soundOn ? "Sound Off" : "Sound On", []() {toggleSound();}});
+        options.push_back({ledOn ? "LED Off" : "LED On", []() {toggleLED();}});
+        options.push_back({"Set Startup Image", setStartupImage}); 
+        options.push_back({"Set Startup Volume", adjustVolume});
+        options.push_back({"Set Startup Sound", setStartupSound});
+
+        loopOptions(options, false, true, "Settings");
+
+        // Vérifie si BACKSPACE a été pressé pour quitter le menu
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+            continueSettingsMenu = false;
+        }
+    }
+    inMenu = true;
+}
+
+void saveStartupSoundConfig(const String& paramValue) {
+    // Lire le contenu du fichier de configuration
+    File file = SD.open(configFilePath, FILE_READ);
+    String content = "";
+    bool found = false;
+
+    if (file) {
+        while (file.available()) {
+            String line = file.readStringUntil('\n');
+            if (line.startsWith("startupSound=")) {
+                // Remplacer la ligne existante par la nouvelle valeur
+                content += "startupSound=/audio/" + paramValue + "\n";
+                found = true;
+            } else {
+                // Conserver les autres lignes
+                content += line + "\n";
+            }
+        }
+        file.close();
+    }
+
+    // Si la clé n'a pas été trouvée, l'ajouter à la fin
+    if (!found) {
+        content += "startupSound=/audio/" + paramValue + "\n";
+    }
+
+    // Réécrire tout le fichier de configuration
+    file = SD.open(configFilePath, FILE_WRITE);
+    if (file) {
+        file.print(content);
+        file.close();
+    }
+}
+
+void loadStartupSoundConfig() {
+    File file = SD.open(configFilePath, FILE_READ);
+    if (file) {
+        while (file.available()) {
+            String line = file.readStringUntil('\n');
+            if (line.startsWith("startupSound")) {
+                selectedStartupSound = line.substring(line.indexOf('=') + 1);
+                break;
+            }
+        }
+        file.close();
+    }
+}
+
+void setStartupSound() {
+    File root = SD.open("/audio");
+    std::vector<String> sounds;
+
+    while (File file = root.openNextFile()) {
+        if (!file.isDirectory()) {
+            String fileName = file.name();
+            if (fileName.endsWith(".mp3")) {
+                sounds.push_back(fileName);
+            }
+        }
+        file.close();
+    }
+    root.close();
+
+    if (sounds.size() == 0) {
+        M5.Display.clear();
+        M5.Display.println("No sounds found");
+        delay(2000);
+        return;
+    }
+
+    int currentSoundIndex = 0;
+    bool soundSelected = false;
+    const int maxDisplayItems = 10;  // Nombre maximum d'éléments à afficher en même temps
+    int menuStartIndex = 0;
+    bool needDisplayUpdate = true;
+
+    enterDebounce();
+    while (!soundSelected) {
+        if (needDisplayUpdate) {
+            M5.Display.clear();
+            M5.Display.setCursor(0, 0);
+            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5.Display.println("Select Startup Sound:");
+
+            for (int i = 0; i < maxDisplayItems && (menuStartIndex + i) < sounds.size(); i++) {
+                int itemIndex = menuStartIndex + i;
+                if (itemIndex == currentSoundIndex) {
+                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY); // Sélectionner la couleur
+                } else {
+                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); // Non sélectionné
+                }
+                M5.Display.println(sounds[itemIndex]);
+            }
+
+            needDisplayUpdate = false; // Réinitialiser le besoin de mise à jour
+        }
+
+        M5.update();
+        M5Cardputer.update();
+
+        if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+            currentSoundIndex = (currentSoundIndex - 1 + sounds.size()) % sounds.size();
+            if (currentSoundIndex < menuStartIndex) {
+                menuStartIndex = currentSoundIndex;
+            } else if (currentSoundIndex >= menuStartIndex + maxDisplayItems) {
+                menuStartIndex = currentSoundIndex - maxDisplayItems + 1;
+            }
+            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
+        } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+            currentSoundIndex = (currentSoundIndex + 1) % sounds.size();
+            if (currentSoundIndex >= menuStartIndex + maxDisplayItems) {
+                menuStartIndex = currentSoundIndex - maxDisplayItems + 1;
+            } else if (currentSoundIndex < menuStartIndex) {
+                menuStartIndex = currentSoundIndex;
+            }
+            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+            // Enregistrer le son sélectionné dans la configuration
+            selectedStartupSound = sounds[currentSoundIndex];
+            saveStartupSoundConfig(selectedStartupSound);
+            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5.Display.fillScreen(TFT_BLACK);
+            M5.Display.setCursor(0, M5.Display.height() / 2);
+            M5.Display.print("Startup sound set to\n" + selectedStartupSound);
+            delay(1000);
+            soundSelected = true;
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+            soundSelected = true;
+        } else if (M5Cardputer.Keyboard.isKeyPressed('p')) {  // Lire le son sélectionné
+            String soundPath = "/audio/" + sounds[currentSoundIndex];
+            play(soundPath.c_str());  // Utilise la fonction play() pour lire le son
+            while (mp3.isRunning()) {
+                if (!mp3.loop()) {
+                    mp3.stop();
+                }
+                delay(1);  // Petite pause pour éviter de surcharger le processeur
+            }
+        }
+
+        delay(150);  // Anti-rebond pour les touches
+    }
+}
+
+
+void saveStartupImageConfig(const String& paramValue) {
+    // Lire le contenu du fichier de configuration
+    File file = SD.open(configFilePath, FILE_READ);
+    String content = "";
+    bool found = false;
+
+    if (file) {
+        while (file.available()) {
+            String line = file.readStringUntil('\n');
+            if (line.startsWith("startupImage=")) {
+                // Remplacer la ligne existante par la nouvelle valeur
+                content += "startupImage=/img/" + paramValue + "\n";
+                found = true;
+            } else {
+                // Conserver les autres lignes
+                content += line + "\n";
+            }
+        }
+        file.close();
+    }
+
+    // Si la clé n'a pas été trouvée, l'ajouter à la fin
+    if (!found) {
+        content += "startupImage=/img/" + paramValue + "\n";
+    }
+
+    // Réécrire tout le fichier de configuration
+    file = SD.open(configFilePath, FILE_WRITE);
+    if (file) {
+        file.print(content);
+        file.close();
+    }
+}
+
+
+void loadStartupImageConfig() {
+    File file = SD.open(configFilePath, FILE_READ);
+    if (file) {
+        while (file.available()) {
+            String line = file.readStringUntil('\n');
+            if (line.startsWith("startupImage")) {
+                selectedStartupImage = line.substring(line.indexOf('=') + 1);
+                break;
+            }
+        }
+        file.close();
+    }
+}
+
+void setStartupImage() {
+    File root = SD.open("/img");
+    std::vector<String> images;
+    
+    while (File file = root.openNextFile()) {
+        if (!file.isDirectory()) {
+            String fileName = file.name();
+            if (fileName.endsWith(".jpg")) {
+                images.push_back(fileName);
+            }
+        }
+        file.close();
+    }
+    root.close();
+
+    if (images.size() == 0) {
+        M5.Display.clear();
+        M5.Display.println("No images found");
+        delay(2000);
+        return;
+    }
+
+    int currentImageIndex = 0;
+    bool imageSelected = false;
+    const int maxDisplayItems = 10;  // Nombre maximum d'éléments à afficher en même temps
+    int menuStartIndex = 0;
+    bool needDisplayUpdate = true;
+
+    enterDebounce();
+    while (!imageSelected) {
+        if (needDisplayUpdate) {
+            M5.Display.clear();
+            M5.Display.setCursor(0, 0);
+            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5.Display.println("Select Startup Image:");
+
+            for (int i = 0; i < maxDisplayItems && (menuStartIndex + i) < images.size(); i++) {
+                int itemIndex = menuStartIndex + i;
+                if (itemIndex == currentImageIndex) {
+                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY); // Sélectionner la couleur
+                } else {
+                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); // Non sélectionné
+                }
+                M5.Display.println(images[itemIndex]);
+            }
+
+            needDisplayUpdate = false; // Réinitialiser le besoin de mise à jour
+        }
+
+        M5.update();
+        M5Cardputer.update();
+
+        if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+            currentImageIndex = (currentImageIndex - 1 + images.size()) % images.size();
+            if (currentImageIndex < menuStartIndex) {
+                menuStartIndex = currentImageIndex;
+            } else if (currentImageIndex >= menuStartIndex + maxDisplayItems) {
+                menuStartIndex = currentImageIndex - maxDisplayItems + 1;
+            }
+            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
+        } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+            currentImageIndex = (currentImageIndex + 1) % images.size();
+            if (currentImageIndex >= menuStartIndex + maxDisplayItems) {
+                menuStartIndex = currentImageIndex - maxDisplayItems + 1;
+            } else if (currentImageIndex < menuStartIndex) {
+                menuStartIndex = currentImageIndex;
+            }
+            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+            // Enregistrer l'image sélectionnée dans la configuration
+            selectedStartupImage = images[currentImageIndex];
+            saveStartupImageConfig(selectedStartupImage);
+            String ThisImg = "/img/" + images[currentImageIndex];
+            drawImage(ThisImg.c_str());
+            delay(1000);
+            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5.Display.fillScreen(TFT_BLACK);
+            M5.Display.setCursor(0, M5.Display.height() / 2);
+            M5.Display.print("Startup image set to\n" + selectedStartupImage);
+            delay(1000);
+            imageSelected = true;
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+            imageSelected = true;
+        } else if (M5Cardputer.Keyboard.isKeyPressed('p')) {  // Lire le son sélectionné            
+            String ThisImg = "/img/" + images[currentImageIndex];
+            drawImage(ThisImg.c_str());
+            delay(1500);
+            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
+        }
+        delay(150);  // Anti-rebond pour les touches
+    }
+}
+
+
+
+void toggleSound() {
+    inMenu = false;
+    soundOn = !soundOn;  // Inverse l'état du son
+
+    // Sauvegarde le nouvel état dans le fichier de configuration
+    saveConfigParameter("soundOn", soundOn);
+    M5.Display.fillScreen(TFT_BLACK);
+    M5.Display.setCursor(M5.Display.width() / 2 - 72, M5.Display.height() / 2);
+    M5.Display.print("Sound " + String(soundOn ? "On" : "Off"));
+    delay(1000);
+}
+
+void toggleLED() {
+    inMenu = false;
+    ledOn = !ledOn;  // Inverse l'état du LED
+
+    // Sauvegarde le nouvel état dans le fichier de configuration
+    saveConfigParameter("ledOn", ledOn);
+    M5.Display.fillScreen(TFT_BLACK);
+    M5.Display.setCursor(M5.Display.width() / 2 - 72, M5.Display.height() / 2);
+    M5.Display.print("LED " + String(ledOn ? "On" : "Off"));
+    delay(1000);
+    
+}
+
 void brightness() {
   int currentBrightness = M5.Display.getBrightness();
   int minBrightness = 1;
@@ -3055,8 +3475,71 @@ void brightness() {
   }
 
   float finalBrightnessPercentage = 100.0 * (currentBrightness - minBrightness) / (maxBrightness - minBrightness);
-  waitAndReturnToMenu("Brightness set to " + String((int)finalBrightnessPercentage) + "%");
+  M5.Display.fillScreen(TFT_BLACK);
+  M5.Display.setCursor(0, M5.Display.height() / 2);
+  M5.Display.print("Brightness set to " + String((int)finalBrightnessPercentage) + "%");
+  delay(1000);
 }
+
+
+void adjustVolume() {
+    int currentVolume = M5Cardputer.Speaker.getVolume();  // Récupère le volume actuel
+    int minVolume = 0;  // Volume minimum
+    int maxVolume = 255;  // Volume maximum
+
+    M5.Display.clear();
+    M5.Display.setTextSize(1.5);
+    M5.Display.setTextColor(TFT_WHITE);
+
+    bool volumeAdjusted = true;
+    unsigned long lastKeyPressTime = 0;
+    const unsigned long debounceDelay = 200;  // Définir un délai de debounce de 200 ms
+
+    enterDebounce();
+
+    while (true) {
+        M5.update();
+        M5Cardputer.update();
+
+        if (millis() - lastKeyPressTime > debounceDelay) {
+            if (M5Cardputer.Keyboard.isKeyPressed(',')) {
+                currentVolume = max(minVolume, currentVolume - 12);
+                volumeAdjusted = true;
+                lastKeyPressTime = millis();
+            } else if (M5Cardputer.Keyboard.isKeyPressed('/')) {
+                currentVolume = min(maxVolume, currentVolume + 12);
+                volumeAdjusted = true;
+                lastKeyPressTime = millis();
+            } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+                saveConfigParameter("volume", currentVolume);
+                break;
+            } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+                inMenu = true;
+                drawMenu();
+                break;
+            }
+        }
+
+        if (volumeAdjusted) {
+            float volumePercentage = 100.0 * (currentVolume - minVolume) / (maxVolume - minVolume);
+            M5.Display.fillScreen(TFT_BLACK);
+            M5.Display.setCursor(50, M5.Display.height() / 2);
+            M5.Display.print("Volume: ");
+            M5.Display.print((int)volumePercentage);
+            M5.Display.println("%");
+            M5Cardputer.Speaker.setVolume(currentVolume);
+            M5.Display.display();
+            volumeAdjusted = false;
+        }
+    }
+
+    float finalVolumePercentage = 100.0 * (currentVolume - minVolume) / (maxVolume - minVolume);
+    M5.Display.fillScreen(TFT_BLACK);
+    M5.Display.setCursor(50, M5.Display.height() / 2);
+    M5.Display.print("Volume set to " + String((int)finalVolumePercentage) + "%");
+    delay(1000);
+}
+
 
 
 void saveConfigParameter(String key, int value) {
@@ -3102,29 +3585,70 @@ void restoreConfigParameter(String key) {
     File configFile = SD.open(configFilePath, FILE_READ);
     if (configFile) {
       String line;
-      int value = defaultBrightness;
+      String stringValue;
+      int intValue = -1;
+      bool boolValue = false;
+      bool keyFound = false;
+
       while (configFile.available()) {
         line = configFile.readStringUntil('\n');
         if (line.startsWith(key + "=")) {
-          value = line.substring(line.indexOf('=') + 1).toInt();
+          stringValue = line.substring(line.indexOf('=') + 1);
+          if (key == "brightness") {
+            intValue = stringValue.toInt();
+            M5.Display.setBrightness(intValue);
+            Serial.println("Brightness restored to " + String(intValue));
+          } else if (key == "volume") {
+            intValue = stringValue.toInt();
+            M5Cardputer.Speaker.setVolume(intValue);
+            Serial.println("Volume restored to " + String(intValue));
+          } else if (key == "ledOn" || key == "soundOn") {
+            boolValue = (stringValue == "1");
+            Serial.println(key + " restored to " + String(boolValue));
+          }
+          keyFound = true;
           break;
         }
       }
       configFile.close();
-      if (key == "brightness") {
-        M5.Display.setBrightness(value);
-        Serial.println("Brightness restored to " + String(value));
+
+      if (!keyFound) {
+        Serial.println("Key not found in config, using default for " + key);
+        if (key == "brightness") {
+          M5.Display.setBrightness(defaultBrightness);
+        } else if (key == "volume") {
+          M5Cardputer.Speaker.setVolume(180); // Par défaut à 70% du volume maximum
+        } else if (key == "ledOn") {
+          boolValue = false;  // Default to LED off
+        } else if (key == "soundOn") {
+          boolValue = false;  // Default to sound off
+        }
       }
+
+      if (key == "ledOn") {
+        ledOn = boolValue;
+      } else if (key == "soundOn") {
+        soundOn = boolValue;
+      }
+
     } else {
       Serial.println("Error when opening config.txt");
     }
   } else {
-    Serial.println("Config file not found, using default value");
+    Serial.println("Config file not found, using default values");
     if (key == "brightness") {
       M5.Display.setBrightness(defaultBrightness);
+    } else if (key == "volume") {
+      M5Cardputer.Speaker.setVolume(180); // Par défaut à 70% du volume maximum
+    } else if (key == "ledOn") {
+      ledOn = false;  // Default to LED off
+    } else if (key == "soundOn") {
+      soundOn = false;  // Default to sound off
     }
   }
 }
+
+
 
 
 
@@ -3176,12 +3700,10 @@ void packetSnifferKarma(void* buf, wifi_promiscuous_pkt_type_t type) {
         Serial.print("Found: ");
         if (ledOn) {
           pixels.setPixelColor(0, pixels.Color(255, 0, 0));
-          pixels.setPixelColor(9, pixels.Color(255, 0, 0));
           pixels.show();
           delay(50);
 
           pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-          pixels.setPixelColor(9, pixels.Color(0, 0, 0));
           pixels.show();
           delay(50);
         }
@@ -3217,19 +3739,23 @@ void saveSSIDToFile(const char* ssid) {
 
 
 void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
-  const int maxLength = 23;
-  char truncatedSSID[18];
+ const int maxLength = 22;
+  char truncatedSSID[maxLength + 1];  // Adjusted size to maxLength to fix bufferoverflow
 
-  M5.Display.fillRect(0, 0, M5.Display.width(), M5.Display.height() - 30, TFT_BLACK);
+  M5.Display.fillRect(0, 0, M5.Display.width(), M5.Display.height() - 27, TFT_BLACK);
   int startIndexKarma = max(0, count - maxMenuDisplay);
 
   for (int i = startIndexKarma; i < count; i++) {
+    if (i >= MAX_SSIDS_Karma) {  // Safety check to avoid out-of-bounds access
+      break;
+    }
+
     int lineIndexKarma = i - startIndexKarma;
     M5.Display.setCursor(0, lineIndexKarma * 12);
 
     if (strlen(ssidsKarma[i]) > maxLength) {
       strncpy(truncatedSSID, ssidsKarma[i], maxLength);
-      truncatedSSID[maxLength] = '\0';
+      truncatedSSID[maxLength] = '\0';  // Properly null-terminate
       M5.Display.printf("%d.%s", i + 1, truncatedSSID);
     } else {
       M5.Display.printf("%d.%s", i + 1, ssidsKarma[i]);
@@ -3269,7 +3795,7 @@ void drawStartButtonKarma() {
 }
 
 void drawStopButtonKarma() {
-  M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
+  M5.Display.fillRect(0, M5.Display.height() - 27, M5.Display.width(), 27, TFT_RED);
   M5.Display.setCursor(M5.Display.width() / 2 - 60, M5.Display.height() - 20);
   M5.Display.println("Stop Sniff");
   M5.Display.setTextColor(TFT_WHITE);
@@ -3954,11 +4480,12 @@ void probeAttack() {
 
   M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
   M5.Display.setCursor(M5.Display.width() / 2 - 24, M5.Display.height() - 20);
+  M5.Display.setTextColor(TFT_WHITE,TFT_RED);
   M5.Display.println("Stop");
-  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.setTextColor(TFT_WHITE,TFT_BLACK);
 
   int probesTextX = 0;
-  String probesText = "Probe Attack running.";
+  String probesText = "Probe Attack running...";
   M5.Display.setCursor(probesTextX, 37);
   M5.Display.println(probesText);
   probesText = "Probes sent: ";
@@ -3983,12 +4510,10 @@ void probeAttack() {
       }
       if (ledOn) {
         pixels.setPixelColor(0, pixels.Color(255, 0, 0));
-        pixels.setPixelColor(9, pixels.Color(255, 0, 0));
         pixels.show();
         delay(50);
 
         pixels.setPixelColor(0, pixels.Color(0, 0, 0));
-        pixels.setPixelColor(9, pixels.Color(0, 0, 0));
         pixels.show();
       }
       WiFi.begin(ssid.c_str(), "");
@@ -4727,117 +5252,223 @@ void karmaSpear() {
 }
 
 
+
+// beacon attack
 std::vector<String> readCustomBeacons(const char* filename) {
-  File file = SD.open(filename, FILE_READ);
-  std::vector<String> customBeacons;
+    std::vector<String> customBeacons;
+    File file = SD.open(filename, FILE_READ);
 
-  if (!file) {
-    Serial.println("Failed to open file for reading");
-    return customBeacons;
-  }
-
-  while (file.available()) {
-    String line = file.readStringUntil('\n');
-    if (line.startsWith("CustomBeacons=")) {
-      String beaconsStr = line.substring(String("CustomBeacons=").length());
-      int idx = 0;
-      while ((idx = beaconsStr.indexOf(',')) != -1) {
-        customBeacons.push_back(beaconsStr.substring(0, idx));
-        beaconsStr = beaconsStr.substring(idx + 1);
-      }
-      if (beaconsStr.length() > 0) {
-        customBeacons.push_back(beaconsStr); // Ajouter le dernier élément
-      }
-      break;
+    if (!file) {
+        Serial.println("Failed to open file for reading");
+        return customBeacons;
     }
-  }
-  file.close();
-  return customBeacons;
+
+    while (file.available()) {
+        String line = file.readStringUntil('\n');
+        line.trim();  // Enlever les espaces inutiles en fin de ligne
+
+        if (line.startsWith("CustomBeacons=")) {
+            String beaconsStr = line.substring(String("CustomBeacons=").length());
+
+            while (beaconsStr.length() > 0) {
+                int idx = beaconsStr.indexOf(',');
+                if (idx == -1) {
+                    customBeacons.push_back(beaconsStr);
+                    break;
+                } else {
+                    customBeacons.push_back(beaconsStr.substring(0, idx));
+                    beaconsStr = beaconsStr.substring(idx + 1);
+                }
+            }
+            break;
+        }
+    }
+    file.close();
+    return customBeacons;
+}
+
+char randomName[32];
+char *randomSSID() {
+    const char *charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    int len = random(8, 33);  // Génère une longueur entre 8 et 32
+    for (int i = 0; i < len; ++i) {
+        randomName[i] = charset[random() % strlen(charset)];
+    }
+    randomName[len] = '\0';  // Terminer par un caractère nul
+    return randomName;
+}
+
+char emptySSID[32];
+uint8_t beaconPacket[109] = {
+    0x80, 0x00, 0x00, 0x00,             // Type/Subtype: management beacon frame
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // Destination: broadcast
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, // Source MAC address (modifié plus tard)
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, // BSSID (modifié plus tard)
+    0x00, 0x00,                                     // Fragment & sequence number (will be done by the SDK)
+    0x83, 0x51, 0xf7, 0x8f, 0x0f, 0x00, 0x00, 0x00, // Timestamp
+    0xe8, 0x03,                                     // Interval: every 1s
+    0x31, 0x00,                                     // Capabilities Information
+    0x00, 0x20, // Tag: Set SSID length, Tag length: 32
+    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, // SSID
+    0x01, 0x08, // Tag: Supported Rates, Tag length: 8
+    0x82,       // 1(B)
+    0x84,       // 2(B)
+    0x8b,       // 5.5(B)
+    0x96,       // 11(B)
+    0x24,       // 18
+    0x30,       // 24
+    0x48,       // 36
+    0x6c,       // 54
+    0x03, 0x01, // Channel set, length
+    0x01,       // Current Channel
+    0x30, 0x18,
+    0x01, 0x00,
+    0x00, 0x0f, 0xac, 0x04, // WPA2 with CCMP
+    0x02, 0x00,
+    0x00, 0x0f, 0xac, 0x04, 0x00, 0x0f, 0xac, 0x04,
+    0x01, 0x00,
+    0x00, 0x0f, 0xac, 0x02,
+    0x00, 0x00
+};
+
+const uint8_t channels[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}; // Canaux Wi-Fi utilisés (1-11)
+uint8_t channelIndex = 0;
+uint8_t wifi_channel = 1;
+
+void nextChannel() {
+    if (sizeof(channels) / sizeof(channels[0]) > 1) {
+        wifi_channel = channels[channelIndex];
+        channelIndex = (channelIndex + 1) % (sizeof(channels) / sizeof(channels[0]));
+        esp_wifi_set_channel(wifi_channel, WIFI_SECOND_CHAN_NONE);
+    }
+}
+
+void generateRandomWiFiMac(uint8_t *mac) {
+    mac[0] = 0x02; // Unicast, locally administered MAC address
+    for (int i = 1; i < 6; i++) {  // Génère aléatoirement les 5 autres octets
+        mac[i] = random(0, 255);
+    }
+}
+
+void beaconSpamList(const char *list, size_t listSize) {
+    int i = 0;
+    uint8_t macAddr[6];
+
+    Serial.println("Starting beaconSpamList...");
+
+    if (listSize == 0) {
+        Serial.println("Empty list provided. Exiting beaconSpamList.");
+        return;
+    }
+
+    nextChannel();
+
+    while (i < listSize) {
+        int j = 0;
+        while (list[i + j] != '\n' && j < 32 && i + j < listSize) {
+            j++;
+        }
+
+        uint8_t ssidLen = j;
+
+        if (ssidLen > 32) {
+            Serial.println("SSID length exceeds limit. Skipping.");
+            i += j;
+            continue;
+        }
+
+        Serial.print("SSID: ");
+        Serial.write(&list[i], ssidLen);
+        Serial.println();
+
+        generateRandomWiFiMac(macAddr);
+        memcpy(&beaconPacket[10], macAddr, 6); // Source MAC address
+        memcpy(&beaconPacket[16], macAddr, 6); // BSSID
+
+        memset(&beaconPacket[38], 0, 32);
+        memcpy(&beaconPacket[38], &list[i], ssidLen);
+
+        beaconPacket[37] = ssidLen; // SSID length
+        beaconPacket[82] = wifi_channel; // Wi-Fi channel
+
+        for (int k = 0; k < 3; k++) {
+            esp_wifi_80211_tx(WIFI_IF_STA, beaconPacket, sizeof(beaconPacket), false);
+            delay(1);
+        }
+        i += j;
+
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+            break;
+        }
+    }
+
+    Serial.println("Finished beaconSpamList.");
 }
 
 void beaconAttack() {
-  WiFi.mode(WIFI_MODE_AP);
+    WiFi.mode(WIFI_MODE_STA);
 
-  // Demander à l'utilisateur s'il souhaite utiliser des beacons personnalisés
-  bool useCustomBeacons = confirmPopup("Use custom beacons?");
-  M5.Display.clear();
+    bool useCustomBeacons = confirmPopup("Use custom beacons?");
+    M5.Display.clear();
 
-  std::vector<String> customBeacons;
-  if (useCustomBeacons) {
-    customBeacons = readCustomBeacons("/config/config.txt"); // Remplacer par le chemin réel
-  }
+    std::vector<String> customBeacons;
+    if (useCustomBeacons) {
+        customBeacons = readCustomBeacons("/config/config.txt");
+    }
 
-  int beaconCount = 0;
-  unsigned long previousMillis = 0;
-  int delayTimeBeacon = 0; // Délai entre les beacons
-  const int debounceDelay = 0;
-  unsigned long lastDebounceTime = 0;
+    int beaconCount = 0;
+    unsigned long previousMillis = 0;
+    int delayTimeBeacon = 0;
+    const int debounceDelay = 0;
+    unsigned long lastDebounceTime = 0;
 
-  M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
-  M5.Display.setCursor(M5.Display.width() / 2 - 24 , M5.Display.height() - 20);
-  M5.Display.setTextColor(TFT_WHITE);
-  M5.Display.println("Stop");
+    M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
+    M5.Display.setCursor(M5.Display.width() / 2 - 24, M5.Display.height() - 20);
+    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.println("Stop");
 
-  int beaconTextX = 5;
-  String beaconText = "Beacon Spam running";
-  M5.Display.setCursor(beaconTextX, 18);
-  M5.Display.println(beaconText);
-  beaconText = "Beacon sent:" ;
-  M5.Display.setCursor(beaconTextX, 32);
-  M5.Display.print(beaconText);
-  Serial.println("-------------------");
-  Serial.println("Starting Beacon Spam");
-  Serial.println("-------------------");
+    M5.Display.setCursor(10, 18);
+    M5.Display.println("Beacon Spam running..");
+    Serial.println("-------------------");
+    Serial.println("Starting Beacon Spam");
+    Serial.println("-------------------");
 
-  while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || !M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE) ) {
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= delayTimeBeacon) {
-      previousMillis = currentMillis;
-      // Générer un nouveau SSID pour le beacon
-      String ssid;
-      if (!customBeacons.empty()) {
-        ssid = customBeacons[beaconCount % customBeacons.size()]; // Utiliser un beacon personnalisé
-      } else {
-        ssid = generateRandomSSID(32); // Utiliser un beacon aléatoire
-      }
+    while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && !M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+        unsigned long currentMillis = millis();
+        if (currentMillis - previousMillis >= delayTimeBeacon) {
+            previousMillis = currentMillis;
 
-      // Effacer la zone d'affichage précédente de l'SSID
-      int x = 5;
-      int y = 45;
-      M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-      // Réécrire le nouvel SSID
-      M5.Display.setCursor(x, y);
-      M5.Display.print(ssid);
-      M5.Display.print("                                  ");
-      M5.Display.setTextColor(TFT_WHITE);
-      WiFi.softAP(ssid.c_str());
-      delay(50);
-      for (int channel = 1; channel <= 13; ++channel) {
-        setRandomMAC_APKarma();
-        esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
-        delay(150);
-        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-          break;
+            if (useCustomBeacons && !customBeacons.empty()) {
+                for (const auto& ssid : customBeacons) {
+                    beaconSpamList(ssid.c_str(), ssid.length());
+                }
+            } else {
+                char *randomSSIDName = randomSSID();
+                beaconSpamList(randomSSIDName, strlen(randomSSIDName));
+            }
+
+            beaconCount++;
         }
-      }
-      delay(50);
 
-      beaconCount++;
+        M5.update();
+        M5Cardputer.update();
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && currentMillis - lastDebounceTime > debounceDelay) {
+            break;
+        }
+        delay(10);
     }
-
-    M5.update();
-    M5Cardputer.update();
-    if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && currentMillis - lastDebounceTime > debounceDelay) {
-      break;
-    }
-    delay(10);
-  }
-  Serial.println("-------------------");
-  Serial.println("Stopping beacon Spam");
-  Serial.println("-------------------");
-  restoreOriginalWiFiSettings();
-  waitAndReturnToMenu("Beacon Spam Stopped..");
+    Serial.println("-------------------");
+    Serial.println("Stopping beacon Spam");
+    Serial.println("-------------------");
+    restoreOriginalWiFiSettings();
+    waitAndReturnToMenu("Beacon Spam Stopped..");
 }
+
+
+// beacon attack end 
 
 
 // Set wifi and password ssid
@@ -4899,6 +5530,7 @@ void setWifiSSID() {
   }
   waitAndReturnToMenu("Set Wifi SSID :" + nameSSID);
 }
+
 
 
 
@@ -4965,6 +5597,131 @@ void setWifiPassword() {
   }
   waitAndReturnToMenu("Set Wifi Password :" + newPassword);
 }
+
+void setMacAddress() {
+  String macAddress = ""; // Initialize the string to store the entered MAC address
+  M5.Display.setTextSize(1.5); // Set the text size for display
+  M5.Display.clear(); // Clear the screen before refreshing the text
+  M5.Display.setCursor(0, 10); // Position the cursor for the text
+  M5.Display.println("Enter MAC Address:"); // Header or instruction
+  M5.Display.setCursor(0, M5.Display.height() - 12); // Position the cursor for instructions
+  M5.Display.setTextSize(1); // Set the text size for the display
+  M5.Display.println("Format: XX:XX:XX:XX:XX:XX"); // Instruction on the format
+  M5.Display.setTextSize(1.5); // Set the text size back for the main input
+  enterDebounce();
+  
+  while (true) {
+    M5Cardputer.update();
+    if (M5Cardputer.Keyboard.isChange()) {
+      if (M5Cardputer.Keyboard.isPressed()) {
+        Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+
+        // Add the pressed characters to the string
+        for (auto i : status.word) {
+          macAddress += i;
+        }
+
+        // Remove the last character if the 'del' key is pressed
+        if (status.del && macAddress.length() > 0) {
+          macAddress.remove(macAddress.length() - 1);
+        }
+
+        // Display the current MAC address on the screen
+        M5.Display.clear(); // Clear the screen before refreshing the text
+        M5.Display.setCursor(0, 10); // Position the cursor for the text
+        M5.Display.println("Enter MAC Address:"); // Header or instruction
+        M5.Display.setCursor(0, 30); // Position the cursor for the MAC address
+        M5.Display.println(macAddress); // Display the entered MAC address
+        M5.Display.display(); // Update the display
+
+        // If the 'enter' key is pressed, finish the input
+        if (status.enter) {
+          if (isValidMacAddress(macAddress)) { // Validate the MAC address format
+            setDeviceMacAddress(macAddress); // Set the MAC address for AP mode
+            break; // Exit the loop after setting the MAC address
+          } else {
+            M5.Display.clear();
+            M5.Display.setCursor(0, 10);
+            M5.Display.println("MAC Address Error:");
+            M5.Display.setCursor(0, 30);
+            M5.Display.println("Invalid format. Use:");
+            M5.Display.println("XX:XX:XX:XX:XX:XX");
+            M5.Display.display();
+            delay(2000); // Display the message for 2 seconds
+            // Clear and ask for the MAC address again
+            M5.Display.clear();
+            M5.Display.setCursor(0, 10);
+            M5.Display.println("Enter MAC Address:");
+            M5.Display.setCursor(0, 30);
+            M5.Display.println(macAddress); // Display the entered MAC address
+          }
+        }
+      }
+    }
+  }
+  waitAndReturnToMenu("Set MAC Address :" + macAddress);
+}
+
+// Helper function to validate MAC address format
+bool isValidMacAddress(String mac) {
+  // Check the length and format of the MAC address
+  if (mac.length() == 17) {
+    for (int i = 0; i < mac.length(); i++) {
+      if (i % 3 == 2) {
+        if (mac.charAt(i) != ':') return false;
+      } else {
+        if (!isHexadecimalDigit(mac.charAt(i))) return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+void setDeviceMacAddress(String mac) {
+    // Convert the MAC address string to a byte array
+    uint8_t macBytes[6];
+    for (int i = 0; i < 6; i++) {
+        macBytes[i] = (uint8_t) strtol(mac.substring(3 * i, 3 * i + 2).c_str(), NULL, 16);
+    }
+
+    // Ensure the MAC address is not locally administered
+    macBytes[0] &= 0xFE;
+
+    // Initialize WiFi in AP mode only
+    WiFi.mode(WIFI_MODE_AP);
+
+    // Disconnect WiFi before setting MAC
+    esp_wifi_disconnect();  
+    delay(100);
+
+    // Set the MAC address for AP (Access Point) mode
+    esp_err_t resultAP = esp_wifi_set_mac(WIFI_IF_AP, macBytes);
+
+    // Check results for AP
+    if (resultAP == ESP_OK) {
+        Serial.println("MAC address for AP mode set successfully");
+    } else {
+        Serial.print("Failed to set MAC address for AP mode: ");
+        Serial.println(esp_err_to_name(resultAP));
+    }
+
+    // Display results on the M5Stack screen
+    M5.Display.clear();
+    M5.Display.setCursor(0, 10);
+    if (resultAP == ESP_OK) {
+        M5.Display.println("MAC Address set for AP:");
+        M5.Display.println(mac);
+    } else {
+        M5.Display.println("Error setting MAC Address");
+    }
+    M5.Display.display();
+
+    // Start WiFi after setting MAC
+    esp_wifi_start();  
+}
+
+
 
 
 // Set wifi and password ssid end
@@ -5531,7 +6288,11 @@ void deauthAttack(int networkIndex) {
 
             sendDeauthPacket();  // Send deauth using the global frame
             deauthCount++;
-
+            pixels.setPixelColor(0, pixels.Color(255, 0, 0));
+            pixels.show();
+            delay(25);
+            pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+            pixels.show();
             M5.Display.setCursor(132, 62);
             M5.Display.print(String(deauthCount));
 
@@ -5581,6 +6342,9 @@ void sendDeauthPacket() {
 }
 
 void snifferCallbackDeauth(void* buf, wifi_promiscuous_pkt_type_t type) {
+    static unsigned long lastEAPOLDisplayUpdate = 0;  // Temps de la dernière mise à jour de l'affichage EAPOL
+    const int eapolDisplayDelay = 1000;  // Délai de mise à jour de l'affichage EAPOL
+
     if (type != WIFI_PKT_DATA && type != WIFI_PKT_MGMT) return;
 
     wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
@@ -5591,45 +6355,57 @@ void snifferCallbackDeauth(void* buf, wifi_promiscuous_pkt_type_t type) {
     const uint8_t frameType = (frameControl & 0x0C) >> 2;
     const uint8_t frameSubType = (frameControl & 0xF0) >> 4;
 
-    if (estUnPaquetEAPOL(pkt)) {
-        Serial.println("EAPOL Detected !!!!");
+    unsigned long currentMillis = millis();
 
+    if (estUnPaquetEAPOL(pkt)) {
+        // Mettre à jour l'affichage EAPOL toutes les 500 ms
         const uint8_t *receiverAddr = frame + 4;
         const uint8_t *senderAddr = frame + 10;
-
-        Serial.print("Address MAC destination: ");
-        printAddress(receiverAddr);
-        Serial.print("Address MAC expedition: ");
-        printAddress(senderAddr);
-
         enregistrerDansFichierPCAP(pkt, false);
         nombreDeEAPOL++;
-        M5.Lcd.setCursor(M5.Display.width() - 36, 0);
-        M5.Lcd.printf("H:");
-        M5.Lcd.print(nombreDeHandshakes);
-        if (nombreDeEAPOL < 99) {
-            M5.Lcd.setCursor(M5.Display.width() - 36, 12);
-        } else if (nombreDeEAPOL < 999) {
-            M5.Lcd.setCursor(M5.Display.width() - 40, 12);
-        } else {
-            M5.Lcd.setCursor(M5.Display.width() - 52, 12);
+        if (currentMillis - lastEAPOLDisplayUpdate >= eapolDisplayDelay) {
+            lastEAPOLDisplayUpdate = currentMillis;
+
+            Serial.println("EAPOL Detected !!!!");
+            pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+            pixels.show();
+            delay(250);
+            pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+            pixels.show();
+
+            Serial.print("Address MAC destination: ");
+            printAddress(receiverAddr);
+            Serial.print("Address MAC expedition: ");
+            printAddress(senderAddr);
+            
+            M5.Lcd.setCursor(M5.Display.width() - 36, 0);
+            M5.Lcd.printf("H:");
+            M5.Lcd.print(nombreDeHandshakes);
+            if (nombreDeEAPOL < 99) {
+                M5.Lcd.setCursor(M5.Display.width() - 36, 12);
+            } else if (nombreDeEAPOL < 999) {
+                M5.Lcd.setCursor(M5.Display.width() - 48, 12);
+            } else {
+                M5.Lcd.setCursor(M5.Display.width() - 60, 12);
+            }
+            M5.Lcd.printf("E:");
+            M5.Lcd.print(nombreDeEAPOL);
         }
-        M5.Lcd.printf("E:");
-        M5.Lcd.print(nombreDeEAPOL);
     }
 
     if (frameType == 0x00 && frameSubType == 0x08) {
-        const uint8_t *senderAddr = frame + 10;  // Source address in beacon frame
+        const uint8_t *senderAddr = frame + 10;  // Adresse source dans la trame de balise
 
-        // Convert MAC address to string for comparison
+        // Convertir l'adresse MAC en chaîne pour comparaison
         char macStr[18];
         snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
                  senderAddr[0], senderAddr[1], senderAddr[2], senderAddr[3], senderAddr[4], senderAddr[5]);
 
-        pkt->rx_ctrl.sig_len -= 4;  // Reduce signal length by 4 bytes
-        enregistrerDansFichierPCAP(pkt, true);  // Record packet
+        pkt->rx_ctrl.sig_len -= 4;  // Réduire la longueur du signal de 4 octets
+        enregistrerDansFichierPCAP(pkt, true);  // Enregistrer le paquet
     }
 }
+
 //deauther end
 
 
@@ -6764,7 +7540,7 @@ void parseUserHostPort(const String &input, String &user, String &host, int &por
 
 // Fonction principale pour se connecter via SSH
 void sshConnect(const char *host) {
-  sshKilled = false;
+   sshKilled = false;
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   if (WiFi.localIP().toString() == "0.0.0.0") {
     waitAndReturnToMenu("Not connected...");
@@ -8174,91 +8950,6 @@ void chooseKb(const uint8_t *layout) {
     kbChosen = true;
     Kb.begin(layout);  // Initialise le clavier avec la disposition choisie
     USB.begin();       // S'assure que l'USB est initialisé après le choix du clavier
-}
-void loopOptions(std::vector<std::pair<String, std::function<void()>>> &options, bool loop, bool displayTitle, const String &title = "") {
-    int currentIndex = 0;
-    bool selectionMade = false;
-    const int lineHeight = 16;
-    const int maxVisibleLines = 8;
-    int menuStartIndex = 0;
-
-    M5.Display.clear();
-    M5.Display.setTextSize(1.5);
-    M5.Display.setTextFont(1);
-    enterDebounce();
-
-    // Initial display to ensure menu appears on entry
-    if (displayTitle) {
-        M5.Display.setCursor(0, 0);
-        M5.Display.println(title);
-    }
-    for (int i = 0; i < maxVisibleLines; ++i) {
-        int optionIndex = menuStartIndex + i;
-        if (optionIndex >= options.size()) break;
-
-        if (optionIndex == currentIndex) {
-            M5.Display.fillRect(0, 16 + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-            M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
-        } else {
-            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-        }
-        M5.Display.setCursor(0, 16 + i * lineHeight);
-        M5.Display.println(options[optionIndex].first);
-    }
-    M5.Display.display();
-
-    while (!selectionMade) {
-        M5.update();
-        M5Cardputer.update();
-
-        bool screenNeedsUpdate = false;
-
-        if (M5Cardputer.Keyboard.isKeyPressed(';')) {
-            currentIndex = (currentIndex - 1 + options.size()) % options.size();
-            menuStartIndex = max(0, min(currentIndex, (int)options.size() - maxVisibleLines));
-            screenNeedsUpdate = true;
-            delay(150); // anti-rebond
-        } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
-            currentIndex = (currentIndex + 1) % options.size();
-            menuStartIndex = max(0, min(currentIndex, (int)options.size() - maxVisibleLines));
-            screenNeedsUpdate = true;
-            delay(150); // anti-rebond
-        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-            options[currentIndex].second();
-            if (!loop) {
-                selectionMade = true;
-            }
-        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
-            selectionMade = true;
-            delay(150); // anti-rebond
-        }
-
-        if (screenNeedsUpdate) {
-            M5.Display.clear();
-            if (displayTitle) {
-                M5.Display.setCursor(0, 0);
-                M5.Display.println(title);
-            }
-
-            for (int i = 0; i < maxVisibleLines; ++i) {
-                int optionIndex = menuStartIndex + i;
-                if (optionIndex >= options.size()) break;
-
-                if (optionIndex == currentIndex) {
-                    M5.Display.fillRect(0, 16 + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
-                } else {
-                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-                }
-                M5.Display.setCursor(0, 16 + i * lineHeight);
-                M5.Display.println(options[optionIndex].first);
-            }
-
-            M5.Display.display();
-        }
-
-        delay(100);
-    }
 }
 
 
