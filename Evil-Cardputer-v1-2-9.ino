@@ -4108,8 +4108,9 @@ void listProbes() {
         keyHandled = true;
       } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) && !keyHandled) {
         Serial.println("SSID selected: " + probes[currentListIndex]);
+        clonedSSID = probes[currentListIndex];
         waitAndReturnToMenu(probes[currentListIndex] + " selected");
-        return; // Sortie de la fonction après sélection
+        return; // Sortie de la fonction après sélection //here
       } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
         inMenu = true;
         drawMenu();
