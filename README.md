@@ -673,7 +673,16 @@ Available Commands:
 - [@justcallmekoko](https://github.com/justcallmekoko) for the Marauder.
 - [@Talking Sasquach](https://www.youtube.com/@TalkingSasquach) for creating video content about the project.
 - [@Sam X Plogs](https://www.youtube.com/@samxplogs) for creating video content about the project.
+- [@dagnazty] for the fantastic work on M5dial. 
 
+and to all Beta-testers on the discord : 
+
+-[@KamiLocura]
+-[@Skedone]
+-[@toxiccpappii]
+-[@OarisKiller]
+-[@hosseios]
+-[@BrownNoise]
 
 ## !! Adopt a Parasite !!
 
