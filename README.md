@@ -677,12 +677,12 @@ Available Commands:
 
 and to all Beta-testers on the discord : 
 
--[@KamiLocura]</br>
--[@Skedone]</br>
--[@toxiccpappii]</br>
--[@OarisKiller]</br>
--[@hosseios]</br>
--[@BrownNoise]</br>
+- [@KamiLocura]</br>
+- [@Skedone]</br>
+- [@toxiccpappii]</br>
+- [@OarisKiller]</br>
+- [@hosseios]</br>
+- [@BrownNoise]</br>
 
 ## !! Adopt a Parasite !!
 
