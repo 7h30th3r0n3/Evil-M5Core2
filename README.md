@@ -714,7 +714,6 @@ This little parasite use m5stack-avatar to render face, donwload avatar librairi
 
 It pretty small so you can also check serial on USB to get information.
 
-----------------------------------------------------------
 </div>
 </div>
 
@@ -792,6 +791,8 @@ Before you begin, make sure you have installed the following libraries in the Ar
 - [**dagnazty**](https://github.com/dagnazty)
 
 </div>
+
+----------------------------------------------------------
 
 # License
 
