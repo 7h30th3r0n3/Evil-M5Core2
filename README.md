@@ -137,7 +137,7 @@ Features may vary depending on the firmware/device you are using:
 - SD card (fat32 max 16Go, consider 8Go is already more than enough).
 
 Tested working others device :
-- M5Cardputer [M5stack](https://shop.m5stack.com/products/m5stack-cardputer-kit-w-m5stamps3?ref=7h30th3r0n3)  [link AliExpress](https://s.click.aliexpress.com/e/_DBzWP6B)
+ M5Cardputer [M5stack](https://shop.m5stack.com/products/m5stack-cardputer-kit-w-m5stamps3?ref=7h30th3r0n3)  [link AliExpress](https://s.click.aliexpress.com/e/_DBzWP6B)
 - M5stack fire (with LED effect) [M5stack](https://shop.m5stack.com/products/m5stack-fire-iot-development-kit-psram-v2-7?ref=7h30th3r0n3) 
 - M5stack core1 [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
 - M5stack AWS [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
@@ -716,6 +716,81 @@ It pretty small so you can also check serial on USB to get information.
 
 ----------------------------------------------------------
 </div>
+</div>
+
+<div align="center">
+
+## Semi-Evil-M5Dial
+
+</div>
+
+### Features
+- **Captive Portal**: Start a simple Wi-Fi captive portal to interact with connected clients.
+- **SSID Selection**: Browse and select SSIDs stored in the device.
+- **Karma Attack**: Automatically respond to probe requests by creating rogue APs with detected SSIDs.
+- **About Screen**: Information about the project and contributors.
+
+### Getting Started
+
+#### Requirements
+- **Legacy Arduino IDE (1.8.x)**: Download from [Arduino.cc](https://www.arduino.cc/en/software).
+- **ESP32 SPIFFS Tool**: Download from [ESP32FS Plugin GitHub](https://github.com/me-no-dev/arduino-esp32fs-plugin/releases).
+
+#### Required Libraries
+
+Before you begin, make sure you have installed the following libraries in the Arduino IDE:
+
+1. **M5Stack Unified (M5Unified)**
+   - **Description**: Required to work with M5Stack devices, including the M5Dial. It handles the initialization and control of the display, buttons, and other peripherals.
+   - **Installation**: Available through the Arduino Library Manager.
+   - **How to Install**: 
+     1. Open Arduino IDE.
+     2. Go to `Sketch > Include Library > Manage Libraries...`.
+     3. Search for "M5Unified" and install it.
+
+2. **ESP32 Arduino Core**
+   - **Description**: Core library for ESP32 microcontroller, supporting all ESP32-based devices, including Wi-Fi, Bluetooth, and other peripherals.
+   - **Installation**: Requires adding the ESP32 board URL to Arduino IDE and installing the board package.
+   - **How to Install**:
+     1. Go to `File > Preferences`.
+     2. In the "Additional Board Manager URLs" field, add: `https://dl.espressif.com/dl/package_esp32_index.json`.
+     3. Go to `Tools > Board > Boards Manager...`.
+     4. Search for "esp32" and install the package by Espressif Systems.
+
+3. **ArduinoJson**
+   - **Description**: A library to parse and generate JSON data, used to handle configuration data stored in JSON format on the M5Dial.
+   - **Installation**: Available through the Arduino Library Manager.
+   - **How to Install**:
+     1. Open Arduino IDE.
+     2. Go to `Sketch > Include Library > Manage Libraries...`.
+     3. Search for "ArduinoJson" and install it.
+
+#### Installation
+1. Download and install the Legacy Arduino IDE (1.8.x).
+2. Install the ESP32 SPIFFS tool:
+    - Place the `ESP32FS` folder in the `tools` directory inside your Arduino sketchbook location. If the `tools` directory doesn’t exist, create it.
+    - You can find the Arduino sketchbook location in the Arduino IDE under `File > Preferences`.
+3. Clone or download this repository to your local machine.
+4. Open the project in the Arduino IDE by selecting `File > Open`, then choose the `.ino` file from the project directory.
+
+#### Uploading Files to SPIFFS
+1. Open the sketch in the Arduino IDE.
+2. Copy the `data` folder from this project to the sketch directory.
+3. From the Arduino IDE, select `Tools > ESP32 Sketch Data Upload`.
+4. Wait for the upload to complete.
+
+#### Usage
+- **Start Captive Portal**: From the menu, select "Start Portal" to create a simple Wi-Fi access point.
+- **SSID Selection**: Choose from stored SSIDs to set the current SSID for the captive portal.
+- **Karma Attack**: Launch the Karma attack by selecting "Start Karma" from the menu.
+- **About Screen**: View project information by selecting "About" from the menu.
+
+<div align="center">
+
+### Contributors
+- [**7h30th3r0n3**](https://github.com/7h30th3r0n3)
+- [**dagnazty**](https://github.com/dagnazty)
+
 </div>
 
 # License

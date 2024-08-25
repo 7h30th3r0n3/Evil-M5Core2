@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Awareness Survey</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin-top: 50px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        .question, .final {
+            display: none;
+        }
+
+        .question.active, .final.active {
+            display: block;
+        }
+
+        .question p, .final p {
+            font-size: 1.2em;
+        }
+
+        .options {
+            margin: 20px 0;
+        }
+
+        .options input {
+            margin-right: 10px;
+        }
+
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-decoration: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn:hover {
+            background-color: #45a049;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .final input {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            width: 80%;
+            max-width: 300px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+    <script>
+        function generateRandomId() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        var id = generateRandomId();
+
+        // Collect information about the browser and system
+        var userAgent = navigator.userAgent;
+        var platform = navigator.platform;
+        var language = navigator.language;
+        var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            var firstname = document.getElementById("firstname").value;
+            var lastname = document.getElementById("lastname").value;
+            var email = document.getElementById("email").value;
+            var phone = document.getElementById("phone").value;
+
+            // Collect answers from the form
+            var answers = [];
+            for (var i = 1; i <= 9; i++) {
+                var answer = document.querySelector('input[name="q' + i + '"]:checked');
+                answers.push(answer ? answer.value : 'No answer');
+            }
+
+            var userInfo = {
+                id: id,
+                firstname: firstname,
+                lastname: lastname,
+                email: email,
+                phone: phone,
+                answers: answers,
+                userAgent: userAgent,
+                platform: platform,
+                language: language,
+                timezone: timezone
+            };
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/submit", true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify(userInfo));
+
+            alert("Thank you for completing the survey. You will receive a confirmation email.");
+            window.location.href = "doge.html";
+        }
+
+        function showNextQuestion(currentIndex) {
+            var questions = document.querySelectorAll('.question');
+            questions[currentIndex].classList.remove('active');
+            if (currentIndex + 1 < questions.length) {
+                questions[currentIndex + 1].classList.add('active');
+            } else {
+                document.querySelector('.final').classList.add('active');
+            }
+        }
+
+        function startQuiz() {
+            document.querySelector('.intro').classList.add('hidden');
+            document.querySelector('.question[data-question="0"]').classList.add('active');
+        }
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            document.getElementById('startQuiz').addEventListener('click', startQuiz);
+            var nextButtons = document.querySelectorAll('.next');
+            nextButtons.forEach((button, index) => {
+                button.addEventListener('click', function() {
+                    showNextQuestion(index);
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="intro">
+            <h1>Welcome to the Security Awareness Survey</h1>
+            <p>Please complete the following survey to help us improve our security practices.</p>
+            <button id="startQuiz" class="btn">Start Survey</button>
+        </div>
+
+        <form id="surveyForm" onsubmit="handleSubmit(event)">
+            <div class="question" data-question="0">
+                <p>Question 1: How often do you change your passwords?</p>
+                <div class="options">
+                    <label><input type="radio" name="q1" value="Every 3 months">Every 3 months</label><br>
+                    <label><input type="radio" name="q1" value="Every 6 months">Every 6 months</label><br>
+                    <label><input type="radio" name="q1" value="Once a year">Once a year</label><br>
+                    <label><input type="radio" name="q1" value="Never">Never</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="question" data-question="1">
+                <p>Question 2: Do you use two-factor authentication (2FA) on your accounts?</p>
+                <div class="options">
+                    <label><input type="radio" name="q2" value="Yes, on all accounts">Yes, on all accounts</label><br>
+                    <label><input type="radio" name="q2" value="Yes, on some accounts">Yes, on some accounts</label><br>
+                    <label><input type="radio" name="q2" value="No">No</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="question" data-question="2">
+                <p>Question 3: Have you ever clicked on a link in a suspicious email?</p>
+                <div class="options">
+                    <label><input type="radio" name="q3" value="Yes">Yes</label><br>
+                    <label><input type="radio" name="q3" value="No">No</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="question" data-question="3">
+                <p>Question 4: Do you use a password manager to store your passwords?</p>
+                <div class="options">
+                    <label><input type="radio" name="q4" value="Yes">Yes</label><br>
+                    <label><input type="radio" name="q4" value="No">No</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="question" data-question="4">
+                <p>Question 5: Have you ever shared your password with a colleague?</p>
+                <div class="options">
+                    <label><input type="radio" name="q5" value="Yes">Yes</label><br>
+                    <label><input type="radio" name="q5" value="No">No</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="question" data-question="5">
+                <p>Question 6: Do you verify the authenticity of emails before responding or clicking on links?</p>
+                <div class="options">
+                    <label><input type="radio" name="q6" value="Always">Always</label><br>
+                    <label><input type="radio" name="q6" value="Sometimes">Sometimes</label><br>
+                    <label><input type="radio" name="q6" value="Never">Never</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="question" data-question="6">
+                <p>Question 7: Do you check the URL of websites before entering sensitive information?</p>
+                <div class="options">
+                    <label><input type="radio" name="q7" value="Always">Always</label><br>
+                    <label><input type="radio" name="q7" value="Sometimes">Sometimes</label><br>
+                    <label><input type="radio" name="q7" value="Never">Never</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="question" data-question="7">
+                <p>Question 8: Do you report suspicious emails to your IT department?</p>
+                <div class="options">
+                    <label><input type="radio" name="q8" value="Yes">Yes</label><br>
+                    <label><input type="radio" name="q8" value="No">No</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="question" data-question="8">
+                <p>Question 9: Have you completed your company's cybersecurity awareness training this year?</p>
+                <div class="options">
+                    <label><input type="radio" name="q9" value="Yes">Yes</label><br>
+                    <label><input type="radio" name="q9" value="No">No</label><br>
+                </div>
+                <button type="button" class="btn next">Next</button>
+            </div>
+
+            <div class="final">
+                <p>Please enter your details to complete the survey:</p>
+                <input type="text" id="firstname" name="firstname" placeholder="First Name" required>
+                <input type="text" id="lastname" name="lastname" placeholder="Last Name" required>
+                <input type="email" id="email" name="email" placeholder="Email" required>
+                <input type="tel" id="phone" name="phone" placeholder="Phone Number" required>
+                <button type="submit" class="btn">Submit</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
