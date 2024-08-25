@@ -719,7 +719,7 @@ It pretty small so you can also check serial on USB to get information.
 
 <div align="center">
 
-## Semi-Evil-M5Dial
+## Semi Evil M5Dial
 
 </div>
 
@@ -734,6 +734,10 @@ It pretty small so you can also check serial on USB to get information.
 #### Requirements
 - **Legacy Arduino IDE (1.8.x)**: Download from [Arduino.cc](https://www.arduino.cc/en/software).
 - **ESP32 SPIFFS Tool**: Download from [ESP32FS Plugin GitHub](https://github.com/me-no-dev/arduino-esp32fs-plugin/releases).
+
+**or**
+
+- **M5Dial SPIFFS Uploader**: Download from [Github](https://github.com/dagnazty/M5Dial_SPIFFS_Uploader/releases)
 
 #### Required Libraries
 
@@ -764,7 +768,7 @@ Before you begin, make sure you have installed the following libraries in the Ar
      2. Go to `Sketch > Include Library > Manage Libraries...`.
      3. Search for "ArduinoJson" and install it.
 
-#### Installation
+#### Installation - Arduino Legacy
 1. Download and install the Legacy Arduino IDE (1.8.x).
 2. Install the ESP32 SPIFFS tool:
     - Place the `ESP32FS` folder in the `tools` directory inside your Arduino sketchbook location. If the `tools` directory doesn’t exist, create it.
@@ -774,23 +778,33 @@ Before you begin, make sure you have installed the following libraries in the Ar
 
 #### Uploading Files to SPIFFS
 1. Open the sketch in the Arduino IDE.
-2. Copy the `data` folder from this project to the sketch directory.
+2. Copy the `m5dial-data` folder from this project to the sketch directory.
 3. From the Arduino IDE, select `Tools > ESP32 Sketch Data Upload`.
 4. Wait for the upload to complete.
+
+#### Installation - M5Dial SPIFFS Uploader
+1. Download and install `M5Dial_SPIFFS_Uploader_Setup.exe`.
+2. Connect your M5Dial device to your PC via a USB cable.
+3. Run the `M5Dial_SPIFFS_Uploader.exe`.
+4. From the "COM Port" dropdown, select the correct COM port for your device.
+5. Click the `Connect` button. The tool will attempt to detect the flash size of your device.
+
+### Creating a SPIFFS Image
+1. After successfully connecting to the device, the `Create SPIFFS Image` button will be enabled.
+2. Click `Create SPIFFS Image`.
+3. Choose the `m5dial-data` folder.
+4. Save the SPIFFS image to your desired location.
+
+### Uploading the SPIFFS Image
+1. Click `Upload SPIFFS Image`.
+2. Select the SPIFFS image you created earlier.
+3. Wait for the upload to complete.
 
 #### Usage
 - **Start Captive Portal**: From the menu, select "Start Portal" to create a simple Wi-Fi access point.
 - **SSID Selection**: Choose from stored SSIDs to set the current SSID for the captive portal.
 - **Karma Attack**: Launch the Karma attack by selecting "Start Karma" from the menu.
 - **About Screen**: View project information by selecting "About" from the menu.
-
-<div align="center">
-
-### Contributors
-- [**7h30th3r0n3**](https://github.com/7h30th3r0n3)
-- [**dagnazty**](https://github.com/dagnazty)
-
-</div>
 
 ----------------------------------------------------------
 
