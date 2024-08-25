@@ -683,6 +683,8 @@ and to all Beta-testers on the discord :
 - [@OarisKiller]</br>
 - [@hosseios]</br>
 - [@BrownNoise]</br>
+- [@DAKKA]</br>
+- [@KNAX]</br>
 
 ## !! Adopt a Parasite !!
 
