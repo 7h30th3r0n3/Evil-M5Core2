@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endless Doge</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: monospace;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .wrapper {
+            height: 100%;
+            overflow-y: auto;
+            white-space: pre;
+            scroll-behavior: smooth;
+            line-height: 1;
+            margin-left: 10px; /* Adjust margin to move the content slightly to the right if needed */
+        }
+
+        .neck, .head {
+            font-size: 10px;
+            margin: 0;
+            padding: 0;
+            line-height: 1;
+            margin-bottom: -36px; /* Fine-tuned to eliminate the gap */
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <pre class="head">
+        ▄               ▄    
+        ▌▒█           ▄▀▒▌   
+        ▌▒▒█        ▄▀▒▒▒▐   
+       ▐▄█▒▒▀▀▀▀▄▄▄▀▒▒▒▒▒▐   
+     ▄▄▀▒▒▒▒▒▒▒▒▒▒▒█▒▒▄█▒▐   
+   ▄▀▒▒▒░░░▒▒▒░░░▒▒▒▀██▀▒▌   
+  ▐▒▒▒▄▄▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▀▄▒▌  
+  ▌░░▌█▀▒▒▒▒▒▄▀█▄▒▒▒▒▒▒▒█▒▐  
+ ▐░░░▒▒▒▒▒▒▒▒▌██▀▒▒░░░▒▒▒▀▄▌ 
+ ▌░▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░▒▒▒▒▌ 
+▌▒▒▒▄██▄▒▒▒▒▒▒▒▒░░░░░░░░▒▒▒▐ 
+▐▒▒▐▄█▄█▌▒▒▒▒▒▒▒▒▒▒░▒░▒░▒▒▒▒▌
+▐▒▒▐▀▐▀▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒░▒▒▐ 
+ ▌▒▒▀▄▄▄▄▄▄▀▒▒▒▒▒▒▒░▒░▒░▒▒▒▌ 
+ ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐  
+  ▀▄▒▒▒▒▒▒░▒▒▒▒▒▒▒▒░▒▄▒▒▒▒▌  
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▐  
+  ▀▄▒▒▒▒▒▒▒▒░▒▒▒▒▒░▒▒▄▒▒▒▒▌  
+  ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▐  
+  ▀▄▒▒▒▒▒▒▒▒░▒▒▒▒▒░▒▒▄▒▒▒▒▌  
+  ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▐  
+  ▀▄▒▒▒▒▒▒▒▒░▒▒▒▒▒░▒▒▄▒▒▒▒▌  
+  ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▄▀▒▒▒▒░▒▒▒▒▒▒▒▒▒▒░▒▄▒▒▒▒▌  
+  ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▐  
+  ▀▄▒▒▒▒▒▒▒▒░▒▒▒▒▒░▒▒▄▒▒▒▒▌  
+  ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▐  
+  ▀▄▒▒▒▒▒▒▒▒░▒▒▒▒▒░▒▒▄▒▒▒▒▌
+  ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌  
+  ▐▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▐  
+  ▀▄▒▒▒▒▒▒▒▒░▒▒▒▒▒░▒▒▄▒▒▒▒▌
+        </pre>
+        <pre class="neck">
+   ▀▄▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+   ▄▀▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▒▌
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐
+  ▀▄▒▒▒▒▒░▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+   ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▌
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐
+   ▀▄▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+   ▄▀▒▒▒░▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▒▌
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐
+  ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+   ▀▄▒▒▒▒░▒▒▒▒▒▒▒▒▒░▒▄▒▒▒▒▌
+   ▄▀▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▒▌
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐
+  ▀▄▒▒▒▒▒░▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+   ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▌
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐
+   ▀▄▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+   ▄▀▒▒▒░▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▒▌
+   ▀▄▒▒▒▒░▒▒▒▒▒▒▒▒▒░▒▄▒▒▒▒▌
+   ▄▀▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▒▌
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐
+  ▀▄▒▒▒▒▒░▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+   ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▌
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐
+   ▀▄▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+   ▄▀▒▒▒░▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▒▌
+  ▄▀▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▒▄▒▒▐
+  ▀▄▒▒▒▒▒▒▒▒▒▒▒▒▒░▒░▒▄▒▒▒▒▌
+        </pre>
+    </div>
+
+    <script>
+        const wrapper = document.querySelector(".wrapper");
+        const neck = document.querySelector(".neck");
+
+        function injectNeck() {
+            const clonedNeck = neck.cloneNode(true);
+
+            clonedNeck.innerHTML = clonedNeck.innerHTML.split('\n').filter(line => line.trim() !== '').join('\n');
+
+            clonedNeck.style.marginBottom = '0px';
+
+            wrapper.appendChild(clonedNeck);
+        }
+
+        wrapper.addEventListener('scroll', function() {
+            if (wrapper.scrollTop + wrapper.clientHeight >= wrapper.scrollHeight) {
+                injectNeck();
+            }
+        });
+
+        for (let i = 0; i < 10; i++) {
+            injectNeck();
+        }
+    </script>
+</body>
+</html>
