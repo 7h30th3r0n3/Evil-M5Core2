@@ -147,7 +147,7 @@ Tested working others device :
 
 1. Connect your M5Core2 to your computer.
 2. Open the Arduino IDE and load the provided code.
-3. Ensure the Board tutorial from M5 and `M5Unified`, `TinyGPSPlus`, `ArduinoJson`, and `Adafruit_NeoPixel` libraries are installed. Follow these tutorials for guidance on M5 Board tutorial:
+3. Ensure the Board tutorial from M5 and `M5Unified`, `TinyGPSPlus`, `ArduinoJson`, `esp8266audio` and `Adafruit_NeoPixel` libraries are installed. Follow these tutorials for guidance on M5 Board tutorial:
    - [Arduino Board Setup](https://docs.m5stack.com/en/arduino/arduino_board)
    - [Arduino Library Installation](https://docs.m5stack.com/en/arduino/arduino_library)
 4. Ensure the ESP32 and M5Stack board definitions are installed. **Note:** Errors occur with ESP32 version `3.0.0-alpha3`. Please use ESP32 version `2.1.1` and below.
