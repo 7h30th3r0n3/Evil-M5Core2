@@ -106,6 +106,7 @@ extern "C" {
 
 bool ledOn = true;// change this to true to get cool led effect (only on fire)
 bool soundOn = true;
+bool randomOn = false;
 
 static constexpr const gpio_num_t SDCARD_CSPIN = GPIO_NUM_4;
 
@@ -136,8 +137,8 @@ const char* menuItems[] = {
     "Select Probe",
     "Delete Probe",
     "Delete All Probes",
-    "Settings",
     "Wardriving",
+    "Master Wardriving",
     "Beacon Spam",
     "Deauther",
     "Client Sniffing and Deauth",
@@ -152,7 +153,9 @@ const char* menuItems[] = {
     "Web Crawler",
     "PwnGrid Spam",
     "Skimmer Detector",
-    "BadUSB"
+    "BadUSB",
+    "Bluetooth Keyboard",
+    "Settings",
 };
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
 
@@ -451,6 +454,22 @@ void play(const char* fname) {
 
 
 //mp3 end
+
+
+
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include "BLEHIDDevice.h"
+#include "HIDTypes.h"
+
+// Déclarations globales et variables
+
+BLEHIDDevice* hid;
+BLECharacteristic* keyboardInput;
+bool isConnected = false;
+bool isBluetoothKeyboardActive = false; // Indicateur pour l'état du clavier Bluetooth
+
 
 void setup() {
   M5.begin();
@@ -756,58 +775,89 @@ void setup() {
 
   SPI.begin(SCK, MISO, MOSI, -1);
   if (!SD.begin()) {
-    Serial.println("Error..");
-    Serial.println("SD card not mounted...");
+      Serial.println("Error..");
+      Serial.println("SD card not mounted...");
   } else {
-    Serial.println("----------------------");
-    Serial.println("SD card initialized !! ");
-    Serial.println("----------------------");
-        // Vérifier et créer le dossier audio s'il n'existe pas
-    if (!SD.exists("/audio")) {
-        Serial.println("Audio folder not found, creating...");
-        if (SD.mkdir("/audio")) {
-            Serial.println("Audio folder created successfully.");
-        } else {
-            Serial.println("Failed to create audio folder.");
-        }
-    }
-    restoreConfigParameter("brightness");
-    restoreConfigParameter("ledOn");
-    restoreConfigParameter("soundOn");
-    restoreConfigParameter("volume");
-    loadStartupImageConfig();
-    loadStartupSoundConfig(); 
+      Serial.println("----------------------");
+      Serial.println("SD card initialized !! ");
+      Serial.println("----------------------");
+  
+      // Vérifier et créer le dossier audio s'il n'existe pas
+      if (!SD.exists("/audio")) {
+          Serial.println("Audio folder not found, creating...");
+          if (SD.mkdir("/audio")) {
+              Serial.println("Audio folder created successfully.");
+          } else {
+              Serial.println("Failed to create audio folder.");
+          }
+      }
+  
+      String batteryLevelStr = getBatteryLevel();
+      int batteryLevel = batteryLevelStr.toInt();
     
-    drawImage(selectedStartupImage.c_str());
-    if (ledOn) {
-      pixels.setPixelColor(0, pixels.Color(255, 0, 0));
-      pixels.show();
-    }
-    if (soundOn) {
-        play(selectedStartupSound.c_str());
-        while(mp3.isRunning()) {
-            if (!mp3.loop()) {
-                mp3.stop();
-            } else {
-                delay(1);
-            }
-        }
-    }else{
-    delay(2000);
-  }
+      if (batteryLevel < 15) {
+          drawImage("/img/low-battery-cardputer.jpg");
+          Serial.println("-------------------");
+          Serial.println("!!!!Low Battery!!!!");
+          Serial.println("-------------------");
+          delay(1000);
+      }
+  
+      // Récupérer les paramètres configurés
+      restoreConfigParameter("brightness");
+      restoreConfigParameter("ledOn");
+      restoreConfigParameter("soundOn");
+      restoreConfigParameter("volume");
+      restoreConfigParameter("randomOn"); 
+  
+      loadStartupImageConfig();
+      loadStartupSoundConfig(); 
+  
+      // Si randomOn est activé, charger une image et un son aléatoires
+      if (randomOn) {
+          String randomImage = getRandomImage();  // Sélectionner une image aléatoire
+          String randomSound = getRandomSound();  // Sélectionner un son aléatoire
+          
+          drawImage(randomImage.c_str());
+          if (ledOn) {
+              pixels.setPixelColor(0, pixels.Color(255, 0, 0));  // LED rouge allumée
+              pixels.show();
+          }
+          if (soundOn) {
+              play(randomSound.c_str());
+              while (mp3.isRunning()) {
+                  if (!mp3.loop()) {
+                      mp3.stop();
+                  } else {
+                      delay(1);
+                  }
+              }
+          } else {
+              delay(2000);
+          }
+      } else {
+          // Comportement par défaut
+          drawImage(selectedStartupImage.c_str());
+          if (ledOn) {
+              pixels.setPixelColor(0, pixels.Color(255, 0, 0));  // LED rouge allumée
+              pixels.show();
+          }
+          if (soundOn) {
+              play(selectedStartupSound.c_str());
+              while (mp3.isRunning()) {
+                  if (!mp3.loop()) {
+                      mp3.stop();
+                  } else {
+                      delay(1);
+                  }
+              }
+          } else {
+              delay(2000);
+          }
+      }
   }
 
-  /*String batteryLevelStr = getBatteryLevel();
-    int batteryLevel = batteryLevelStr.toInt();
 
-    if (batteryLevel < 15) {
-    drawImage("/img/low-battery.jpg");
-    Serial.println("-------------------");
-    Serial.println("!!!!Low Battery!!!!");
-    Serial.println("-------------------");
-    delay(4000);
-    }
-  */
   int textY = 30;
   int lineOffset = 10;
   int lineY1 = textY - lineOffset;
@@ -823,7 +873,7 @@ void setup() {
   // Textes à afficher
   const char* text1 = "Evil-Cardputer";
   const char* text2 = "By 7h30th3r0n3";
-  const char* text3 = "v1.2.9 2024";
+  const char* text3 = "v1.3.0 2024";
 
   // Mesure de la largeur du texte et calcul de la position du curseur
   int text1Width = M5.Lcd.textWidth(text1);
@@ -853,7 +903,7 @@ void setup() {
   Serial.println("-------------------");
   Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("v1.2.9 2024");
+  Serial.println("v1.3.0 2024");
   Serial.println("-------------------");
   M5.Display.setCursor(0, textY + 80);
   M5.Display.println(randomMessage);
@@ -1162,10 +1212,10 @@ void executeMenuItem(int index) {
       deleteAllProbes();
       break;
     case 20:
-      showSettingsMenu();
+      wardrivingMode();
       break;
     case 21:
-      wardrivingMode();
+      startWardivingMaster();
       break;
     case 22:
       beaconAttack();
@@ -1212,7 +1262,12 @@ void executeMenuItem(int index) {
     case 36:
       badUSB();
       break;
-
+    case 37:
+      initBluetoothKeyboard();
+      break;
+    case 38:
+      showSettingsMenu();
+      break;
   }
   isOperationInProgress = false;
 }
@@ -2990,7 +3045,8 @@ void karmaAttack() {
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-
+  M5Cardputer.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  
   int messageWidth = message.length() * 9;  // Each character is 6 pixels wide
   int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
 
@@ -3010,7 +3066,7 @@ void loopOptions(std::vector<std::pair<String, std::function<void()>>> &options,
     int currentIndex = 0;
     bool selectionMade = false;
     const int lineHeight = 12;
-    const int maxVisibleLines = 8;
+    const int maxVisibleLines = 11;
     int menuStartIndex = 0;
 
     M5.Display.clear();
@@ -3098,7 +3154,7 @@ void showSettingsMenu() {
         options.push_back({"Set Startup Image", setStartupImage}); 
         options.push_back({"Set Startup Volume", adjustVolume});
         options.push_back({"Set Startup Sound", setStartupSound});
-
+        options.push_back({randomOn ? "Random startup Off" : "Random startup On", []() {toggleRandom();}});
         loopOptions(options, false, true, "Settings");
 
         // Vérifie si BACKSPACE a été pressé pour quitter le menu
@@ -3156,7 +3212,6 @@ void loadStartupSoundConfig() {
         file.close();
     }
 }
-
 void setStartupSound() {
     File root = SD.open("/audio");
     std::vector<String> sounds;
@@ -3182,6 +3237,7 @@ void setStartupSound() {
     int currentSoundIndex = 0;
     bool soundSelected = false;
     const int maxDisplayItems = 10;  // Nombre maximum d'éléments à afficher en même temps
+    const int maxFileNameLength = 26;  // Limite de caractères pour le nom du fichier
     int menuStartIndex = 0;
     bool needDisplayUpdate = true;
 
@@ -3195,15 +3251,22 @@ void setStartupSound() {
 
             for (int i = 0; i < maxDisplayItems && (menuStartIndex + i) < sounds.size(); i++) {
                 int itemIndex = menuStartIndex + i;
-                if (itemIndex == currentSoundIndex) {
-                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY); // Sélectionner la couleur
-                } else {
-                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); // Non sélectionné
+                String displayFileName = sounds[itemIndex];
+
+                // Truncate the file name if it's too long
+                if (displayFileName.length() > maxFileNameLength) {
+                    displayFileName = displayFileName.substring(0, maxFileNameLength);
                 }
-                M5.Display.println(sounds[itemIndex]);
+
+                if (itemIndex == currentSoundIndex) {
+                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY); // Highlight selected item
+                } else {
+                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); // Normal text color
+                }
+                M5.Display.println(displayFileName);
             }
 
-            needDisplayUpdate = false; // Réinitialiser le besoin de mise à jour
+            needDisplayUpdate = false; // Reset the display update flag
         }
 
         M5.update();
@@ -3216,7 +3279,7 @@ void setStartupSound() {
             } else if (currentSoundIndex >= menuStartIndex + maxDisplayItems) {
                 menuStartIndex = currentSoundIndex - maxDisplayItems + 1;
             }
-            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
+            needDisplayUpdate = true; // Mark for display update
         } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
             currentSoundIndex = (currentSoundIndex + 1) % sounds.size();
             if (currentSoundIndex >= menuStartIndex + maxDisplayItems) {
@@ -3224,9 +3287,8 @@ void setStartupSound() {
             } else if (currentSoundIndex < menuStartIndex) {
                 menuStartIndex = currentSoundIndex;
             }
-            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
+            needDisplayUpdate = true; // Mark for display update
         } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-            // Enregistrer le son sélectionné dans la configuration
             selectedStartupSound = sounds[currentSoundIndex];
             saveStartupSoundConfig(selectedStartupSound);
             M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -3237,21 +3299,20 @@ void setStartupSound() {
             soundSelected = true;
         } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
             soundSelected = true;
-        } else if (M5Cardputer.Keyboard.isKeyPressed('p')) {  // Lire le son sélectionné
+        } else if (M5Cardputer.Keyboard.isKeyPressed('p')) {
             String soundPath = "/audio/" + sounds[currentSoundIndex];
-            play(soundPath.c_str());  // Utilise la fonction play() pour lire le son
+            play(soundPath.c_str());
             while (mp3.isRunning()) {
                 if (!mp3.loop()) {
                     mp3.stop();
                 }
-                delay(1);  // Petite pause pour éviter de surcharger le processeur
+                delay(1);
             }
         }
 
-        delay(150);  // Anti-rebond pour les touches
+        delay(150);  // Anti-bounce delay for key presses
     }
 }
-
 
 void saveStartupImageConfig(const String& paramValue) {
     // Lire le contenu du fichier de configuration
@@ -3302,6 +3363,70 @@ void loadStartupImageConfig() {
     }
 }
 
+void toggleRandom() {
+    randomOn = !randomOn;
+    saveConfigParameter("randomOn", randomOn);  // Sauvegarder dans le fichier config
+}
+
+
+std::vector<String> imageFiles = {
+    "HiVenoumous.jpg", "infernoDemon.jpg", "InThePocket.jpg", "KNAX-EVILBAT.jpg", 
+    "low-battery.jpg", "neoEvilProject.jpg", "parkour.jpg", "R&MImIn.jpg", 
+    "R&MPortal.jpg", "R&MSpace.jpg", "startup-atom.jpg", "startup-cardputer-2.jpg", 
+    "startup-cardputer.jpg", "startup.jpg", "superDemonHacker.jpg", "WhySoSerious.jpg", 
+    "WifiDemon.jpg", "wifiHackingInTown.jpg", "afewmomentlater.jpg", "Evil_WiFi.jpg", 
+    "hackers-group.jpg", "hackers-watchingU.jpg", "HackThePlanet.jpg", "HackThePlanet2.jpg", 
+    "Hell's_Evil_Core.jpg", "pedro.jpg", "AlienWifiMaster.jpg", "beach.jpg", 
+    "BigLivingCardputer.jpg", "CuteEvil.jpg", "cutevilprojects.jpg", "DAKKA-EVILBILLBOARD.jpg", 
+    "DAKKA-EVILBILLBOARD2.jpg", "DAKKA-M5billboard.jpg", "DejaVu.jpg", "DemonHacker.jpg", 
+    "EP2.jpg", "Evil-clown.jpg", "Evil-DeathHacker.jpg", "EvilBiohazard.jpg", 
+    "EvilCoreDemon.jpg", "EvilHacking.jpg", "EvilInDark.jpg", "EvilM5hub.jpg", 
+    "EvilMoto.jpg", "EvilProject-zombie.jpg", "EvilRickRoll.jpg", "HamsterSound.jpg", 
+    "WiFi_Demon.jpg", "youshouldnotpass.jpg", "DAKKA-graph.jpg", "DAKKA-graph2.jpg", 
+    "DiedDysentry.jpg", "EternalBlue.jpg", "IHateMonday.jpg", "WinBSOD.jpg", 
+    "WinXp.jpg", "WinXp2.jpg", "DAKKA-EvilSkate.jpg", "DAKKA-EvilwithPhone.jpg", 
+    "low-battery-cardputer.jpg"
+};
+
+std::vector<String> soundFiles = {
+    "Thejocker-magictricks.mp3", "Deja-Vu.mp3", "car.mp3", "Fatality.mp3", 
+    "DAKKA-EVILBASSCANNON.mp3", "electroswing.mp3", "evilmp3test.mp3", "DAKKA-EVILTEETH.mp3", 
+    "ok.mp3", "DAKKA-EvilModem.mp3", "AWA.mp3", "uwu.mp3", 
+    "fbi-open-up!.mp3", "I'M GONNA KILL YOU.mp3", "HamsterSound.mp3", "BITE MY SHINY METAL ASS.mp3", 
+    "DAKKA-EVILVIRUS.mp3", "EvilHub.mp3", "GTA-wasted.mp3", "Hi-Venomous.mp3", 
+    "I'M HOLDING A BOX OF TIC.mp3", "R&MImIn.mp3", "r2d2.mp3", "RickRoll.mp3", 
+    "sample.mp3", "pickle_rick.mp3", "portal-gun-sound-effect.mp3", "show_me_what_you_got.mp3", 
+    "you-will-respect-my-authoritah.mp3", "BRUH.mp3", "disqualified.mp3", "Mr-meeseeks.mp3", 
+    "gandalf_shallnotpass.mp3", "hacktheplanet.mp3", "I'M HOLDING A BOX OF TIC TACS.mp3", "Q3a_quad_damage.mp3", 
+    "kill-bill.mp3", "back-to-the-future.mp3", "a-few-moments-later-hd.mp3", "new element rick.mp3", 
+    "pedro.mp3", "thats-what-she-said.mp3", "doh.mp3", "fifth-element-aziz-light.mp3", 
+    "1-21GW.mp3", "DAKKA-EVILHEAT.mp3", "DAKKA-NewElement_rick.mp3", "you-will-respect-my-authoritah_1.mp3", 
+    "psx.mp3", "takemymoney.mp3", "windows-xp-startup.mp3", "leeloo-dallas-multipass.mp3", 
+    "wow-quest-complete.mp3", "skyrim_fus-ro-dah.mp3", "skyrim_level_up.mp3", "nani.mp3", 
+    "among-us.mp3", "leroy-jenkins.mp3"
+};
+
+
+String getRandomImage() {
+    if (imageFiles.size() == 0) {
+        return "/img/startup-cardputer.jpg";  // Image par défaut si la liste est vide
+    }
+    int randomIndex = random(0, imageFiles.size());  // Choisir un index aléatoire
+    return "/img/" + imageFiles[randomIndex];  // Retourner le chemin complet de l'image
+}
+
+String getRandomSound() {
+    if (soundFiles.size() == 0) {
+        return "/audio/sample.mp3";  // Son par défaut si la liste est vide
+    }
+    int randomIndex = random(0, soundFiles.size());  // Choisir un index aléatoire
+    return "/audio/" + soundFiles[randomIndex];  // Retourner le chemin complet du son
+}
+
+
+
+bool imageMode = false; // Variable pour savoir si on est en mode image
+
 void setStartupImage() {
     File root = SD.open("/img");
     std::vector<String> images;
@@ -3326,52 +3451,79 @@ void setStartupImage() {
 
     int currentImageIndex = 0;
     bool imageSelected = false;
-    const int maxDisplayItems = 10;  // Nombre maximum d'éléments à afficher en même temps
+    const int maxDisplayItems = 10;  // Nombre maximum d'éléments à afficher
     int menuStartIndex = 0;
     bool needDisplayUpdate = true;
+    bool imageMode = false;  // Variable pour savoir si on est en mode image directe
 
     enterDebounce();
     while (!imageSelected) {
-        if (needDisplayUpdate) {
-            M5.Display.clear();
-            M5.Display.setCursor(0, 0);
-            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-            M5.Display.println("Select Startup Image:");
+        if (!imageMode) {
+            // Mode Liste
+            if (needDisplayUpdate) {
+                M5.Display.clear();
+                M5.Display.setCursor(0, 0);
+                M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+                M5.Display.println("Select Startup Image:");
 
-            for (int i = 0; i < maxDisplayItems && (menuStartIndex + i) < images.size(); i++) {
-                int itemIndex = menuStartIndex + i;
-                if (itemIndex == currentImageIndex) {
-                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY); // Sélectionner la couleur
-                } else {
-                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); // Non sélectionné
+                for (int i = 0; i < maxDisplayItems && (menuStartIndex + i) < images.size(); i++) {
+                    int itemIndex = menuStartIndex + i;
+                    if (itemIndex == currentImageIndex) {
+                        M5.Display.setTextColor(TFT_GREEN, TFT_NAVY); // Sélectionner la couleur
+                    } else {
+                        M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); // Non sélectionné
+                    }
+                    M5.Display.println(images[itemIndex]);
                 }
-                M5.Display.println(images[itemIndex]);
-            }
 
-            needDisplayUpdate = false; // Réinitialiser le besoin de mise à jour
+                needDisplayUpdate = false; // Réinitialiser le besoin de mise à jour
+            }
+        } else {
+            // Mode Affichage direct des images
+            if (needDisplayUpdate) {
+                M5.Display.clear();
+                String ThisImg = "/img/" + images[currentImageIndex];
+                drawImage(ThisImg.c_str());
+                needDisplayUpdate = false; // Mise à jour effectuée
+            }
         }
 
         M5.update();
         M5Cardputer.update();
 
+        // Navigation dans la liste ou les images
         if (M5Cardputer.Keyboard.isKeyPressed(';')) {
             currentImageIndex = (currentImageIndex - 1 + images.size()) % images.size();
-            if (currentImageIndex < menuStartIndex) {
-                menuStartIndex = currentImageIndex;
-            } else if (currentImageIndex >= menuStartIndex + maxDisplayItems) {
-                menuStartIndex = currentImageIndex - maxDisplayItems + 1;
+            if (!imageMode) {
+                // Mise à jour de la liste
+                if (currentImageIndex < menuStartIndex) {
+                    menuStartIndex = currentImageIndex;
+                } else if (currentImageIndex >= menuStartIndex + maxDisplayItems) {
+                    menuStartIndex = currentImageIndex - maxDisplayItems + 1;
+                }
             }
-            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
+            needDisplayUpdate = true;  // Mettre à jour l'affichage
         } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
             currentImageIndex = (currentImageIndex + 1) % images.size();
-            if (currentImageIndex >= menuStartIndex + maxDisplayItems) {
-                menuStartIndex = currentImageIndex - maxDisplayItems + 1;
-            } else if (currentImageIndex < menuStartIndex) {
-                menuStartIndex = currentImageIndex;
+            if (!imageMode) {
+                // Mise à jour de la liste
+                if (currentImageIndex >= menuStartIndex + maxDisplayItems) {
+                    menuStartIndex = currentImageIndex - maxDisplayItems + 1;
+                } else if (currentImageIndex < menuStartIndex) {
+                    menuStartIndex = currentImageIndex;
+                }
             }
-            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
-        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-            // Enregistrer l'image sélectionnée dans la configuration
+            needDisplayUpdate = true;  // Mettre à jour l'affichage
+        }
+
+        // Basculer entre les modes Liste/Images avec la touche 'P'
+        if (M5Cardputer.Keyboard.isKeyPressed('p')) {
+            imageMode = !imageMode;  // Basculer le mode
+            needDisplayUpdate = true;  // Forcer la mise à jour
+        }
+
+        // Sélection d'une image avec la touche Entrée
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
             selectedStartupImage = images[currentImageIndex];
             saveStartupImageConfig(selectedStartupImage);
             String ThisImg = "/img/" + images[currentImageIndex];
@@ -3383,17 +3535,17 @@ void setStartupImage() {
             M5.Display.print("Startup image set to\n" + selectedStartupImage);
             delay(1000);
             imageSelected = true;
-        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
-            imageSelected = true;
-        } else if (M5Cardputer.Keyboard.isKeyPressed('p')) {  // Lire le son sélectionné            
-            String ThisImg = "/img/" + images[currentImageIndex];
-            drawImage(ThisImg.c_str());
-            delay(1500);
-            needDisplayUpdate = true; // Marquer pour mise à jour de l'affichage
         }
+
+        // Sortir du mode sélection avec la touche Retour
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+            imageSelected = true;
+        }
+
         delay(150);  // Anti-rebond pour les touches
     }
 }
+
 
 
 
@@ -3579,7 +3731,6 @@ void saveConfigParameter(String key, int value) {
 }
 
 
-
 void restoreConfigParameter(String key) {
   if (SD.exists(configFilePath)) {
     File configFile = SD.open(configFilePath, FILE_READ);
@@ -3605,6 +3756,9 @@ void restoreConfigParameter(String key) {
           } else if (key == "ledOn" || key == "soundOn") {
             boolValue = (stringValue == "1");
             Serial.println(key + " restored to " + String(boolValue));
+          } else if (key == "randomOn") {
+            boolValue = (stringValue == "1");
+            Serial.println("Random Startup restored to " + String(boolValue));
           }
           keyFound = true;
           break;
@@ -3622,13 +3776,18 @@ void restoreConfigParameter(String key) {
           boolValue = false;  // Default to LED off
         } else if (key == "soundOn") {
           boolValue = false;  // Default to sound off
+        } else if (key == "randomOn") {
+          boolValue = false;  // Default to random startup disabled
         }
       }
 
+      // Appliquer les paramètres après récupération
       if (key == "ledOn") {
         ledOn = boolValue;
       } else if (key == "soundOn") {
         soundOn = boolValue;
+      } else if (key == "randomOn") {
+        randomOn = boolValue;
       }
 
     } else {
@@ -3644,11 +3803,11 @@ void restoreConfigParameter(String key) {
       ledOn = false;  // Default to LED off
     } else if (key == "soundOn") {
       soundOn = false;  // Default to sound off
+    } else if (key == "randomOn") {
+      randomOn = false;  // Default to random startup disabled
     }
   }
 }
-
-
 
 
 
@@ -4936,9 +5095,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.2.9"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.3.0"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardputer";
-  preHeader += ",release=v1.2.9"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.3.0"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -5060,7 +5219,7 @@ void wardrivingMode() {
         line += "WIFI";
         wifiData += line + "\n";
       }
-
+      
       Serial.println("----------------------------------------------------");
       Serial.print("WiFi Networks: " + String(n));
       Serial.print(wifiData);
@@ -5091,7 +5250,7 @@ void wardrivingMode() {
       scanStarted = false; // Reset for the next scan
       // Mettre à jour le nombre de WiFi à proximité sur l'écran
       M5.Lcd.setCursor(0, 10);
-      M5.Lcd.printf("Near WiFi: %d\n", n);
+      M5.Lcd.printf("Near WiFi: %d  \n", n);
     }
 
     if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE) ) {
@@ -8974,6 +9133,10 @@ void showKeyboardLayoutOptions() {
         Kb.begin(KeyboardLayout_fr_FR); // Commencer avec la disposition par défaut si rien n'est choisi
     }
 }
+
+// Variable globale pour stocker le nom du script sélectionné
+String selectedScriptName = "";
+
 void showScriptOptions() {
     File root = SD.open("/BadUsbScript");
     std::vector<std::pair<String, std::function<void()>>> scriptOptions;
@@ -8983,6 +9146,7 @@ void showScriptOptions() {
         if (!entry) break;
         if (!entry.isDirectory()) {
             String filename = entry.name();
+            selectedScriptName = filename;
             scriptOptions.push_back({filename, [=]() { runScript(filename); }});
         }
         entry.close();
@@ -9038,3 +9202,585 @@ void badUSB() {
 }
 
 // badusb end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Map de rapport HID pour le clavier
+const uint8_t HID_REPORT_MAP[] = {
+    0x05, 0x01,  // Usage Pg (Generic Desktop)
+    0x09, 0x06,  // Usage (Keyboard)
+    0xA1, 0x01,  // Collection: (Application)
+    0x85, 0x01,  // Report Id (1)
+    0x05, 0x07,  //   Usage Pg (Key Codes)
+    0x19, 0xE0,  //   Usage Min (224)
+    0x29, 0xE7,  //   Usage Max (231)
+    0x15, 0x00,  //   Log Min (0)
+    0x25, 0x01,  //   Log Max (1)
+    0x75, 0x01,  //   Report Size (1)
+    0x95, 0x08,  //   Report Count (8)
+    0x81, 0x02,  //   Input: (Data, Variable, Absolute)
+    0x95, 0x01,  //   Report Count (1)
+    0x75, 0x08,  //   Report Size (8)
+    0x81, 0x01,  //   Input: (Constant)
+    0x95, 0x05,  //   Report Count (5)
+    0x75, 0x01,  //   Report Size (1)
+    0x05, 0x08,  //   Usage Pg (LEDs)
+    0x19, 0x01,  //   Usage Min (1)
+    0x29, 0x05,  //   Usage Max (5)
+    0x91, 0x02,  //   Output: (Data, Variable, Absolute)
+    0x95, 0x01,  //   Report Count (1)
+    0x75, 0x03,  //   Report Size (3)
+    0x91, 0x01,  //   Output: (Constant)
+    0x95, 0x06,  // Report Count (6)
+    0x75, 0x08,  // Report Size (8)
+    0x15, 0x00,  // Log Min (0)
+    0x25, 0xF1,  // Log Max (241)
+    0x05, 0x07,  // Usage Pg (Key Codes)
+    0x19, 0x00,  // Usage Min (0)
+    0x29, 0xf1,  // Usage Max (241)
+    0x81, 0x00,  // Input: (Data, Array)
+    0xC0         // End Collection
+};
+
+// Classe pour les callbacks du serveur BLE
+class MyBLEServerCallbacks : public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) override {
+        Serial.println("Client connected to BLE server.");
+        isConnected = true;
+        updateBluetoothStatus(isConnected);
+    }
+
+    void onDisconnect(BLEServer* pServer) override {
+        Serial.println("Client disconnected from BLE server.");
+        isConnected = false;
+        updateBluetoothStatus(isConnected);
+        cleanupBluetooth(); // Nettoyer le Bluetooth et retourner au menu
+    }
+};
+// Function to generate a random MAC address
+void generateRandomMacAddress(uint8_t* macAddr) {
+    for (int i = 0; i < 6; i++) {
+        macAddr[i] = random(0, 256);  // Random byte for each part of the MAC
+    }
+    macAddr[0] = (macAddr[0] & 0xFC) | 0x02;  // Ensure it is a locally administered address (LAA)
+}
+
+// Fonction pour initialiser le clavier Bluetooth
+void initBluetoothKeyboard() {
+    cleanupBluetooth();
+
+    // Generate a random MAC address
+    uint8_t newMacAddr[6];
+    generateRandomMacAddress(newMacAddr);
+
+    // Set the new MAC address
+    esp_base_mac_addr_set(newMacAddr);
+
+    // Print the new MAC address
+    Serial.print("New MAC address set: ");
+    for (int i = 0; i < 6; i++) {
+        Serial.printf("%02X", newMacAddr[i]);
+        if (i < 5) Serial.print(":");
+    }
+    Serial.println();
+
+    M5Cardputer.Display.clear();
+    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    M5Cardputer.Display.setCursor(0, 10);
+    M5Cardputer.Display.println("Bluetooth device name :");
+    
+    String deviceName = getUserInput(); // Demander à l'utilisateur le nom de l'appareil Bluetooth
+    Serial.println("Bluetooth device name selected: " + deviceName);
+
+    // Initialisation Bluetooth avec le nom fourni par l'utilisateur
+    BLEDevice::init(deviceName.c_str());
+    Serial.println("Bluetooth device initialized with name: " + deviceName);
+    
+    BLEServer *pServer = BLEDevice::createServer();
+    pServer->setCallbacks(new MyBLEServerCallbacks());
+    Serial.println("BLE server created and callbacks configured.");
+    
+    hid = new BLEHIDDevice(pServer);
+    keyboardInput = hid->inputReport(1); // Utilisation de l'ID de rapport 1
+    hid->manufacturer()->setValue("Espressif");
+    hid->pnp(0x02, 0x045e, 0x028e, 0x0110);
+    hid->hidInfo(0x00, 0x01);
+    hid->reportMap((uint8_t*)HID_REPORT_MAP, sizeof(HID_REPORT_MAP));
+    hid->startServices();
+    Serial.println("HID services started.");
+
+    BLEAdvertising *pAdvertising = pServer->getAdvertising();
+    pAdvertising->setAppearance(HID_KEYBOARD);
+    pAdvertising->addServiceUUID(hid->hidService()->getUUID());
+    pAdvertising->start();
+    Serial.println("BLE advertising started.");
+
+    BLESecurity *pSecurity = new BLESecurity();
+    pSecurity->setAuthenticationMode(ESP_LE_AUTH_BOND);
+    pSecurity->setCapability(ESP_IO_CAP_NONE);
+    pSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+    Serial.println("BLE security configured.");
+
+    isBluetoothKeyboardActive = true;
+    Serial.println("Bluetooth keyboard mode activated.");
+    
+    // Affichage de l'état d'attente
+    displayWaitingForConnection(deviceName);
+
+    // Boucle principale pour la gestion du clavier Bluetooth
+    while (isBluetoothKeyboardActive) {
+        keyboardLoop();
+    }
+
+    // Retour au menu principal après la désactivation
+    waitAndReturnToMenu("Connection stopped");
+}
+
+// Fonction pour nettoyer et désactiver le Bluetooth
+void cleanupBluetooth() {
+    if (isBluetoothKeyboardActive) {
+        Serial.println("Disabling Bluetooth...");
+
+        BLEDevice::deinit();  // Désactiver toutes les activités Bluetooth
+        isBluetoothKeyboardActive = false;  // Désactiver le mode clavier Bluetooth
+        Serial.println("Bluetooth disabled.");
+    }
+}
+
+// Fonction d'affichage de l'attente de connexion
+void displayWaitingForConnection(String deviceName) {
+    M5Cardputer.Display.clear();
+    M5Cardputer.Display.setTextColor(TFT_BLUE);
+    M5Cardputer.Display.setCursor(0, 10);
+    M5Cardputer.Display.println("Waiting on: " + deviceName);
+    
+    M5Cardputer.Display.setTextSize(3);
+    const char* text = "Waiting";
+    int16_t textWidth = M5Cardputer.Display.textWidth(text);
+    int16_t textHeight = M5Cardputer.Display.fontHeight();
+    int rectWidth = textWidth + 20;
+    int rectHeight = textHeight + 20;
+    int rectX = (240 - rectWidth) / 2;
+    int rectY = (135 - rectHeight) / 2;
+    M5Cardputer.Display.drawRoundRect(rectX, rectY, rectWidth, rectHeight, 10, TFT_BLUE);
+    M5Cardputer.Display.setTextColor(TFT_BLUE);
+    int textX = rectX + (rectWidth - textWidth) / 2;
+    int textY = rectY + (rectHeight - textHeight) / 2;
+    M5Cardputer.Display.setCursor(textX, textY);
+    M5Cardputer.Display.print(text);
+}
+
+// Fonction de gestion des entrées du clavier
+void handleKeyboardInput() {
+    if (isConnected && isBluetoothKeyboardActive) {
+        uint8_t modifier = 0;
+        uint8_t keycode[6] = {0};
+
+        if (M5Cardputer.Keyboard.isPressed()) {
+            Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
+            int count = 0;
+            for (auto i : status.hid_keys) {
+                keycode[count] = i;
+                count++;
+            }
+
+            if (status.ctrl) modifier |= 0x01;
+            if (status.shift) modifier |= 0x02;
+            if (status.alt) modifier |= 0x04;
+
+            uint8_t report[8] = {modifier, 0, keycode[0], keycode[1], keycode[2], keycode[3], keycode[4], keycode[5]};
+            keyboardInput->setValue(report, sizeof(report));
+            keyboardInput->notify();
+            delay(50);
+            
+            // Vérifie si Ctrl et Backspace sont enfoncés simultanément
+            if (status.ctrl && status.space) {
+                Serial.println("Ctrl + space detected. Returning to menu.");
+                cleanupBluetooth(); // Déconnexion et nettoyage du Bluetooth
+                return; // Quitte la fonction pour éviter d'autres traitements
+            }
+        } else {
+            uint8_t emptyKeyboardReport[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+            keyboardInput->setValue(emptyKeyboardReport, sizeof(emptyKeyboardReport));
+            keyboardInput->notify();
+        }
+    }
+}
+
+// Boucle principale pour le clavier Bluetooth
+void keyboardLoop() {
+    M5Cardputer.update();
+    handleKeyboardInput();
+    delay(10);
+}
+
+// Mise à jour de l'affichage du statut Bluetooth
+void updateBluetoothStatus(bool status) {
+    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    M5Cardputer.Display.setTextSize(3);
+    const char* text = "Connected";
+    int16_t textWidth = M5Cardputer.Display.textWidth(text);
+    int16_t textHeight = M5Cardputer.Display.fontHeight();
+    int rectWidth = textWidth + 20;
+    int rectHeight = textHeight + 20;
+    int rectX = (240 - rectWidth) / 2;
+    int rectY = (135 - rectHeight) / 2;
+
+    if (status) {
+        M5Cardputer.Display.drawRoundRect(rectX, rectY, rectWidth, rectHeight, 10, TFT_GREEN);
+        M5Cardputer.Display.setTextColor(TFT_GREEN);
+        Serial.println("Bluetooth status: Connected.");
+    } else {
+        isBluetoothKeyboardActive = false;
+    }
+
+    int textX = rectX + (rectWidth - textWidth) / 2;
+    int textY = rectY + (rectHeight - textHeight) / 2;
+    M5Cardputer.Display.setCursor(textX, textY);
+    M5Cardputer.Display.print(text);
+}
+
+
+
+
+
+
+
+
+
+
+
+#include <esp_now.h>
+
+
+// Constants defined here:
+#define LOG_FILE_PREFIX "/wardriving/wardriving-0"
+#define MAX_LOG_FILES 100
+#define LOG_FILE_SUFFIX "csv"
+#define LOG_COLUMN_COUNT 11
+#define LOG_RATE 500
+
+File myFile;
+char logFileName[13];
+int totalNetworks = 0;
+unsigned long lastLog = 0;
+int currentScreen = 1;  // Track which screen is currently displayed
+
+const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.0,model=Cardputer,release=v1.3.0,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
+
+char* log_col_names[LOG_COLUMN_COUNT] = {
+    "MAC", "SSID", "AuthMode", "FirstSeen", "Channel", "RSSI", "CurrentLatitude", "CurrentLongitude", "AltitudeMeters", "AccuracyMeters", "Type"
+};
+
+String recentSSID;
+String recentSSID1;
+String recentSSID2;
+String boardSSIDs[14];
+int boardSeen[14] = {0};
+
+// Structure for ESP-NOW messages
+typedef struct struct_message {
+    char bssid[64];
+    char ssid[32];
+    char encryptionType[16];
+    int32_t channel;
+    int32_t rssi;
+    int boardID;
+} struct_message;
+
+// Create a struct_message called myData
+struct_message myData;
+
+// ESP-NOW Data Receive Callback Function
+void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len) {
+    File logFile = SD.open(logFileName, FILE_APPEND);
+    memcpy(&myData, incomingData, sizeof(myData));
+
+    // Display received data on screen 2
+    if (currentScreen == 2) {
+        displayReceivedData();
+    }
+
+    // Log data
+    logFile.print(myData.bssid);
+    logFile.print(",");
+    String SSIDString = myData.ssid;
+    SSIDString.replace(",", ".");  // Replace commas for CSV format
+    logFile.print(SSIDString);
+    logFile.print(",");
+    logFile.print(myData.encryptionType);
+    logFile.print(",");
+    logFile.print(gps.date.year());
+    logFile.print("-");
+    logFile.print(gps.date.month());
+    logFile.print("-");
+    logFile.print(gps.time.hour());
+    logFile.print("-");
+    logFile.print(gps.time.minute());
+    logFile.print("-");
+    logFile.print(gps.time.second());
+    logFile.print(",");
+    logFile.print(myData.channel);
+    logFile.print(",");
+    logFile.print(myData.rssi);
+    logFile.print(",");
+    logFile.print(gps.location.lat(), 8);
+    logFile.print(",");
+    logFile.print(gps.location.lng(), 8);
+    logFile.print(",");
+    logFile.print(gps.altitude.meters());
+    logFile.print(",");
+    logFile.print(gps.hdop.value());
+    logFile.print(",");
+    logFile.print("WIFI");
+    logFile.println();
+    logFile.close();
+
+    recentSSID2 = recentSSID1;
+    recentSSID1 = recentSSID;
+    recentSSID = myData.ssid;
+
+    if (myData.boardID >= 1 && myData.boardID <= 14) {
+        boardSSIDs[myData.boardID - 1] = myData.ssid;
+        boardSeen[myData.boardID - 1]++;
+    }
+
+    totalNetworks++;
+}
+
+void updateFileName() {
+    for (int i = 0; i < MAX_LOG_FILES; i++) {
+        sprintf(logFileName, "%s%d.%s", LOG_FILE_PREFIX, i, LOG_FILE_SUFFIX);
+        if (!SD.exists(logFileName)) {
+            Serial.println("New file name chosen:");
+            Serial.println(logFileName);
+            break;
+        } else {
+            Serial.print(logFileName);
+            Serial.println(" exists");
+        }
+    }
+}
+
+void printHeader() {
+    File logFile = SD.open(logFileName, FILE_WRITE);
+    if (logFile) {
+        logFile.println(wigleHeaderFileFormat);
+        for (int i = 0; i < LOG_COLUMN_COUNT; i++) {
+            logFile.print(log_col_names[i]);
+            if (i < LOG_COLUMN_COUNT - 1) logFile.print(',');
+            else logFile.println();
+        }
+        logFile.close();
+    }
+}
+
+// General Information Screen
+void displayGeneralInfo() {
+    M5.Display.clear();
+    int margin = 5;
+    int lineHeight = 10;
+    int col1Width = 20;
+    int col2Width = 30;
+    int col3Width = 80;
+    int separatorWidth = 8;
+
+    int x = margin;
+    int y = margin;
+
+    M5.Display.setTextSize(1);
+    M5.Display.setCursor(x, y);
+    M5.Display.printf("Lat:%.3f|Lon:%.3f  Sat:%d  Tn:%d", 
+                      gps.location.lat(), 
+                      gps.location.lng(), 
+                      gps.satellites.value(), 
+                      totalNetworks);
+    y += lineHeight;
+    y += 1;
+    M5.Display.drawLine(margin, y, 240 - margin, y, TFT_NAVY);
+    y += 2;
+
+    for (int i = 0; i < 14; i++) {
+        if (boardSeen[i] > 0) {
+            M5.Display.setCursor(x, y);
+            M5.Display.printf("%2d", i + 1);
+            M5.Display.setCursor(x + col1Width + separatorWidth, y);
+            M5.Display.printf("%2d", boardSeen[i]);
+            M5.Display.setCursor(x + col1Width + col2Width + 2 * separatorWidth, y);
+            M5.Display.printf("%-8s", boardSSIDs[i].c_str());
+            y += lineHeight;
+            M5.Display.drawLine(margin, y, 240 - margin, y, TFT_NAVY);
+            y += 2;
+            if (y > 135 - margin) break;
+        }
+    }
+
+    y += 5;
+    M5.Display.setCursor(x, y);
+    M5.Display.print("Recent SSIDs:");
+    String combinedSSIDs = recentSSID + ", " + recentSSID1 + ", " + recentSSID2;
+    y += lineHeight;
+    M5.Display.setCursor(x, y);
+    M5.Display.printf("%s", combinedSSIDs.c_str());
+    M5.Display.display();
+}
+
+unsigned long lastDisplayTime = 0;  // Variable to track the last display time
+unsigned long displayInterval = 1000;  // 1 second interval
+
+// Data Received Screen
+void displayReceivedData() {
+  // Check if 1 second has passed since the last update
+  if (millis() - lastDisplayTime >= displayInterval) {
+    M5.Display.clear();
+    int y = 2;  // Initial y position for the text
+    int lineHeight = 10;  // Height of each line, you can adjust this if needed
+    int spacing = 2;  // Additional spacing between lines
+
+    M5.Display.setCursor(0, y);
+    M5.Display.println("Last data received:");
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("MAC: ");
+    M5.Display.println(myData.bssid);
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("SSID: ");
+    M5.Display.println(myData.ssid);
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("Encryption: ");
+    M5.Display.println(myData.encryptionType);
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("Channel: ");
+    M5.Display.println(myData.channel);
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("RSSI: ");
+    M5.Display.println(myData.rssi);
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("Lat: ");
+    M5.Display.println(gps.location.lat(), 8);
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("Lon: ");
+    M5.Display.println(gps.location.lng(), 8);
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("Altitude: ");
+    M5.Display.println(gps.altitude.meters());
+    y += lineHeight + spacing;
+
+    M5.Display.setCursor(0, y);
+    M5.Display.print("HDOP: ");
+    M5.Display.println(gps.hdop.value());
+    y += lineHeight + spacing;
+
+    M5.Display.display();  // Refresh the display to show changes
+
+    // Update the last display time
+    lastDisplayTime = millis();
+  }
+}
+
+
+void loopwardrivingmaster() {
+    // First, handle key presses for navigating between screens
+    M5Cardputer.update();  // Make sure to update the Cardputer state
+    M5.update();  // Update M5Stack system state
+
+    if (M5Cardputer.Keyboard.isKeyPressed(',')) {
+        currentScreen = 1;  // Switch to the general information screen
+    } else if (M5Cardputer.Keyboard.isKeyPressed('/')) {
+        currentScreen = 2;  // Switch to the received data screen
+    }
+
+    // Now display the appropriate screen based on the current state
+    if (currentScreen == 1) {
+        displayGeneralInfo();  // Show screen 1 with general info
+    } else if (currentScreen == 2) {
+        displayReceivedData();  // Show screen 2 with received data
+    }
+
+    // Shorter smart delay to check buttons more frequently
+    smartDelay(1000);  // Reduce smartDelay to a smaller time to improve response
+}
+
+// If smartDelay already exists, don't redefine it
+void smartDelay(unsigned long ms) {
+    unsigned long start = millis();
+    do {
+        while (cardgps.available())
+            gps.encode(cardgps.read());  // Read GPS data during the delay
+        // Check buttons during the delay to improve responsiveness
+        M5.update();
+        M5Cardputer.update();
+    } while (millis() - start < ms);
+}
+
+// Function to stop ESP-NOW when exiting Wardriving Master mode
+void stopEspNow() {
+    esp_now_unregister_recv_cb();  // Unregister the receive callback to stop processing ESP-NOW messages
+    Serial.println("ESP-NOW receiving process stopped.");
+}
+
+
+void startWardivingMaster() {
+    Serial.println("Entering Wardriving Master mode...");
+    WiFi.mode(WIFI_STA);
+
+    if (esp_now_init() != 0) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
+    
+    esp_now_register_recv_cb(OnDataRecv);
+    updateFileName();
+    printHeader();
+
+    while (true) {
+        loopwardrivingmaster();
+
+        M5.update();
+        M5Cardputer.update();
+
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+            Serial.println("Exiting Wardriving Master mode...");
+            stopEspNow();  // Stop ESP-NOW before returning to the menu
+            waitAndReturnToMenu("Returning to menu...");
+            break;
+        }
+    }
+}
