@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Project v1.2.9 - BadUSB
+# Evil-M5Project v1.3.0 - Wardriving Master
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -52,6 +52,43 @@ Join the Evil-M5 discord for help and update 😉:
 
 </div></div>
 
+## NEW feature ! from v1.3.0 : Wardriving Master !!!
+### You can now use any ESP32 as slave to collect SSID for wigle
+By using 14 ESP32 devices, you can monitor all 14 Wi-Fi channels on the 2.4GHz band simultaneously without channel hopping. The **Cardputer** uses GPS to link each received SSID to a CSV file compatible with Wigle.
+
+This slave code is designed to run on any ESP32 and use it as a slave for wardriving in combination with the wardriving master mode on **Cardputer**.
+Each ESP32 collects SSIDs of nearby access points (APs) on a specific channel or can hop between configured channels. 
+You can add multiple ESP32 devices to improve the accuracy and strength of the scan. Devices with external antennas can enhance performance for wardriving.
+
+## Tested on:
+- **AtomS3**: [Buy here](https://s.click.aliexpress.com/e/_DnDXSKJ)
+- **AtomS3 Lite**: [Buy here](https://s.click.aliexpress.com/e/_Dm0e95D)
+- **ESP32-C3** (with external antenna): [Buy here](https://s.click.aliexpress.com/e/_DD1yibp)
+- **WEMOS D1 Mini**: [Buy here](https://s.click.aliexpress.com/e/_DEWPrnz)
+
+## Features:
+- **Multi-Device Support**: Add any number of ESP32 devices to increase AP detection and improve coverage.
+- **Channel Hopping**: Configure the ESP32 to scan on a specific channel or hop between selected channels.
+- **Better Signal Strength**: ESP32 devices with external antennas provide improved signal capture for long-range wardriving.
+- **Master-Slave Communication**: Use in combination with the **Cardputer** in wardriving master mode to aggregate and monitor data from multiple ESP32 slaves.
+- **GPS Integration**: The **Cardputer** witg GPS link SSID data with geographic coordinates and generate Wigle-compatible CSV files.
+
+## How it Works:
+1. Deploy one or more ESP32 devices in slave mode.
+2. Each device scans and captures SSID information on designated channels.
+3. The data is sent to the **Cardputer**, which aggregates it and reduces missed APs while improving overall scan accuracy and signal strength.
+
+## Hardware Requirements:
+- Cardputer with v1.3.0 
+- ESP32 devices (e.g., AtomS3, AtomS3 Lite, ESP32-C3, WEMOS D1 Mini)
+- External antenna (optional, for enhanced performance)
+
+---
+
+# ESP32 Deauth Slave
+
+This code allows ESP32 devices to perform passive handshake and deauth sniffing. It scans each AP on the desired channel and sends a deauthentication (deauth) packet, useful for handshake captures and other Wi-Fi security tests.
+
 
 ## NEW ! from v1.2.9 : BadUSB !!!
 ### You can now use BadUSB attacks directly from the device!
@@ -63,20 +100,6 @@ This feature allows the device to act as a BadUSB, emulating keyboard inputs to 
 - Activate the BadUSB mode from the menu and select the script to execute or change the layout.
 - 20 Scripts are provided but you can add more.
 **Caution:** Use responsibly and ensure you have permission before executing any scripts.
-
----
-
-## NEW ! from v1.2.8 : Skimmer Detector !!!
-### Detect Bluetooth-based skimmers with ease!
-
-The Skimmer Detector feature helps identify potential Bluetooth-based skimmers by scanning for common Bluetooth modules such as HC-03, HC-05, and HC-06. While detection does not guarantee the presence of a skimmer, it's a useful tool for identifying suspicious devices.
-
-**How it works:**
-- Initiate a Bluetooth scan from the device.
-- View a list of detected devices with their IDs and signal strength.
-- If a suspicious device is near an alert appear.
-
-**Note:** Detection of a device does not necessarily mean it is a skimmer, but caution is advised.
 
 ## All Evil-M5Project Features 
 - **WiFi Network Scanning**: Identify and display nearby WiFi networks.
@@ -609,8 +632,19 @@ On screen:
 
 ( This functionnality has been not totally tested, it send the same signal than the flipper zero best-tesla-opener )
 
-### Change startup image 
-Upload a startup.jpg 320x240 image to replace original startup.jpg and make your Evil-M5Core2 more special.
+
+## Skimmer Detector
+### Detect Bluetooth-based skimmers with ease!
+
+The Skimmer Detector feature helps identify potential Bluetooth-based skimmers by scanning for common Bluetooth modules such as HC-03, HC-05, and HC-06. While detection does not guarantee the presence of a skimmer, it's a useful tool for identifying suspicious devices.
+
+**How it works:**
+- Initiate a Bluetooth scan from the device.
+- View a list of detected devices with their IDs and signal strength.
+- If a suspicious device is near an alert appear.
+
+**Note:** Detection of a device does not necessarily mean it is a skimmer, but caution is advised.
+
 
 ## Flipper Zero Friend ? 
 ### **Yes, it is !!!**
