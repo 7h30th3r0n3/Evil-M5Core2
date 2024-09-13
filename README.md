@@ -87,7 +87,7 @@ You can add multiple ESP32 devices to improve the accuracy and strength of the s
 
 ## ESP32 Deauth Slave
 
-This code allows ESP32 devices to perform passive handshake and deauth sniffing. It scans each AP on the desired channel and sends a deauthentication (deauth) packet, useful for handshake captures and other Wi-Fi security tests.
+This code allows ESP32 devices to be used with passive handshake and deauth sniffing. It scans each AP on the desired channel and sends a deauthentication (deauth) packet, useful for handshake captures and other Wi-Fi security tests.
 
 
 ## NEW ! from v1.2.9 : BadUSB !!!
