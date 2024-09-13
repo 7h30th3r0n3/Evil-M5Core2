@@ -27,3 +27,10 @@ Cardputer use the GPS to link each reiceived information to a CSV compatible wit
 ## Hardware Requirements:
 - ESP32 devices (e.g., AtomS3, AtomS3 Lite, ESP32-C3, WEMOS D1 Mini)
 - External antenna (optional for better performance)
+
+
+# ESP32 Deauth Slave
+
+This code can be used with Passif Handshake/Deauth Sniffing,
+It check each AP on desired channel an send a deauth packet to it. 
+
