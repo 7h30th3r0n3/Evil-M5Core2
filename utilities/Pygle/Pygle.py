@@ -1,22 +1,26 @@
 import pandas as pd
 import folium
 
-# Définir les noms des colonnes
-colonnes = ['MAC', 'SSID', 'AuthMode', 'FirstSeen', 'Channel', 'RSSI',
-            'CurrentLatitude', 'CurrentLongitude', 'AltitudeMeters', 'AccuracyMeters', 'Type']
+# Define relevant columns
+colonnes = ['MAC', 'SSID', 'AuthMode', 'RSSI', 'CurrentLatitude', 'CurrentLongitude', 'AltitudeMeters', 'AccuracyMeters', 'Type']
 
-# Lire le fichier CSV en ignorant les lignes non pertinentes
-df = pd.read_csv('data.csv', skiprows=3, names=colonnes)
+# Load the cleaned data
+df = pd.read_csv('data.csv', skiprows=3, names=colonnes, on_bad_lines='skip')
 
-# Supprimer les lignes avec des valeurs NaN dans RSSI
-df = df.dropna(subset=['RSSI'])
+# Convert latitude, longitude, and RSSI to numeric values (handling errors)
+df['CurrentLatitude'] = pd.to_numeric(df['CurrentLatitude'], errors='coerce')
+df['CurrentLongitude'] = pd.to_numeric(df['CurrentLongitude'], errors='coerce')
+df['RSSI'] = pd.to_numeric(df['RSSI'], errors='coerce')
 
-# Créer une carte centrée sur le centre des points
+# Remove rows with invalid coordinates or RSSI
+df = df.dropna(subset=['CurrentLatitude', 'CurrentLongitude', 'RSSI'])
+
+# Create a map centered on the average location
 avg_lat = df['CurrentLatitude'].mean()
 avg_lon = df['CurrentLongitude'].mean()
 ma_carte = folium.Map(location=[avg_lat, avg_lon], zoom_start=15)
 
-# Fonction pour déterminer la couleur du marqueur en fonction du RSSI
+# Function to get color based on RSSI
 def get_color(rssi):
     if rssi >= -70:
         return 'green'
@@ -25,7 +29,7 @@ def get_color(rssi):
     else:
         return 'red'
 
-# Ajouter les points sur la carte avec des pop-ups contenant des informations supplémentaires
+# Add points to the map with popups
 for index, row in df.iterrows():
     latitude = row['CurrentLatitude']
     longitude = row['CurrentLongitude']
@@ -33,29 +37,24 @@ for index, row in df.iterrows():
     mac = row['MAC']
     auth_mode = row['AuthMode']
     rssi = row['RSSI']
-    first_seen = row['FirstSeen']
     altitude = row['AltitudeMeters']
     accuracy = row['AccuracyMeters']
     wifi_type = row['Type']
 
-    # Contenu du pop-up
     popup_content = f"""
     <b>SSID:</b> {ssid}<br>
     <b>MAC:</b> {mac}<br>
     <b>Auth Mode:</b> {auth_mode}<br>
     <b>RSSI:</b> {rssi} dBm<br>
-    <b>First Seen:</b> {first_seen}<br>
     <b>Altitude:</b> {altitude} m<br>
     <b>Accuracy:</b> {accuracy} m<br>
     <b>Type:</b> {wifi_type}
     """
 
-    # Déterminer la couleur du marqueur
     color = get_color(int(rssi))
 
-    # Ajouter le marqueur à la carte
     folium.CircleMarker(
-        location=[float(latitude), float(longitude)],
+        location=[latitude, longitude],
         radius=5,
         popup=folium.Popup(popup_content, max_width=300),
         color=color,
@@ -63,5 +62,5 @@ for index, row in df.iterrows():
         fill_color=color
     ).add_to(ma_carte)
 
-# Enregistrer la carte dans un fichier HTML
+# Save the map to an HTML file
 ma_carte.save('wifi_map.html')
