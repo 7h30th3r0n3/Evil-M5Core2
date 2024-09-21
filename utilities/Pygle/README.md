@@ -19,7 +19,7 @@ Before using Pygle, ensure that you have the following installed on your machine
 
 You can install the required libraries with the following command:
 
-pip install pandas folium
+pip install pandas folium chardet
 
 ## How to Use
 
