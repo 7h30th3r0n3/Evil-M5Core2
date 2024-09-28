@@ -1924,24 +1924,26 @@ void createCaptivePortal() {
 
 
   server.on("/evil-m5core2-menu", HTTP_GET, []() {
-    String html = "<!DOCTYPE html><html><head><style>";
-    html += "body{font-family:sans-serif;background:#f0f0f0;padding:40px;display:flex;justify-content:center;align-items:center;height:100vh}";
-    html += "form{text-align:center;}div.menu{background:white;padding:20px;box-shadow:0 4px 8px rgba(0,0,0,0.1);border-radius:10px}";
-    html += " input,a{margin:10px;padding:8px;width:80%;box-sizing:border-box;border:1px solid #ddd;border-radius:5px}";
-    html += " a{display:inline-block;text-decoration:none;color:white;background:#007bff;text-align:center}";
-    html += "</style></head><body>";
-    html += "<div class='menu'><form action='/evil-m5core2-menu' method='get'>";
-    html += "Password: <input type='password' name='pass'><br>";
-    html += "<a href='javascript:void(0);' onclick='this.href=\"/credentials?pass=\"+document.getElementsByName(\"pass\")[0].value'>Credentials</a>";
-    html += "<a href='javascript:void(0);' onclick='this.href=\"/uploadhtmlfile?pass=\"+document.getElementsByName(\"pass\")[0].value'>Upload File On SD</a>";
-    html += "<a href='javascript:void(0);' onclick='this.href=\"/check-sd-file?pass=\"+document.getElementsByName(\"pass\")[0].value'>Check SD File</a>";
-    html += "<a href='javascript:void(0);' onclick='this.href=\"/Change-Portal-Password?pass=\"+document.getElementsByName(\"pass\")[0].value'>Change WPA Password</a>";
-    html += "</form></div></body></html>";
-    server.send(200, "text/html", html);
-    Serial.println("-------------------");
-    Serial.println("evil-m5core2-menu access.");
-    Serial.println("-------------------");
+      String html = "<!DOCTYPE html><html><head><style>";
+      html += "body{font-family:sans-serif;background:#f0f0f0;padding:40px;display:flex;justify-content:center;align-items:center;height:100vh}";
+      html += "form{text-align:center;}div.menu{background:white;padding:20px;box-shadow:0 4px 8px rgba(0,0,0,0.1);border-radius:10px}";
+      html += " input,a{margin:10px;padding:8px;width:80%;box-sizing:border-box;border:1px solid #ddd;border-radius:5px}";
+      html += " a{display:inline-block;text-decoration:none;color:white;background:#007bff;text-align:center}";
+      html += "</style></head><body>";
+      html += "<div class='menu'><form action='/evil-m5core2-menu' method='get'>";
+      html += "Password: <input type='password' name='pass'><br>";
+      html += "<a href='javascript:void(0);' onclick='this.href=\"/credentials?pass=\"+document.getElementsByName(\"pass\")[0].value'>Credentials</a>";
+      html += "<a href='javascript:void(0);' onclick='this.href=\"/uploadhtmlfile?pass=\"+document.getElementsByName(\"pass\")[0].value'>Upload File On SD</a>";
+      html += "<a href='javascript:void(0);' onclick='this.href=\"/check-sd-file?pass=\"+document.getElementsByName(\"pass\")[0].value'>Check SD File</a>";
+      html += "<a href='javascript:void(0);' onclick='this.href=\"/setup-portal?pass=\"+document.getElementsByName(\"pass\")[0].value'>Setup Portal</a>";
+      html += "<a href='javascript:void(0);' onclick='this.href=\"/list-badusb-scripts?pass=\"+document.getElementsByName(\"pass\")[0].value'>Run BadUSB Script</a>";  // Lien pour BadUSB
+      html += "</form></div></body></html>";
+      server.send(200, "text/html", html);
+      Serial.println("-------------------");
+      Serial.println("evil-m5core2-menu access.");
+      Serial.println("-------------------");
   });
+
 
   server.on("/credentials", HTTP_GET, []() {
     String password = server.arg("pass");
@@ -1949,16 +1951,16 @@ void createCaptivePortal() {
       File file = SD.open("/credentials.txt");
       if (file) {
         if (file.size() == 0) {
-          server.send(200, "text/html", "<html><body><p>No credentials...</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+          server.send(200, "text/html", "<html><body><p>No credentials...</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
         } else {
           server.streamFile(file, "text/plain");
         }
         file.close();
       } else {
-        server.send(404, "text/html", "<html><body><p>File not found.</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+        server.send(404, "text/html", "<html><body><p>File not found.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
       }
     } else {
-      server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+      server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
     }
   });
 
@@ -2016,7 +2018,7 @@ void createCaptivePortal() {
 
       server.send(200, "text/html", html);
     } else {
-      server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+      server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
     }
   });
 
@@ -2028,9 +2030,261 @@ void createCaptivePortal() {
 
   server.on("/delete-sd-file", HTTP_GET, handleFileDelete);
 
-  server.on("/Change-Portal-Password", HTTP_GET, handleChangePassword);
+   server.on("/setup-portal", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      String html = "<html><head><style>";
+      html += "body { background-color: #333; color: white; font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }";
+      html += ".container { display: inline-block; background-color: #444; padding: 30px; border-radius: 8px; box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3); width: 320px; }";
+      html += "input[type='text'], input[type='password'], button { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; box-sizing: border-box; font-size: 16px; background-color: #FFF; color: #333; }";
+      html += "input[type='text']:focus, input[type='password']:focus { outline: none; box-shadow: 0px 0px 8px rgba(0, 123, 255, 0.5); }";
+      html += "button, input[type='submit'] { background-color: #008CBA; color: white; cursor: pointer; border-radius: 25px; transition: background-color 0.3s ease; }";
+      html += "button:hover, input[type='submit']:hover { background-color: #005F73; }";
+      html += "a button { width: 100%; }";
+      html += ".button-group { display: flex; justify-content: space-around; margin-top: 20px; }";
+      html += ".button-group button { width: 99%; padding: 10px; font-size: 16px; }";
+      html += "</style></head><body>";
+  
+      html += "<div class='container'>";
+  
+      // Formulaire pour modifier le SSID et le mot de passe
+      html += "<form action='/update-portal-settings' method='get'>";
+      html += "<input type='hidden' name='pass' value='" + password + "'>";
+      html += "<h2 style='color: #FFF;'>Setup Portal</h2>";
+      html += "Portal Name: <br><input type='text' name='newSSID' placeholder='Enter new SSID'><br>";
+      html += "New Password (leave empty for open network): <br><input type='password' name='newPassword' placeholder='Enter new Password'><br>";
+      html += "<input type='submit' value='Save Settings'><br>";
+      html += "</form>";
+  
+      // Boutons pour démarrer et arrêter le portail
+      html += "<div class='button-group'>";
+      html += "<a href='/start-portal?pass=" + password + "'><button type='button'>Start Portal</button></a>";
+      html += "<a href='/stop-portal?pass=" + password + "'><button type='button'>Stop Portal</button></a>";
+      html += "</div>";
+  
+      html += "</div></body></html>";
+  
+      server.send(200, "text/html", html);
+  });
+
+  
+  server.on("/update-portal-settings", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      String newSSID = server.arg("newSSID");
+      String newPassword = server.arg("newPassword");
+  
+      if (!newSSID.isEmpty()) {
+          cloneSSIDForCaptivePortal(newSSID);  // Mise à jour du SSID
+          Serial.println("Portal Name updated: " + newSSID);
+      }
+  
+      // Si le mot de passe est vide, créer un réseau ouvert
+      if (!newPassword.isEmpty()) {
+          captivePortalPassword = newPassword;  // Mise à jour du mot de passe
+          Serial.println("Portal Password updated: " + newPassword);
+      } else {
+          captivePortalPassword = "";  // Réseau ouvert
+          Serial.println("Portal is now open (no password).");
+      }
+  
+      server.send(200, "text/html", "<html><body><p>Settings updated successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+  });
+  
+  server.on("/start-portal", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      createCaptivePortal();  // Démarrer le portail
+      server.send(200, "text/html", "<html><body><p>Portal started successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+  });
+  
+  server.on("/stop-portal", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      stopCaptivePortal();  // Arrêter le portail
+      server.send(200, "text/html", "<html><body><p>Portal stopped successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+  });
 
 
+  server.on("/list-badusb-scripts", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      File dir = SD.open("/BadUsbScript");
+      if (!dir || !dir.isDirectory()) {
+          server.send(404, "text/html", "<html><body><p>BadUSB script directory not found.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      String html = "<!DOCTYPE html><html><head><style>";
+      html += "body{font-family:sans-serif;background:#f0f0f0;padding:20px}";
+      html += "ul{list-style-type:none;padding:0}";
+      html += "li{margin:10px 0;padding:5px;background:white;border:1px solid #ddd;border-radius:5px}";
+      html += "a{color:#007bff;text-decoration:none}";
+      html += "a:hover{color:#0056b3}";
+      html += "button {background-color: #007bff; border: none; color: white; padding: 6px 15px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer;}";
+      html += "</style></head><body>";
+      
+      // Ajout du bouton de retour au menu principal
+      html += "<p><a href='/evil-m5core2-menu'><button>Menu</button></a></p>";
+      
+      html += "<ul>";
+      
+      while (File file = dir.openNextFile()) {
+          if (!file.isDirectory()) {
+              String fileName = file.name();
+              html += "<li><a href='/run-badusb-script?filename=" + fileName + "&pass=" + password + "'>" + fileName + "</a></li>";
+          }
+          file.close();
+      }
+      
+      html += "</ul></body></html>";
+      
+      server.send(200, "text/html", html);
+      dir.close();
+
+  });
+
+
+  server.on("/run-badusb-script", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      String scriptName = server.arg("filename");
+      if (SD.exists("/BadUsbScript/" + scriptName)) {
+          runScript(scriptName);  // Utilise la fonction existante pour exécuter le script
+          server.send(200, "text/html", "<html><body><p>Script " + scriptName + " executed successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+      } else {
+          server.send(404, "text/html", "<html><body><p>Script not found.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+      }
+  });
+
+  server.on("/edit-file", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          Serial.println("Unauthorized access attempt to /edit-file");
+          server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      String fileName = server.arg("filename");
+      if (!fileName.startsWith("/")) {
+          fileName = "/" + fileName;
+      }
+  
+      // Vérification si le fichier existe
+      if (!SD.exists(fileName)) {
+          Serial.println("File not found: " + fileName);
+          server.send(404, "text/html", "<html><body><p>File not found.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      // Ouverture du fichier pour lecture
+      File file = SD.open(fileName, FILE_READ);
+      if (!file) {
+          Serial.println("Failed to open file for reading: " + fileName);
+          server.send(500, "text/html", "<html><body><p>Failed to open file for reading.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      Serial.println("File opened successfully: " + fileName);
+  
+      // Envoi d'un en-tête HTML avec encodage UTF-8
+      String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>";
+      html += "textarea { width: 100%; height: 400px; }";
+      html += "button { background-color: #007bff; border: none; color: white; padding: 10px; font-size: 16px; cursor: pointer; margin-top: 10px; }";
+      html += "</style></head><body>";
+      html += "<h3>Editing File: " + fileName + "</h3>";
+      html += "<form action='/save-file' method='post'>";
+      html += "<input type='hidden' name='filename' value='" + fileName + "'>";
+      html += "<input type='hidden' name='pass' value='" + password + "'>";
+      html += "<textarea name='content'>";
+      
+      // Envoyer la première partie du HTML
+      server.sendContent(html);
+      
+      // Envoyer le contenu du fichier par petits morceaux
+      const size_t bufferSize = 512;
+      char buffer[bufferSize];
+      while (file.available()) {
+          size_t bytesRead = file.readBytes(buffer, bufferSize);
+          server.sendContent(String(buffer).substring(0, bytesRead));
+      }
+      file.close();
+  
+      // Envoyer la dernière partie du HTML
+      html = "</textarea><br>";
+      html += "<button type='submit'>Save</button>";
+      html += "</form></body></html>";
+      server.sendContent(html);
+      
+      // Terminer la réponse
+      server.client().stop();
+  });
+
+
+  server.on("/save-file", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      String fileName = server.arg("filename");
+      if (!fileName.startsWith("/")) {
+          fileName = "/" + fileName;
+      }
+  
+      String newContent = server.arg("content");
+  
+      // Ouvrir le fichier pour écriture
+      File file = SD.open(fileName, FILE_WRITE);
+      if (!file) {
+          server.send(500, "text/html", "<html><body><p>Failed to open file for writing.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      // Écriture par morceaux pour éviter d'utiliser trop de mémoire
+      const size_t bufferSize = 256;  // Taille du tampon
+      size_t contentLength = newContent.length();
+      size_t written = 0;
+  
+      // Boucle d'écriture par morceaux
+      while (written < contentLength) {
+          String chunk = newContent.substring(written, written + bufferSize);
+          file.print(chunk);
+          written += chunk.length();
+      }
+  
+      file.close();
+  
+      // Réponse au client après enregistrement
+      server.send(200, "text/html", "<html><body><p>File saved successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+  });
+
+  
   server.onNotFound([]() {
     pageAccessFlag = true;
     Serial.println("-------------------");
@@ -2055,84 +2309,90 @@ void createCaptivePortal() {
   }
 }
 
+void handleSdCardBrowse() {
+    String password = server.arg("pass");
+    if (password != accessWebPassword) {
+        server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+        return;
+    }
+
+    String dirPath = server.arg("dir");
+    if (dirPath == "") dirPath = "/";
+
+    File dir = SD.open(dirPath);
+    if (!dir || !dir.isDirectory()) {
+        server.send(404, "text/html", "<html><body><p>Directory not found.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+        return;
+    }
+
+    // Ajout du bouton pour revenir au menu principal
+    String html = "<p><a href='/evil-m5core2-menu'><button style='background-color: #007bff; border: none; color: white; padding: 6px 15px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer;'>Menu</button></a></p>";
+    
+    // Générer le HTML pour lister les fichiers et dossiers
+    html += getDirectoryHtml(dir, dirPath, password);
+    server.send(200, "text/html", html);
+    dir.close();
+}
 
 String getDirectoryHtml(File dir, String path, String password) {
-  String html = "<!DOCTYPE html><html><head><style>";
-  html += "body{font-family:sans-serif;background:#f0f0f0;padding:20px}";
-  html += "ul{list-style-type:none;padding:0}";
-  html += "li{margin:10px 0;padding:5px;background:white;border:1px solid #ddd;border-radius:5px}";
-  html += "a{color:#007bff;text-decoration:none}";
-  html += "a:hover{color:#0056b3}";
-  html += ".red{color:red}";
-  html += "</style></head>";
+    String html = "<!DOCTYPE html><html><head><style>";
+    html += "body{font-family:sans-serif;background:#f0f0f0;padding:20px}";
+    html += "ul{list-style-type:none;padding:0}";
+    html += "li{margin:10px 0;padding:5px;background:white;border:1px solid #ddd;border-radius:5px}";
+    html += "a{color:#007bff;text-decoration:none}";
+    html += "a:hover{color:#0056b3}";
+    html += ".red{color:red}";
+    html += "</style></head><body><ul>";
 
-  html += "<p><a href='/download-all-files?dir=" + path + "&pass=" + password + "'><button style='background-color: #007bff; border: none; color: white; padding: 6px 15px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer;'>Download All</button></a></p>";
-
-  html += "<body><ul>";
-  if (path != "/") {
-    String parentPath = path.substring(0, path.lastIndexOf('/'));
-    if (parentPath == "") parentPath = "/";
-    html += "<li><a href='/check-sd-file?dir=" + parentPath + "&pass=" + password + "'>[Up]</a></li>";
-  }
-
-  while (File file = dir.openNextFile()) {
-    String fileName = String(file.name());
-    String displayFileName = fileName;
-    if (path != "/" && fileName.startsWith(path)) {
-      displayFileName = fileName.substring(path.length());
-      if (displayFileName.startsWith("/")) {
-        displayFileName = displayFileName.substring(1);
-      }
+    if (path != "/") {
+        String parentPath = path.substring(0, path.lastIndexOf('/'));
+        if (parentPath == "") parentPath = "/";
+        html += "<li><a href='/check-sd-file?dir=" + parentPath + "&pass=" + password + "'>[Up]</a></li>";
     }
 
-    String fullPath = path + (path.endsWith("/") ? "" : "/") + displayFileName;
-    if (!fullPath.startsWith("/")) {
-      fullPath = "/" + fullPath;
-    }
+    while (File file = dir.openNextFile()) {
+        String fileName = String(file.name());
+        String displayFileName = fileName;
+        if (path != "/" && fileName.startsWith(path)) {
+            displayFileName = fileName.substring(path.length());
+            if (displayFileName.startsWith("/")) {
+                displayFileName = displayFileName.substring(1);
+            }
+        }
 
-    if (file.isDirectory()) {
-      html += "<li>Directory: <a href='/check-sd-file?dir=" + fullPath + "&pass=" + password + "'>" + displayFileName + "</a></li>";
-    } else {
-      html += "<li>File: <a href='/download-sd-file?filename=" + fullPath + "&pass=" + password + "'>" + displayFileName + "</a> (" + String(file.size()) + " bytes) <a href='#' onclick='confirmDelete(\"" + fullPath + "\")' style='color:red;'>Delete</a></li>";
-    }
-    file.close();
-  }
-  html += "</ul>";
-  html += "<script>"
-          "function confirmDelete(filename) {"
-          "  if (confirm('Are you sure you want to delete ' + filename + '?')) {"
-          "    window.location.href = '/delete-sd-file?filename=' + filename + '&pass=" + password + "';"
-          "  }"
-          "}"
-          "window.onload = function() {const urlParams = new URLSearchParams(window.location.search);if (urlParams.has('refresh')) {urlParams.delete('refresh');history.pushState(null, '', location.pathname + '?' + urlParams.toString());window.location.reload();}};"
-          "</script>";
+        String fullPath = path + (path.endsWith("/") ? "" : "/") + displayFileName;
+        if (!fullPath.startsWith("/")) {
+            fullPath = "/" + fullPath;
+        }
 
-  return html;
+        if (file.isDirectory()) {
+            html += "<li>Directory: <a href='/check-sd-file?dir=" + fullPath + "&pass=" + password + "'>" + displayFileName + "</a></li>";
+        } else {
+            html += "<li>File: <a href='/download-sd-file?filename=" + fullPath + "&pass=" + password + "'>" + displayFileName + "</a> (" + String(file.size()) + " bytes)";
+            
+            // Ajout du lien d'édition pour les fichiers `.txt` et `.html`
+            if (fileName.endsWith(".txt") || fileName.endsWith(".html")) {
+                html += " <a href='/edit-file?filename=" + fullPath + "&pass=" + password + "' style='color:green;'>[Edit]</a>";
+            }
+
+            html += " <a href='#' onclick='confirmDelete(\"" + fullPath + "\")' style='color:red;'>Delete</a></li>";
+        }
+        file.close();
+    }
+    html += "</ul>";
+    html += "<script>"
+            "function confirmDelete(filename) {"
+            "  if (confirm('Are you sure you want to delete ' + filename + '?')) {"
+            "    window.location.href = '/delete-sd-file?filename=' + filename + '&pass=" + password + "';"
+            "  }"
+            "}"
+            "window.onload = function() {const urlParams = new URLSearchParams(window.location.search);if (urlParams.has('refresh')) {urlParams.delete('refresh');history.pushState(null, '', location.pathname + '?' + urlParams.toString());window.location.reload();}};"
+            "</script>";
+
+    return html;
 }
 
 
-void handleSdCardBrowse() {
-  String password = server.arg("pass");
-  if (password != accessWebPassword) {
-    server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
-    return;
-  }
-
-  String dirPath = server.arg("dir");
-  if (dirPath == "") dirPath = "/";
-
-  File dir = SD.open(dirPath);
-  if (!dir || !dir.isDirectory()) {
-    server.send(404, "text/html", "<html><body><p>Directory not found.</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
-    return;
-  }
-
-
-  String html = "<p><a href='/evil-m5core2-menu'><button style='background-color: #007bff; border: none; color: white; padding: 6px 15px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer;'>Menu</button></a></p>";
-  html += getDirectoryHtml(dir, dirPath, accessWebPassword);
-  server.send(200, "text/html", html);
-  dir.close();
-}
 
 void handleFileDownload() {
   String fileName = server.arg("filename");
@@ -2149,7 +2409,7 @@ void handleFileDownload() {
       return;
     }
   }
-  server.send(404, "text/html", "<html><body><p>File not found.</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+  server.send(404, "text/html", "<html><body><p>File not found.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
 }
 
 
@@ -2261,7 +2521,7 @@ void handleFileUpload() {
       fsUploadFile.close();
       Serial.print("Upload End: ");
       Serial.println(upload.totalSize);
-      server.send(200, "text/html", "<html><body><p>File successfully uploaded</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+      server.send(200, "text/html", "<html><body><p>File successfully uploaded</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
       Serial.println("File successfully uploaded");
     } else {
       server.send(500, "text/html", "File closing error");
@@ -2304,7 +2564,7 @@ void listDirectories(File dir, String path, String & output) {
 void handleFileDelete() {
   String password = server.arg("pass");
   if (password != accessWebPassword) {
-    server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+    server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
     return;
   }
 
@@ -2319,13 +2579,13 @@ void handleFileDelete() {
       Serial.println("File deleted successfully");
       Serial.println("-------------------");
     } else {
-      server.send(500, "text/html", "<html><body><p>File could not be deleted</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+      server.send(500, "text/html", "<html><body><p>File could not be deleted</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
       Serial.println("-------------------");
       Serial.println("File could not be deleted");
       Serial.println("-------------------");
     }
   } else {
-    server.send(404, "text/html", "<html><body><p>File not found</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+    server.send(404, "text/html", "<html><body><p>File not found</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
     Serial.println("-------------------");
     Serial.println("File not found");
     Serial.println("-------------------");
@@ -2342,7 +2602,7 @@ void servePortalFile(const String & filename) {
       Serial.println("-------------------");*/
     webFile.close();
   } else {
-    server.send(404, "text/html", "<html><body><p>File not found</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
+    server.send(404, "text/html", "<html><body><p>File not found</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
   }
 }
 
@@ -2409,49 +2669,6 @@ void listPortalFiles() {
   }
   root.close();
 }
-
-
-void serveChangePasswordPage() {
-  String password = server.arg("pass");
-  if (password != accessWebPassword) {
-    server.send(403, "text/html", "<html><body><p>Unauthorized</p></body></html>");
-    return;
-  }
-
-  String html = "<html><head><style>";
-  html += "body { background-color: #333; color: white; font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }";
-  html += "form { background-color: #444; padding: 20px; border-radius: 8px; display: inline-block; }";
-  html += "input[type='password'], input[type='submit'] { width: 80%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }";
-  html += "input[type='submit'] { background-color: #008CBA; color: white; cursor: pointer; }";
-  html += "input[type='submit']:hover { background-color: #005F73; }";
-  html += "</style></head><body>";
-  html += "<form action='/Change-Portal-Password-demand' method='get'>";
-  html += "<input type='hidden' name='pass' value='" + password + "'>";
-  html += "<h2>Change Portal Password</h2>";
-  html += "New Password: <br><input type='password' name='newPassword'><br>";
-  html += "<input type='submit' value='Change Password'>";
-  html += "</form><br>Leave empty for an open AP.<br>Remember to deploy the portal again after changing the password.<br></body></html>";
-  server.send(200, "text/html", html);
-}
-
-
-
-void handleChangePassword() {
-  server.on("/Change-Portal-Password-demand", HTTP_GET, []() {
-    String password = server.arg("pass");
-    if (password != accessWebPassword) {
-      server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
-      return;
-    }
-
-    String newPassword = server.arg("newPassword");
-    captivePortalPassword = newPassword;
-    server.send(200, "text/html", "<html><body><p>Password Changed Successfully !!</p><script>setTimeout(function(){window.history.back();}, 2000);</script></body></html>");
-  });
-
-  serveChangePasswordPage();
-}
-
 
 
 void changePortal() {
@@ -3370,10 +3587,10 @@ void toggleRandom() {
 
 
 std::vector<String> imageFiles = {
-    "HiVenoumous.jpg", "infernoDemon.jpg", "InThePocket.jpg", "KNAX-EVILBAT.jpg", 
-    "low-battery.jpg", "neoEvilProject.jpg", "parkour.jpg", "R&MImIn.jpg", 
-    "R&MPortal.jpg", "R&MSpace.jpg", "startup-atom.jpg", "startup-cardputer-2.jpg", 
-    "startup-cardputer.jpg", "startup.jpg", "superDemonHacker.jpg", "WhySoSerious.jpg", 
+    "HiVenoumous.jpg", "infernoDemon.jpg", "InThePocket.jpg", "KNAX-EVILBAT.jpg",
+    "neoEvilProject.jpg", "parkour.jpg", "R&MImIn.jpg", 
+    "R&MPortal.jpg", "R&MSpace.jpg", "startup-cardputer-2.jpg", 
+    "startup-cardputer.jpg", "superDemonHacker.jpg", "WhySoSerious.jpg", 
     "WifiDemon.jpg", "wifiHackingInTown.jpg", "afewmomentlater.jpg", "Evil_WiFi.jpg", 
     "hackers-group.jpg", "hackers-watchingU.jpg", "HackThePlanet.jpg", "HackThePlanet2.jpg", 
     "Hell's_Evil_Core.jpg", "pedro.jpg", "AlienWifiMaster.jpg", "beach.jpg", 
@@ -3384,8 +3601,7 @@ std::vector<String> imageFiles = {
     "EvilMoto.jpg", "EvilProject-zombie.jpg", "EvilRickRoll.jpg", "HamsterSound.jpg", 
     "WiFi_Demon.jpg", "youshouldnotpass.jpg", "DAKKA-graph.jpg", "DAKKA-graph2.jpg", 
     "DiedDysentry.jpg", "EternalBlue.jpg", "IHateMonday.jpg", "WinBSOD.jpg", 
-    "WinXp.jpg", "WinXp2.jpg", "DAKKA-EvilSkate.jpg", "DAKKA-EvilwithPhone.jpg", 
-    "low-battery-cardputer.jpg"
+    "WinXp.jpg", "WinXp2.jpg", "DAKKA-EvilSkate.jpg", "DAKKA-EvilwithPhone.jpg"
 };
 
 std::vector<String> soundFiles = {
