@@ -91,6 +91,11 @@ You can add multiple ESP32 devices to improve the accuracy and strength of the s
 - ESP32 devices (e.g., AtomS3, AtomS3 Lite, ESP32-C3, WEMOS D1 Mini)
 - External antenna (optional, for enhanced performance)
 
+Here an assembly with 8 esp32-c3 connected in parallel and which scans 1,3,6,9,11,13 in static mode and in hopping for 2 others on 2,4,5,7 and 8,10,12,14 :
+<div align="center">
+<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/slavemonster1.jpg" width="300" /> <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/slavemonster2.jpg" width="300" />
+</div>
+
 ---
 
 ## ESP32 Deauth Slave
