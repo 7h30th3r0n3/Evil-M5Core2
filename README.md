@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Project v1.3.0 - Wardriving Master
+# Evil-M5Project v1.3.1 - WebUi BadUSB
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -51,6 +51,14 @@ Join the Evil-M5 discord for help and update 😉:
 
 
 </div></div>
+
+
+## NEW feature ! from v1.3.1 : WebUi BadUSB !!!
+### You can now plug the device and edit, add or launch badusb script from WebUi panel
+
+Connect the device, go to special pages and you should see Badusb menu, click on a script to start execution. 
+You can also edit small txt file in Check SD file.
+some others add on Evil-m5core2-menu.
 
 ## NEW feature ! from v1.3.0 : Wardriving Master !!!
 ### You can now use any ESP32 as slave to collect SSID for wigle
@@ -140,6 +148,7 @@ Features may vary depending on the firmware/device you are using:
 | Automated Karma Attack        | ✅                  | ✅                     | ✅                  | ✅                  | ✅              |
 | Bluetooth Serial Control      | ✅                  | ❌                     | ❌                  | ❌                  | ❌              |
 | Wardriving                    | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
+| Wardriving master             | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
 | Beacon Spam                   | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
 | Deauther                      | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
 | Client Sniff And Deauth       | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
