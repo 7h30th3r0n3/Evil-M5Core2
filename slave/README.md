@@ -10,6 +10,29 @@ You can monitor all 14 Wi-Fi channel on 2.4GHz without hoping with 14 esp32.
 Cardputer use the GPS to link each reiceived information to a CSV compatible with Wigle in wardriving.
 Or create a pcap file with all EAPOL captured inside.
 
+### `slave_deauth_hopping.ino`
+This script handles a slave device that performs deauthentication (deauth) attacks on different WiFi channels dynamically, constantly changing the channel (hopping).
+
+### `slave_deauth_hopping_atoms3.ino`
+A variant of the `slave_deauth_hopping.ino` script, optimized for the AtomS3 microcontroller. This script use the screen of the AtomS3.
+
+### `slave_deauth_static.ino`
+This script performs deauthentication attacks on a static WiFi channel. The slave stays on a single channel to execute its attacks.
+
+### `slave_gps_channel_static.ino`
+This script enables the slave to collect GPS data while remaining on a static WiFi channel. It can be used for scenarios where geolocating access points on a specific channel is required.
+
+### `slave_gps_hopping.ino`
+This script combines WiFi channel hopping with GPS data collection. The device dynamically switches channels while sending detected APs.
+
+### `slave_gps_hopping_atoms3.ino`
+An AtomS3-adapted version of the `slave_gps_hopping.ino` script. Same but with avatar face.
+
+### `slave_sniffer_channel_static.ino`
+EAPOL sniffer that remains on a static WiFi channel. It captures EAPOL packets on this channel and send it to cardputer for centralization of captured data.
+
+
+
 ## Tested on:
 - **AtomS3**: [Buy here](https://s.click.aliexpress.com/e/_DnDXSKJ)
 - **AtomS3 Lite**: [Buy here](https://s.click.aliexpress.com/e/_Dm0e95D)
