@@ -1,0 +1,4 @@
+freewifi
+AndroidAP
+UPC Wi-Free
+eduroam
