@@ -2709,6 +2709,16 @@ void saveCredentials(const String & email, const String & password, const String
     file.println("-- SSID -- \n" + clonedSSID); // Ajout du SSID cloné
     file.println("------------------");
     file.close();
+    if (ledOn){
+      for (int flashes = 0; flashes < 3; flashes++){
+        pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+        pixels.show();
+        delay(250);
+        pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+        pixels.show();
+        delay(250);
+      }
+    }
     Serial.println("-------------------");
     Serial.println(" !!! Credentials " + email + ":" + password + " saved !!! ");
     Serial.println("On Portal Name: " + portalName);
