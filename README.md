@@ -1,6 +1,6 @@
 <div align="center">
 
-# Evil-M5Project v1.3.1 - WebUi BadUSB
+# Evil-M5Project v1.3.2 - Handshake Master
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -52,6 +52,20 @@ Join the Evil-M5 discord for help and update 😉:
 
 </div></div>
 
+## NEW feature ! from v1.3.2 : Handshake Master, Raw Sniffing, Client Sniff & Wi-Fi Channel Visualizer!!!
+### Introducing powerful new features that enhance network scanning and analysis capabilities.
+
+1. **Handshake Master**: 
+   - Like Wardriving Master, it capture EAPOL frames across multiple Wi-Fi channels using Sniffer Slaves that you can find in slave folder. You can monitor different channels simultaneously from cardputer to ensure no handshakes are missed during your scans.
+
+2. **Wi-Fi Raw Sniffing**: 
+   - Sniff everything on a specific Wi-Fi channel. This feature provides you with a detailed view of all network traffic on the selected channel in a pcap, perfect for deep packet analysis.
+
+3. **Sniff Raw Client**: 
+   - Analyze the data leaking from clients connected to your evil portal by sniffing the entire network. This functionality helps in understanding how clients interact with the AP and potential leak more informations about the decice that connect to it.
+
+4. **Wi-Fi Channel Visualizer**: 
+   - Visualize the usage of the 13 Wi-Fi channels in the 2.4GHz band. This tool helps identify which channels are used near you. 
 
 ## NEW feature ! from v1.3.1 : WebUi BadUSB !!!
 ### You can now plug the device and edit, add or launch badusb script from WebUi panel
@@ -97,22 +111,6 @@ Here an assembly with 8 esp32-c3 connected in parallel and which scans 1,3,6,9,1
 </div>
 
 ---
-
-## ESP32 Deauth Slave
-
-This code allows ESP32 devices to be used with passive handshake and deauth sniffing. It scans each AP on the desired channel and sends a deauthentication (deauth) packet, useful for handshake captures and other Wi-Fi security tests.
-
-
-## NEW ! from v1.2.9 : BadUSB !!!
-### You can now use BadUSB attacks directly from the device!
-
-This feature allows the device to act as a BadUSB, emulating keyboard inputs to execute predefined scripts or commands on a connected computer. Ideal for security testing and demonstrations.
-
-**Usage:**
-- Prepare your script in a text file and upload it to the `BadUsbScript` folder on the device.
-- Activate the BadUSB mode from the menu and select the script to execute or change the layout.
-- 20 Scripts are provided but you can add more.
-**Caution:** Use responsibly and ensure you have permission before executing any scripts.
 
 ## All Evil-M5Project Features 
 - **WiFi Network Scanning**: Identify and display nearby WiFi networks.
@@ -637,7 +635,6 @@ It does:
 - List them to let you choose actions (Scan ports / SSH connect / Web Crawling)
 
 
-
 ##  Send tesla code
 ### You can now send Tesla codes using the RFunit!
 
@@ -658,6 +655,21 @@ The Skimmer Detector feature helps identify potential Bluetooth-based skimmers b
 - If a suspicious device is near an alert appear.
 
 **Note:** Detection of a device does not necessarily mean it is a skimmer, but caution is advised.
+
+
+## BadUSB
+### You can now use BadUSB attacks directly from the device!
+
+This feature allows the device to act as a BadUSB, emulating keyboard inputs to execute predefined scripts or commands on a connected computer. Ideal for security testing and demonstrations.
+
+**Usage:**
+- Prepare your script in a text file and upload it to the `BadUsbScript` folder on the device.
+- Activate the BadUSB mode from the menu and select the script to execute or change the layout.
+- 20 Scripts are provided but you can add more.
+
+**Caution:** Use responsibly and ensure you have permission before executing any scripts.
+
+
 
 
 ## Flipper Zero Friend ? 
