@@ -2824,7 +2824,7 @@ void changePortal() {
 
       M5.Display.clear();
       M5.Display.setTextSize(1.5);
-      M5.Display.setTextColor(menuUnTextFocusedColor);
+      M5.Display.setTextColor(menuTextUnFocusedColor);
       M5.Display.setCursor(10, 10);
 
       for (int i = listStartIndex; i < min(numPortalFiles, listStartIndex + listDisplayLimit); i++) {
