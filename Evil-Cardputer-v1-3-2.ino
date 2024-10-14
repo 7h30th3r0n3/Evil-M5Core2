@@ -1064,16 +1064,35 @@ void drawTaskBar() {
   taskBarCanvas.fillRect(0, 10, taskBarCanvas.width(), 2, taskbarDividerColor); // Dessiner un rectangle bleu en haut de l'écran
   taskBarCanvas.setTextColor(taskbarTextColor);
   
-  // Afficher le nombre de personnes connectées
-  int connectedPeople = getConnectedPeopleCount();
-  taskBarCanvas.setCursor(5, 2); // Positionner à gauche
-  taskBarCanvas.print("Sta:" + String(connectedPeople));
+  if (Colorful) {
+    // Number of Connections
+    int connectedPeople = getConnectedPeopleCount();
+    taskBarCanvas.setCursor(0, 2); 
+    taskBarCanvas.print("Sta:");
+    taskBarCanvas.setCursor(25, 2);
+    taskBarCanvas.setTextColor(connectedPeople > 0 ? menuTextFocusedColor : taskbarTextColor);
+    taskBarCanvas.print(String(connectedPeople));
 
-  // Afficher le nombre de mots de passe capturés
-  int capturedPasswords = getCapturedPasswordsCount();
-  taskBarCanvas.setCursor(45, 2); // Positionner après "Sta"
-  taskBarCanvas.print("Pwd:" + String(capturedPasswords));
-  
+    // Password Captures
+    int capturedPasswords = getCapturedPasswordsCount();
+    taskBarCanvas.setCursor(45, 2); // Position right of connections
+    taskBarCanvas.setTextColor(taskbarTextColor);
+    taskBarCanvas.print("Pwd:");
+    taskBarCanvas.setCursor(70, 2);
+    taskBarCanvas.setTextColor(capturedPasswords > 0 ? menuTextFocusedColor : taskbarTextColor);
+    taskBarCanvas.print(String(capturedPasswords));
+  } else {
+    // Afficher le nombre de personnes connectées
+    int connectedPeople = getConnectedPeopleCount();
+    taskBarCanvas.setCursor(0, 2); // Positionner à gauche
+    taskBarCanvas.print("Sta:" + String(connectedPeople));
+
+    // Afficher le nombre de mots de passe capturés
+    int capturedPasswords = getCapturedPasswordsCount();
+    taskBarCanvas.setCursor(46, 2); // Positionner après "Sta"
+    taskBarCanvas.print("Pwd:" + String(capturedPasswords));
+  }
+
   // Afficher l'indicateur de point clignotant pour les accès aux pages et DNS
   static bool dotState = false;
   dotState = !dotState;
@@ -1092,6 +1111,7 @@ void drawTaskBar() {
   }
   if (Colorful) {
     taskBarCanvas.setCursor(95, 1);
+    taskBarCanvas.setTextColor(taskbarTextColor);
     taskBarCanvas.print("P:");
     taskBarCanvas.setCursor(108, 1);
     taskBarCanvas.setTextColor(isCaptivePortalOn ? TFT_GREEN : TFT_RED);
@@ -2804,7 +2824,6 @@ void listPortalFiles() {
   }
   root.close();
 }
-
 
 void changePortal() {
   listPortalFiles();
@@ -10782,7 +10801,7 @@ void allTrafficSniffer() {
 
   Serial.println("Starting all traffic sniffer...");
   M5.Lcd.clear();
-  M5.Lcd.setTextColor(GREEN);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor);
   M5.Lcd.setCursor(3, 0);
   M5.Lcd.println("Sniffing Raw on :");
   M5.Lcd.println(filename);
@@ -10799,7 +10818,7 @@ void allTrafficSniffer() {
     unsigned long currentPressTime = millis();
     unsigned long currentTime = millis();
 
-    M5.Lcd.setTextColor(WHITE, BLACK);
+    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
     M5.Lcd.setCursor(0, 25);
     M5.Lcd.printf("     < [Channel]: %d > \n", currentChannel);
     M5.Lcd.setCursor(0, 42);
@@ -10816,7 +10835,7 @@ void allTrafficSniffer() {
       cursorVisible = !cursorVisible;
       lastCursorBlinkTime = currentTime;
     }
-    M5.Lcd.setTextColor(GREEN, BLACK);
+    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
     M5.Lcd.printf(cursorVisible ? ">_" : "> ");
 
     // Show pause indicator
@@ -10826,7 +10845,7 @@ void allTrafficSniffer() {
       M5.Lcd.print(" PAUSE ");
     } else{
       M5.Lcd.setCursor(M5.Lcd.width() - 80, M5.Lcd.height() - 12);
-      M5.Lcd.setTextColor(GREEN, BLACK);
+      M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
       M5.Lcd.print("        ");
     }
 
@@ -10991,7 +11010,7 @@ void sniffNetwork() {
 
   Serial.println("Starting all traffic sniffer...");
   M5.Lcd.clear();
-  M5.Lcd.setTextColor(GREEN);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor);
   M5.Lcd.setCursor(3, 0);
   M5.Lcd.println("Sniffing Raw on :");
   M5.Lcd.println(filename);
@@ -11023,7 +11042,7 @@ void sniffNetwork() {
     unsigned long currentPressTime = millis();
     unsigned long currentTime = millis();
 
-    M5.Lcd.setTextColor(WHITE, BLACK);
+    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
     M5.Lcd.setCursor(0, 25);
     M5.Lcd.printf("[Total]       : %d\n", packetSavedCount);
     M5.Lcd.setCursor(0, M5.Display.height() - 16);
@@ -11032,7 +11051,7 @@ void sniffNetwork() {
       cursorVisible = !cursorVisible;
       lastCursorBlinkTime = currentTime;
     }
-    M5.Lcd.setTextColor(GREEN, BLACK);
+    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
     M5.Lcd.printf(cursorVisible ? ">_" : "> ");
 
     if ((M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE))) {
