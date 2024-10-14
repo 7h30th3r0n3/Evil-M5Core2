@@ -2710,13 +2710,13 @@ void saveCredentials(const String & email, const String & password, const String
     file.println("------------------");
     file.close();
     if (ledOn){
-      for (int flashes = 0; flashes < 3; flashes++){
-        pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+      for (int flashes = 0; flashes < 2; flashes++){
+        pixels.setPixelColor(0, pixels.Color(0, 255, 255));
         pixels.show();
-        delay(250);
+        delay(100);
         pixels.setPixelColor(0, pixels.Color(0, 0, 0));
         pixels.show();
-        delay(250);
+        delay(100);
       }
     }
     Serial.println("-------------------");
