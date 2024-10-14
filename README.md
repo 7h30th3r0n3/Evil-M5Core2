@@ -735,7 +735,7 @@ Available Commands:
 - [@Sam X Plogs](https://www.youtube.com/@samxplogs) for creating video content about the project.
 - [@dagnazty](https://github.com/dagnazty) for the fantastic work on M5dial. 
 - [@xcs011](https://github.com/xcs011) for the work on the code.
-- 
+
 and to all Beta-testers on the discord : 
 
 - [@KamiLocura]</br>
