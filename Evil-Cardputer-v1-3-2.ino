@@ -72,7 +72,7 @@
 #include <regex>
 //sniff and deauth client end
 
-
+#include <IniFile.h>
 
 String scanIp = "";
 #include <lwip/etharp.h>
@@ -250,14 +250,26 @@ bool karmaSuccess = false;
 //config file
 const char* configFolderPath = "/config";
 const char* configFilePath = "/config/config.txt";
-int defaultBrightness = 255 * 0.35; //  35% default Brightness
+int defaultBrightness = 255 * 0.35;                         //  35% default Brightness
 String selectedStartupImage = "/img/startup-cardputer.jpg"; // Valeur par défaut
-String selectedStartupSound = "/audio/sample.mp3"; // Valeur par défaut
+String selectedStartupSound = "/audio/sample.mp3";          // Valeur par défaut
+String selectedTheme = "/theme.ini";                        // Selected Theme Default
 
 std::vector<std::string> whitelist;
 std::set<std::string> seenWhitelistedSSIDs;
 //config file end
 
+// THEME START
+// Assign default theme values, ini in SD root can change them
+int taskbarBackgroundColor      = TFT_BLACK;     // Taskbar background color
+int taskbarTextColor            = TFT_DARKGREY;  // Taskbar Textcolor
+int taskbarDividerColor         = TFT_WHITE;     // Taskbar divider color
+int menuBackgroundColor         = TFT_BLACK;     // Menu background color
+int menuSelectedBackgroundColor = TFT_DARKGREY;  // Color for bar that highlights selected item
+int menuTextFocusedColor        = TFT_WHITE;     // Text color for currently selected item
+int menuTextUnFocusedColor      = TFT_LIGHTGREY; // Text color for items that are not the currently selected
+bool Colorful                   = true;          // Not used yet, will be implemented for more advanced theming 
+// THEME END
 
 //led part
 
@@ -830,7 +842,10 @@ void setup() {
       restoreConfigParameter("soundOn");
       restoreConfigParameter("volume");
       restoreConfigParameter("randomOn"); 
-  
+      restoreConfigParameter("selectedTheme");
+
+      restoreThemeParameters();
+
       loadStartupImageConfig();
       loadStartupSoundConfig(); 
   
@@ -4071,6 +4086,9 @@ void restoreConfigParameter(String key) {
           } else if (key == "randomOn") {
             boolValue = (stringValue == "1");
             Serial.println("Random Startup restored to " + String(boolValue));
+          } else if (key == "selectedTheme") {
+            selectedTheme = stringValue;
+            Serial.println("Selected Theme restored to " + stringValue);
           }
           keyFound = true;
           break;
@@ -4121,7 +4139,111 @@ void restoreConfigParameter(String key) {
   }
 }
 
+// Helper function for theming
+int getColorValue(const char* colorName) {
+  // All TFT_[COLOR] colors defined by M5stack
+  if (strcmp(colorName, "TFT_BLACK") == 0) return TFT_BLACK;
+  if (strcmp(colorName, "TFT_NAVY") == 0) return TFT_NAVY;
+  if (strcmp(colorName, "TFT_DARKGREEN") == 0) return TFT_DARKGREEN;
+  if (strcmp(colorName, "TFT_DARKCYAN") == 0) return TFT_DARKCYAN;
+  if (strcmp(colorName, "TFT_MAROON") == 0) return TFT_MAROON;
+  if (strcmp(colorName, "TFT_PURPLE") == 0) return TFT_PURPLE;
+  if (strcmp(colorName, "TFT_OLIVE") == 0) return TFT_OLIVE;
+  if (strcmp(colorName, "TFT_LIGHTGREY") == 0) return TFT_LIGHTGREY;
+  if (strcmp(colorName, "TFT_DARKGREY") == 0) return TFT_DARKGREY;
+  if (strcmp(colorName, "TFT_BLUE") == 0) return TFT_BLUE;
+  if (strcmp(colorName, "TFT_GREEN") == 0) return TFT_GREEN;
+  if (strcmp(colorName, "TFT_CYAN") == 0) return TFT_CYAN;
+  if (strcmp(colorName, "TFT_RED") == 0) return TFT_RED;
+  if (strcmp(colorName, "TFT_MAGENTA") == 0) return TFT_MAGENTA;
+  if (strcmp(colorName, "TFT_YELLOW") == 0) return TFT_YELLOW;
+  if (strcmp(colorName, "TFT_WHITE") == 0) return TFT_WHITE;
+  if (strcmp(colorName, "TFT_ORANGE") == 0) return TFT_ORANGE;
+  if (strcmp(colorName, "TFT_GREENYELLOW") == 0) return TFT_GREENYELLOW;
+  if (strcmp(colorName, "TFT_PINK") == 0) return TFT_PINK;
+  if (strcmp(colorName, "TFT_BROWN") == 0) return TFT_BROWN;
+  if (strcmp(colorName, "TFT_GOLD") == 0) return TFT_GOLD;
+  // Can add your own colors via:
+  // if (strcmp(colorName, "[CUSTOM_NAME]") == 0) return M5.Lcd.color565(uint8_t r,uint8_t g,uint8_t b);
+  return -1; // Error Case
+}
 
+void restoreThemeParameters() {
+  Serial.println("Opening Theme File: ");
+  Serial.println(selectedTheme.c_str());
+  IniFile ini(selectedTheme.c_str());
+  if (!ini.open()) {
+    Serial.println("Error opening INI file");
+    return;
+  }
+
+  const size_t bufferLen = 80;
+  char valueBuffer[bufferLen]; // Buffer for reading string values
+  IniFileState state; // Needed for the getValue calls
+
+  // Read and assign each configuration value from the INI file
+  if (!ini.getValue("theme", "taskbarBackgroundColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read taskbarBackgroundColor");
+    return; // Exit if any key read fails
+  }
+  taskbarBackgroundColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "taskbarTextColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read taskbarTextColor");
+    return;
+  }
+  taskbarTextColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "taskbarDividerColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read taskbarDividerColor");
+    return;
+  }
+  taskbarDividerColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "menuBackgroundColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read menuBackgroundColor");
+    return;
+  }
+  menuBackgroundColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "menuSelectedBackgroundColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read menuSelectedBackgroundColor");
+    return;
+  }
+  menuSelectedBackgroundColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "menuTextFocusedColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read menuTextFocusedColor");
+    return;
+  }
+  menuTextFocusedColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "menuTextUnFocusedColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read menuTextUnFocusedColor");
+    return;
+  }
+  menuTextUnFocusedColor = getColorValue(valueBuffer);
+
+  // Read the boolean value
+  if (!ini.getValue("theme", "Colorful", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read Colorful");
+    return;
+  }
+  Colorful = (strncmp(valueBuffer, "true", 4) == 0);
+
+  // Close the file
+  ini.close();
+
+  // Optionally, print the values to verify
+  Serial.println(taskbarBackgroundColor);
+  Serial.println(taskbarTextColor);
+  Serial.println(taskbarDividerColor);
+  Serial.println(menuBackgroundColor);
+  Serial.println(menuSelectedBackgroundColor);
+  Serial.println(menuTextFocusedColor);
+  Serial.println(menuTextUnFocusedColor);
+  Serial.println(Colorful ? "True" : "False");
+}
 
 
 //KARMA-PART-FUNCTIONS
