@@ -261,13 +261,13 @@ std::set<std::string> seenWhitelistedSSIDs;
 
 // THEME START
 // Assign default theme values, ini in SD root can change them
-int taskbarBackgroundColor      = TFT_BLACK;     // Taskbar background color
-int taskbarTextColor            = TFT_DARKGREY;  // Taskbar Textcolor
-int taskbarDividerColor         = TFT_WHITE;     // Taskbar divider color
+int taskbarBackgroundColor      = TFT_NAVY;     // Taskbar background color
+int taskbarTextColor            = TFT_GREEN;  // Taskbar Textcolor
+int taskbarDividerColor         = TFT_PURPLE;     // Taskbar divider color
 int menuBackgroundColor         = TFT_BLACK;     // Menu background color
-int menuSelectedBackgroundColor = TFT_DARKGREY;  // Color for bar that highlights selected item
-int menuTextFocusedColor        = TFT_WHITE;     // Text color for currently selected item
-int menuTextUnFocusedColor      = TFT_LIGHTGREY; // Text color for items that are not the currently selected
+int menuSelectedBackgroundColor = TFT_NAVY;  // Color for bar that highlights selected item
+int menuTextFocusedColor        = TFT_GREEN;     // Text color for currently selected item
+int menuTextUnFocusedColor      = TFT_WHITE; // Text color for items that are not the currently selected
 bool Colorful                   = true;          // Not used yet, will be implemented for more advanced theming 
 // THEME END
 
@@ -494,7 +494,7 @@ void setup() {
   Serial.begin(115200);
   M5.Lcd.setRotation(1);
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(menuTextFocusedColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setTextFont(1);
   pinMode(signalPin, OUTPUT);
   digitalWrite(signalPin, LOW);
@@ -900,8 +900,8 @@ void setup() {
   int lineY2 = textY + lineOffset + 30;
 
   M5.Display.clear();
-  M5.Display.drawLine(0, lineY1, M5.Display.width(), lineY1, menuTextFocusedColor);
-  M5.Display.drawLine(0, lineY2, M5.Display.width(), lineY2, menuTextFocusedColor);
+  M5.Display.drawLine(0, lineY1, M5.Display.width(), lineY1, TFT_WHITE);
+  M5.Display.drawLine(0, lineY2, M5.Display.width(), lineY2, TFT_WHITE);
 
   // Largeur de l'écran
   int screenWidth = M5.Lcd.width();
@@ -909,7 +909,7 @@ void setup() {
   // Textes à afficher
   const char* text1 = "Evil-Cardputer";
   const char* text2 = "By 7h30th3r0n3";
-  const char* text3 = "v1.3.2 2024";
+  const char* text3 = "v1.3.3 2024";
 
   // Mesure de la largeur du texte et calcul de la position du curseur
   int text1Width = M5.Lcd.textWidth(text1);
@@ -939,7 +939,7 @@ void setup() {
   Serial.println("-------------------");
   Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("v1.3.2 2024");
+  Serial.println("v1.3.3 2024");
   Serial.println("-------------------");
   M5.Display.setCursor(0, textY + 80);
   M5.Display.println(randomMessage);
@@ -1801,7 +1801,7 @@ void showWifiList() {
       M5.Display.setTextSize(1.5);
       for (int i = listStartIndex; i < min(numSsid, listStartIndex + listDisplayLimit + 1); i++) {
         if (i == currentListIndex) {
-          M5.Display.fillRect(0, (i - listStartIndex) * 13, M5.Display.width(), 13, menuBackgroundColor); // Ajuster la hauteur
+          M5.Display.fillRect(0, (i - listStartIndex) * 13, M5.Display.width(), 13, menuSelectedBackgroundColor); // Ajuster la hauteur
           M5.Display.setTextColor(menuTextFocusedColor);
         } else {
           M5.Display.setTextColor(menuTextUnFocusedColor);
@@ -2516,7 +2516,7 @@ String getDirectoryHtml(File dir, String path, String password) {
             html += "<li>File: <a href='/download-sd-file?filename=" + fullPath + "&pass=" + password + "'>" + displayFileName + "</a> (" + String(file.size()) + " bytes)";
             
             // Ajout du lien d'édition pour les fichiers `.txt` et `.html`
-            if (fileName.endsWith(".txt") || fileName.endsWith(".html")) {
+            if (fileName.endsWith(".txt") || fileName.endsWith(".html")|| fileName.endsWith(".ini")) {
                 html += " <a href='/edit-file?filename=" + fullPath + "&pass=" + password + "' style='color:green;'>[Edit]</a>";
             }
 
@@ -2762,12 +2762,12 @@ void saveCredentials(const String & email, const String & password, const String
     file.close();
     if (ledOn){
       for (int flashes = 0; flashes < 2; flashes++){
-        pixels.setPixelColor(0, pixels.Color(0, 255, 255));
+        pixels.setPixelColor(0, pixels.Color(0, 0, 255));
         pixels.show();
-        delay(100);
+        delay(150);
         pixels.setPixelColor(0, pixels.Color(0, 0, 0));
         pixels.show();
-        delay(100);
+        delay(150);
       }
     }
     Serial.println("-------------------");
@@ -2849,7 +2849,7 @@ void changePortal() {
       for (int i = listStartIndex; i < min(numPortalFiles, listStartIndex + listDisplayLimit); i++) {
         int lineHeight = 12; // Espacement réduit entre les lignes
         if (i == portalFileIndex) {
-          M5.Display.fillRect(0, (i - listStartIndex) * lineHeight, M5.Display.width(), lineHeight, menuBackgroundColor);
+          M5.Display.fillRect(0, (i - listStartIndex) * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
           M5.Display.setTextColor(menuTextFocusedColor);
         } else {
           M5.Display.setTextColor(menuTextUnFocusedColor);
@@ -2993,7 +2993,7 @@ void displayCredentials(int index) {
     int neededLines = 1 + M5.Display.textWidth(credential) / (M5.Display.width() - 20);
 
     if (i == index) {
-      M5.Display.fillRect(0, currentLine * lineHeight, M5.Display.width(), lineHeight * neededLines, menuBackgroundColor);
+      M5.Display.fillRect(0, currentLine * lineHeight, M5.Display.width(), lineHeight * neededLines, menuSelectedBackgroundColor);
     }
 
     for (int line = 0; line < neededLines; line++) {
@@ -3021,7 +3021,7 @@ bool confirmPopup(String message) {
   int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
 
   M5.Display.setCursor(startX, M5.Display.height() / 2);
-  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Display.println(message);
 
   M5.Display.setTextColor(TFT_GREEN);
@@ -3104,7 +3104,7 @@ String ipAddress = "";
 void displayMonitorPage1() {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
 
   if (WiFi.localIP().toString() != "0.0.0.0") {
     wificonnected = true;
@@ -3201,7 +3201,7 @@ void updateConnectedMACs() {
 void displayMonitorPage2() {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   updateConnectedMACs();
 
   if (macAddresses[0] == "") {
@@ -3297,7 +3297,7 @@ const long updateInterval = 1000;
 void displayMonitorPage3() {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
 
   oldStack = getStack();
   oldRamUsage = getRamUsage();
@@ -3416,7 +3416,7 @@ void karmaAttack() {
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5Cardputer.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5Cardputer.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   
   int messageWidth = message.length() * 9;  // Each character is 6 pixels wide
   int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
@@ -4612,7 +4612,8 @@ void startAPWithSSIDKarma(const char* ssid) {
   int remainingTime;
   int clientCount = 0;
   int scanTimeKarma = 60; // Scan time for karma attack (not for Karma Auto)
-
+  enterDebounce();
+  
   while (true) {
     M5.update();
     M5Cardputer.update();
@@ -4620,7 +4621,7 @@ void startAPWithSSIDKarma(const char* ssid) {
     currentTime = millis();
     remainingTime = scanTimeKarma - ((currentTime - startTime) / 1000);
     clientCount = WiFi.softAPgetStationNum();
-    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+    M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Display.setCursor((M5.Display.width() - 12 * strlen(ssid)) / 2, 25);
     M5.Display.println(String(ssid));
 
@@ -4639,7 +4640,7 @@ void startAPWithSSIDKarma(const char* ssid) {
     Serial.println("Connected Client: " + String(clientCount));
     Serial.println("-------------------");
 
-    M5.Lcd.setTextColor(menuTextFocusedColor);
+    M5.Lcd.setTextColor(menuTextUnFocusedColor);
     M5.Display.setCursor(33, 110);
     M5.Display.println(" Stop");
     M5.Display.display();
@@ -5111,7 +5112,7 @@ void probeAttack() {
   M5.Display.setCursor(M5.Display.width() / 2 - 24, M5.Display.height() - 20);
   M5.Display.setTextColor(TFT_WHITE,TFT_RED);
   M5.Display.println("Stop");
-  M5.Display.setTextColor(menuTextFocusedColor,menuBackgroundColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor,menuBackgroundColor);
 
   int probesTextX = 0;
   String probesText = "Probe Attack running...";
@@ -5490,7 +5491,7 @@ void displayWaitingForProbe() {
   if (!isWaitingForProbeDisplayed) {
     M5.Display.clear();
     M5.Display.setTextSize(1.5);
-    M5.Display.setTextColor(menuTextFocusedColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor);
     M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 60, TFT_RED);
     M5.Display.setCursor(M5.Display.width() / 2 - 54, M5.Display.height() - 20);
     M5.Display.println("Stop Auto");
@@ -5528,7 +5529,7 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
   M5.Display.setCursor(0, 0);
   if (!isInitialDisplayDone) {
     M5.Display.clear();
-    M5.Display.setTextColor(menuTextFocusedColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor);
 
     M5.Display.setCursor(0, 10);
     M5.Display.println(String(ssid));
@@ -5546,15 +5547,15 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
   int timeValuePosX = M5.Display.textWidth("Left Time: ");
   int timeValuePosY = 30;
   M5.Display.fillRect(timeValuePosX, 20 , 25, 20, menuBackgroundColor);
-  M5.Display.setTextColor(menuTextFocusedColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setCursor(timeValuePosX, timeValuePosY);
   M5.Display.print(remainingTime);
-  M5.Display.print(" s");
+  M5.Display.print(" s ");
 
   int clientValuePosX = M5.Display.textWidth("Connected Client: ");
   int clientValuePosY = 50;
   M5.Display.fillRect(clientValuePosX, 40 , 25 , 20, menuBackgroundColor);
-  M5.Display.setTextColor(menuTextFocusedColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setCursor(clientValuePosX, clientValuePosY);
   M5.Display.print(clientCount);
 }
@@ -5564,9 +5565,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.3.2"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.3.3"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardputer";
-  preHeader += ",release=v1.3.2"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.3.3"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -5590,13 +5591,13 @@ void wardrivingMode() {
   Serial.println("Starting Wardriving");
   Serial.println("-------------------");
   M5.Lcd.fillScreen(menuBackgroundColor);
-  M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Lcd.setTextSize(1.5);
   M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
   M5.Display.setCursor(M5.Display.width() / 2 - 24 , M5.Display.height() - 20);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.println("Stop");
-  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Lcd.setCursor(0, 10);
   M5.Lcd.printf("Scanning...");
   M5.Lcd.setCursor(0, 30);
@@ -6894,7 +6895,7 @@ void deauthAttack(int networkIndex) {
     M5.Display.setTextColor(TFT_WHITE);
     M5.Display.println("Stop");
 
-    M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Display.setCursor(10, 20);
     M5.Display.println("SSID: " + ssid);
     M5.Display.setCursor(10, 34);
@@ -7219,15 +7220,15 @@ void wifi_scan() {
   Serial.println("-----------------------------");
   Serial.println("Scanning WiFi networks...");
   ap_channels.clear();
-  const char* scanningText = "Scanning nearby networks...";
-  M5.Lcd.setCursor((M5.Lcd.width()-M5.Lcd.textWidth(scanningText))/2, M5.Display.height() / 32 );
+  const char* scanningText = "Scanning nearby networks..";
+  M5.Lcd.setCursor((M5.Lcd.width()-M5.Lcd.textWidth(scanningText))/2, M5.Display.height() - 12 );
   M5.Lcd.printf(scanningText);
 
   int n = WiFi.scanNetworks(false, false);
   if (n == 0) {
     Serial.println("No networks found");
     const char* failedText = "No AP Found.";
-    M5.Lcd.setCursor((M5.Lcd.width()-M5.Lcd.textWidth(failedText))/2, M5.Display.height() / 32 );
+    M5.Lcd.setCursor((M5.Lcd.width()-M5.Lcd.textWidth(failedText))/2, M5.Display.height() - 12 );
     M5.Lcd.setTextColor(TFT_RED);
     M5.Lcd.printf(failedText);
     return;
@@ -7263,7 +7264,7 @@ void wifi_scan() {
   M5.Lcd.print("  ");
   M5.Lcd.drawLine(0, 13, M5.Lcd.width(), 13, taskbarDividerColor);
   delay(30);
-  M5.Lcd.setCursor(0, M5.Display.height() - 32);
+  M5.Lcd.setCursor((M5.Lcd.width()-M5.Lcd.textWidth(scanningText))/2, M5.Display.height() - 12 );
   M5.Lcd.printf("                          ");
 }
 
@@ -7445,7 +7446,7 @@ void deauthClients() {
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(promiscuous_callback);
 
-  M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Lcd.setCursor(M5.Display.width() - 30, 1);
   M5.Lcd.printf("D:");
   if (isDeauthActive) {
@@ -7720,7 +7721,7 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
           isValidMac = true;
         }
 
-        M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+        M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
         M5.Display.setCursor(0, 10);
         String name = advertisedDevice.getName().c_str();
 
@@ -8174,7 +8175,7 @@ void parseUserHostPort(const String &input, String &user, String &host, int &por
 // Fonction principale pour se connecter via SSH
 void sshConnect(const char *host) {
    sshKilled = false;
-  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   if (WiFi.localIP().toString() == "0.0.0.0") {
     waitAndReturnToMenu("Not connected...");
     return;
@@ -8795,7 +8796,7 @@ void local_scan_setup() {
   IPAddress gatewayIP;
   IPAddress subnetMask;
   std::vector<IPAddress> hostslist;
-  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Display.setTextSize(1.5);
 
   gatewayIP = WiFi.gatewayIP();
@@ -8918,7 +8919,7 @@ void displayHostOptions(const std::vector<IPAddress>& hostslist) {
       for (int i = 0; i < options.size(); ++i) {
         if (i == index) {
           M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
-          M5.Display.setTextColor(menuSelectedBackgroundColor);
+          M5.Display.setTextColor(menuTextFocusedColor);
         } else {
           M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
         }
@@ -9212,7 +9213,7 @@ void displaySpamStatus() {
   enterDebounce();
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Display.setCursor(0, 10);
   M5.Display.println("PwnGrid Spam Running...");
 
@@ -9390,7 +9391,7 @@ void skimmerDetection() {
   scan->setWindow(449);
   
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(menuTextFocusedColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setCursor(0, 0);
   M5.Display.println("Scanning for Skimmers...");
 
@@ -9563,7 +9564,7 @@ void key_input(FS &fs, const String &bad_script) {
             M5.Display.setTextColor(menuBackgroundColor);
             M5.Display.println(Command);
           }
-          M5.Display.setTextColor(menuTextFocusedColor);
+          M5.Display.setTextColor(menuTextUnFocusedColor);
           M5.Display.println(Argument);
 
           if (strcmp(Cmd, "REM") != 0) delay(DEF_DELAY);  //if command is not a comment, wait DEF_DELAY until next command (100ms)
@@ -9640,7 +9641,7 @@ void showScriptOptions() {
 
 void runScript(const String &scriptName) {
     M5.Display.fillScreen(menuBackgroundColor);
-    M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Display.println("Preparing");
     delay(200);
 
@@ -9780,7 +9781,7 @@ void initBluetoothKeyboard() {
     Serial.println();
 
     M5Cardputer.Display.clear();
-    M5Cardputer.Display.setTextColor(menuTextFocusedColor);
+    M5Cardputer.Display.setTextColor(menuTextUnFocusedColor);
     M5Cardputer.Display.setCursor(0, 10);
     M5Cardputer.Display.println("Bluetooth device name :");
     
@@ -9950,7 +9951,7 @@ int totalNetworks = 0;
 unsigned long lastLog = 0;
 int currentScreen = 1;  // Track which screen is currently displayed
 
-const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.2,model=Cardputer,release=v1.3.2,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
+const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.3,model=Cardputer,release=v1.3.3,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
 
 char* log_col_names[LOG_COLUMN_COUNT] = {
     "MAC", "SSID", "AuthMode", "FirstSeen", "Channel", "RSSI", "CurrentLatitude", "CurrentLongitude", "AltitudeMeters", "AccuracyMeters", "Type"
@@ -10378,7 +10379,7 @@ void displayStatus() {
         M5.Display.fillRect(0, 0, 240, 10, menuBackgroundColor);  // Effacer la ligne de l'ancien total
         M5.Display.setTextSize(1);
         M5.Display.setCursor(0, 0);  // Position du texte (en haut)
-        M5.Display.setTextColor(menuTextFocusedColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor);
         M5.Display.printf("Total Frames: %d", totalReceived);  // Afficher le nouveau total
         lastTotalReceived = totalReceived;  // Mettre à jour l'ancien total
     }
@@ -10510,7 +10511,7 @@ void wifiVisualizer() {
     M5.Display.clear(menuBackgroundColor);
     M5.Display.setTextSize(1);
     M5.Display.setTextFont(1);
-    M5.Display.setTextColor(menuBackgroundColor, menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Display.setCursor(screenWidth / 2 - 30, screenHeight / 2 - 10);
     M5.Display.printf("Scanning...");
     M5.Display.display();
@@ -10801,7 +10802,7 @@ void allTrafficSniffer() {
 
   Serial.println("Starting all traffic sniffer...");
   M5.Lcd.clear();
-  M5.Lcd.setTextColor(menuTextUnFocusedColor);
+  M5.Lcd.setTextColor(menuTextFocusedColor);
   M5.Lcd.setCursor(3, 0);
   M5.Lcd.println("Sniffing Raw on :");
   M5.Lcd.println(filename);
@@ -10818,7 +10819,7 @@ void allTrafficSniffer() {
     unsigned long currentPressTime = millis();
     unsigned long currentTime = millis();
 
-    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+    M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Lcd.setCursor(0, 25);
     M5.Lcd.printf("     < [Channel]: %d > \n", currentChannel);
     M5.Lcd.setCursor(0, 42);
@@ -11010,7 +11011,7 @@ void sniffNetwork() {
 
   Serial.println("Starting all traffic sniffer...");
   M5.Lcd.clear();
-  M5.Lcd.setTextColor(menuTextUnFocusedColor);
+  M5.Lcd.setTextColor(menuTextFocusedColor);
   M5.Lcd.setCursor(3, 0);
   M5.Lcd.println("Sniffing Raw on :");
   M5.Lcd.println(filename);
@@ -11025,7 +11026,7 @@ void sniffNetwork() {
     vTaskDelay(pdMS_TO_TICKS(10));
     M5Cardputer.update();
     handleDnsRequestSerial();
-
+    
     if (getConnectedPeopleCount() == 0) {
       Serial.println("No stations connected, stopping sniffer and returning to menu...");
       M5.Lcd.clear();
@@ -11042,7 +11043,7 @@ void sniffNetwork() {
     unsigned long currentPressTime = millis();
     unsigned long currentTime = millis();
 
-    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+    M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Lcd.setCursor(0, 25);
     M5.Lcd.printf("[Total]       : %d\n", packetSavedCount);
     M5.Lcd.setCursor(0, M5.Display.height() - 16);
