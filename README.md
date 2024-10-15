@@ -51,6 +51,7 @@ Join the Evil-M5 discord for help and update 😉:
 
 
 </div></div>
+
 ## NEW Feature ! from v1.3.3 : Customing Theming, Colorful interface toggle!!!
 ### Introducing customization features that allow you to make your device truly your own.
 
