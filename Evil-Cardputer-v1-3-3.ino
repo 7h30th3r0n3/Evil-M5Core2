@@ -72,7 +72,7 @@
 #include <regex>
 //sniff and deauth client end
 
-
+#include <IniFile.h>
 
 String scanIp = "";
 #include <lwip/etharp.h>
@@ -250,14 +250,26 @@ bool karmaSuccess = false;
 //config file
 const char* configFolderPath = "/config";
 const char* configFilePath = "/config/config.txt";
-int defaultBrightness = 255 * 0.35; //  35% default Brightness
+int defaultBrightness = 255 * 0.35;                         //  35% default Brightness
 String selectedStartupImage = "/img/startup-cardputer.jpg"; // Valeur par défaut
-String selectedStartupSound = "/audio/sample.mp3"; // Valeur par défaut
+String selectedStartupSound = "/audio/sample.mp3";          // Valeur par défaut
+String selectedTheme = "/theme.ini";                        // Selected Theme Default
 
 std::vector<std::string> whitelist;
 std::set<std::string> seenWhitelistedSSIDs;
 //config file end
 
+// THEME START
+// Assign default theme values, ini in SD root can change them
+int taskbarBackgroundColor      = TFT_NAVY;     // Taskbar background color
+int taskbarTextColor            = TFT_GREEN;  // Taskbar Textcolor
+int taskbarDividerColor         = TFT_PURPLE;     // Taskbar divider color
+int menuBackgroundColor         = TFT_BLACK;     // Menu background color
+int menuSelectedBackgroundColor = TFT_NAVY;  // Color for bar that highlights selected item
+int menuTextFocusedColor        = TFT_GREEN;     // Text color for currently selected item
+int menuTextUnFocusedColor      = TFT_WHITE; // Text color for items that are not the currently selected
+bool Colorful                   = true;          // Not used yet, will be implemented for more advanced theming 
+// THEME END
 
 //led part
 
@@ -482,7 +494,7 @@ void setup() {
   Serial.begin(115200);
   M5.Lcd.setRotation(1);
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setTextFont(1);
   pinMode(signalPin, OUTPUT);
   digitalWrite(signalPin, LOW);
@@ -783,9 +795,9 @@ void setup() {
   if (!SD.begin()) {
       Serial.println("Error..");
       Serial.println("SD card not mounted...");
-      M5.Display.fillRect(0, 0, 240, 135, TFT_BLACK);
+      M5.Display.fillRect(0, 0, 240, 135, menuBackgroundColor);
       M5.Display.drawRect(10, 20, 220, 95, TFT_RED);
-      M5.Display.fillRect(11, 21, 218, 93, TFT_NAVY);
+      M5.Display.fillRect(11, 21, 218, 93, taskbarBackgroundColor);
       M5.Display.setTextColor(TFT_GREEN);
       M5.Display.setTextSize(2);
       int textWidth = M5.Display.textWidth("SD Card Error");
@@ -830,7 +842,10 @@ void setup() {
       restoreConfigParameter("soundOn");
       restoreConfigParameter("volume");
       restoreConfigParameter("randomOn"); 
-  
+      restoreConfigParameter("selectedTheme");
+
+      restoreThemeParameters();
+
       loadStartupImageConfig();
       loadStartupSoundConfig(); 
   
@@ -894,7 +909,7 @@ void setup() {
   // Textes à afficher
   const char* text1 = "Evil-Cardputer";
   const char* text2 = "By 7h30th3r0n3";
-  const char* text3 = "v1.3.2 2024";
+  const char* text3 = "v1.3.3 2024";
 
   // Mesure de la largeur du texte et calcul de la position du curseur
   int text1Width = M5.Lcd.textWidth(text1);
@@ -924,7 +939,7 @@ void setup() {
   Serial.println("-------------------");
   Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("v1.3.2 2024");
+  Serial.println("v1.3.3 2024");
   Serial.println("-------------------");
   M5.Display.setCursor(0, textY + 80);
   M5.Display.println(randomMessage);
@@ -1045,20 +1060,39 @@ int getCapturedPasswordsCount() {
 }
 
 void drawTaskBar() {
-  taskBarCanvas.fillRect(0, 0, taskBarCanvas.width(), 10, TFT_NAVY); // Dessiner un rectangle bleu en haut de l'écran
-  taskBarCanvas.fillRect(0, 10, taskBarCanvas.width(), 2, TFT_PURPLE); // Dessiner un rectangle bleu en haut de l'écran
-  taskBarCanvas.setTextColor(TFT_GREEN);
+  taskBarCanvas.fillRect(0, 0, taskBarCanvas.width(), 10, taskbarBackgroundColor); // Dessiner un rectangle bleu en haut de l'écran
+  taskBarCanvas.fillRect(0, 10, taskBarCanvas.width(), 2, taskbarDividerColor); // Dessiner un rectangle bleu en haut de l'écran
+  taskBarCanvas.setTextColor(taskbarTextColor);
   
-  // Afficher le nombre de personnes connectées
-  int connectedPeople = getConnectedPeopleCount();
-  taskBarCanvas.setCursor(5, 2); // Positionner à gauche
-  taskBarCanvas.print("Sta:" + String(connectedPeople));
+  if (Colorful) {
+    // Number of Connections
+    int connectedPeople = getConnectedPeopleCount();
+    taskBarCanvas.setCursor(0, 2); 
+    taskBarCanvas.print("Sta:");
+    taskBarCanvas.setCursor(25, 2);
+    taskBarCanvas.setTextColor(connectedPeople > 0 ? menuTextFocusedColor : taskbarTextColor);
+    taskBarCanvas.print(String(connectedPeople));
 
-  // Afficher le nombre de mots de passe capturés
-  int capturedPasswords = getCapturedPasswordsCount();
-  taskBarCanvas.setCursor(45, 2); // Positionner après "Sta"
-  taskBarCanvas.print("Pwd:" + String(capturedPasswords));
-  
+    // Password Captures
+    int capturedPasswords = getCapturedPasswordsCount();
+    taskBarCanvas.setCursor(45, 2); // Position right of connections
+    taskBarCanvas.setTextColor(taskbarTextColor);
+    taskBarCanvas.print("Pwd:");
+    taskBarCanvas.setCursor(70, 2);
+    taskBarCanvas.setTextColor(capturedPasswords > 0 ? menuTextFocusedColor : taskbarTextColor);
+    taskBarCanvas.print(String(capturedPasswords));
+  } else {
+    // Afficher le nombre de personnes connectées
+    int connectedPeople = getConnectedPeopleCount();
+    taskBarCanvas.setCursor(0, 2); // Positionner à gauche
+    taskBarCanvas.print("Sta:" + String(connectedPeople));
+
+    // Afficher le nombre de mots de passe capturés
+    int capturedPasswords = getCapturedPasswordsCount();
+    taskBarCanvas.setCursor(46, 2); // Positionner après "Sta"
+    taskBarCanvas.print("Pwd:" + String(capturedPasswords));
+  }
+
   // Afficher l'indicateur de point clignotant pour les accès aux pages et DNS
   static bool dotState = false;
   dotState = !dotState;
@@ -1075,17 +1109,34 @@ void drawTaskBar() {
   } else {
     taskBarCanvas.print("  ");
   }
-  
-  taskBarCanvas.setCursor(95, 2); // Positionner après "■"
-  taskBarCanvas.print("P:" + String(isCaptivePortalOn ? "On" : "Off")); 
+  if (Colorful) {
+    taskBarCanvas.setCursor(95, 1);
+    taskBarCanvas.setTextColor(taskbarTextColor);
+    taskBarCanvas.print("P:");
+    taskBarCanvas.setCursor(108, 1);
+    taskBarCanvas.setTextColor(isCaptivePortalOn ? TFT_GREEN : TFT_RED);
+    taskBarCanvas.print(String(isCaptivePortalOn ? "On" : "Off")); 
 
+    // Get/Draw Battery Level
+    String batteryLevel = getBatteryLevel();
+    int batteryWidth = taskBarCanvas.textWidth(batteryLevel + "%");
+    taskBarCanvas.setCursor(taskBarCanvas.width() - batteryWidth - 5, 1);
 
+    int batteryLevelInt = batteryLevel.toInt();  // Convert String to integer once
 
-  // Afficher le niveau de batterie à droite
-  String batteryLevel = getBatteryLevel();
-  int batteryWidth = taskBarCanvas.textWidth(batteryLevel + "%");
-  taskBarCanvas.setCursor(taskBarCanvas.width() - batteryWidth - 5, 2); // Positionner à droite
-  taskBarCanvas.print(batteryLevel + "%");
+    taskBarCanvas.setTextColor(batteryLevelInt >= 70 ? TFT_GREEN :
+                              (batteryLevelInt >= 40? TFT_YELLOW : TFT_RED));
+    taskBarCanvas.print(batteryLevel + "%");
+  } else {
+    taskBarCanvas.setCursor(95, 2); // Positionner après "■"
+    taskBarCanvas.print("P:" + String(isCaptivePortalOn ? "On" : "Off")); 
+
+    // Afficher le niveau de batterie à droite
+    String batteryLevel = getBatteryLevel();
+    int batteryWidth = taskBarCanvas.textWidth(batteryLevel + "%");
+    taskBarCanvas.setCursor(taskBarCanvas.width() - batteryWidth - 5, 2); // Positionner à droite
+    taskBarCanvas.print(batteryLevel + "%");
+  }
 
   // Afficher le framebuffer de la barre de tâches
   taskBarCanvas.pushSprite(0, 0);
@@ -1143,7 +1194,7 @@ void loop() {
 }
 
 void drawMenu() {
-  M5.Display.fillRect(0, 13, M5.Display.width(), M5.Display.height() - 13, TFT_BLACK); // Effacer la partie inférieure de l'écran
+  M5.Display.fillRect(0, 13, M5.Display.width(), M5.Display.height() - 13, menuBackgroundColor); // Effacer la partie inférieure de l'écran
   M5.Display.setTextSize(1.5); // Assurez-vous que la taille du texte est correcte
   M5.Display.setTextFont(1);
 
@@ -1156,10 +1207,10 @@ void drawMenu() {
     if (menuIndex >= menuSize) break;
 
     if (menuIndex == currentIndex) {
-      M5.Display.fillRect(0, 1 + startY + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-      M5.Display.setTextColor(TFT_GREEN);
+      M5.Display.fillRect(0, 1 + startY + i * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+      M5.Display.setTextColor(menuTextFocusedColor);
     } else {
-      M5.Display.setTextColor(TFT_WHITE);
+      M5.Display.setTextColor(menuTextUnFocusedColor);
     }
     M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 3); // Ajustez ici
     M5.Display.println(menuItems[menuIndex]);
@@ -1750,10 +1801,10 @@ void showWifiList() {
       M5.Display.setTextSize(1.5);
       for (int i = listStartIndex; i < min(numSsid, listStartIndex + listDisplayLimit + 1); i++) {
         if (i == currentListIndex) {
-          M5.Display.fillRect(0, (i - listStartIndex) * 13, M5.Display.width(), 13, TFT_NAVY); // Ajuster la hauteur
-          M5.Display.setTextColor(TFT_GREEN);
+          M5.Display.fillRect(0, (i - listStartIndex) * 13, M5.Display.width(), 13, menuSelectedBackgroundColor); // Ajuster la hauteur
+          M5.Display.setTextColor(menuTextFocusedColor);
         } else {
-          M5.Display.setTextColor(TFT_WHITE);
+          M5.Display.setTextColor(menuTextUnFocusedColor);
         }
         M5.Display.setCursor(2, (i - listStartIndex) * 13); // Ajuster la hauteur
         M5.Display.println(ssidList[i]);
@@ -2465,7 +2516,7 @@ String getDirectoryHtml(File dir, String path, String password) {
             html += "<li>File: <a href='/download-sd-file?filename=" + fullPath + "&pass=" + password + "'>" + displayFileName + "</a> (" + String(file.size()) + " bytes)";
             
             // Ajout du lien d'édition pour les fichiers `.txt` et `.html`
-            if (fileName.endsWith(".txt") || fileName.endsWith(".html")) {
+            if (fileName.endsWith(".txt") || fileName.endsWith(".html")|| fileName.endsWith(".ini")) {
                 html += " <a href='/edit-file?filename=" + fullPath + "&pass=" + password + "' style='color:green;'>[Edit]</a>";
             }
 
@@ -2711,12 +2762,12 @@ void saveCredentials(const String & email, const String & password, const String
     file.close();
     if (ledOn){
       for (int flashes = 0; flashes < 2; flashes++){
-        pixels.setPixelColor(0, pixels.Color(0, 255, 255));
+        pixels.setPixelColor(0, pixels.Color(0, 0, 255));
         pixels.show();
-        delay(100);
+        delay(150);
         pixels.setPixelColor(0, pixels.Color(0, 0, 0));
         pixels.show();
-        delay(100);
+        delay(150);
       }
     }
     Serial.println("-------------------");
@@ -2774,7 +2825,6 @@ void listPortalFiles() {
   root.close();
 }
 
-
 void changePortal() {
   listPortalFiles();
   const int listDisplayLimit = M5.Display.height() / 12;
@@ -2793,16 +2843,16 @@ void changePortal() {
 
       M5.Display.clear();
       M5.Display.setTextSize(1.5);
-      M5.Display.setTextColor(TFT_WHITE);
+      M5.Display.setTextColor(menuTextUnFocusedColor);
       M5.Display.setCursor(10, 10);
 
       for (int i = listStartIndex; i < min(numPortalFiles, listStartIndex + listDisplayLimit); i++) {
         int lineHeight = 12; // Espacement réduit entre les lignes
         if (i == portalFileIndex) {
-          M5.Display.fillRect(0, (i - listStartIndex) * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-          M5.Display.setTextColor(TFT_GREEN);
+          M5.Display.fillRect(0, (i - listStartIndex) * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+          M5.Display.setTextColor(menuTextFocusedColor);
         } else {
-          M5.Display.setTextColor(TFT_WHITE);
+          M5.Display.setTextColor(menuTextUnFocusedColor);
         }
         M5.Display.setCursor(10, (i - listStartIndex) * lineHeight);
         M5.Display.println(portalFiles[i].substring(7));
@@ -2943,12 +2993,12 @@ void displayCredentials(int index) {
     int neededLines = 1 + M5.Display.textWidth(credential) / (M5.Display.width() - 20);
 
     if (i == index) {
-      M5.Display.fillRect(0, currentLine * lineHeight, M5.Display.width(), lineHeight * neededLines, TFT_NAVY);
+      M5.Display.fillRect(0, currentLine * lineHeight, M5.Display.width(), lineHeight * neededLines, menuSelectedBackgroundColor);
     }
 
     for (int line = 0; line < neededLines; line++) {
       M5.Display.setCursor(10, (currentLine + line) * lineHeight);
-      M5.Display.setTextColor(i == index ? TFT_GREEN : TFT_WHITE);
+      M5.Display.setTextColor(i == index ? menuTextFocusedColor : menuTextUnFocusedColor);
 
       int startChar = line * (credential.length() / neededLines);
       int endChar = min(credential.length(), startChar + (credential.length() / neededLines));
@@ -2971,7 +3021,7 @@ bool confirmPopup(String message) {
   int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
 
   M5.Display.setCursor(startX, M5.Display.height() / 2);
-  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Display.println(message);
 
   M5.Display.setTextColor(TFT_GREEN);
@@ -2982,7 +3032,7 @@ bool confirmPopup(String message) {
   M5.Display.setCursor(M5.Display.width() - 60, 110);
   M5.Display.print("N");
 
-  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
   M5.Display.display();
 
   while (!decisionMade) {
@@ -3054,7 +3104,7 @@ String ipAddress = "";
 void displayMonitorPage1() {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
 
   if (WiFi.localIP().toString() != "0.0.0.0") {
     wificonnected = true;
@@ -3103,14 +3153,14 @@ void displayMonitorPage1() {
     int newNumPasswords = countPasswordsInFile();
 
     if (newNumClients != oldNumClients) {
-      M5.Display.fillRect(0, 15, 50, 10, TFT_BLACK);
+      M5.Display.fillRect(0, 15, 50, 10, menuBackgroundColor);
       M5.Display.setCursor(0, 15);
       M5.Display.println("Clients: " + String(newNumClients));
       oldNumClients = newNumClients;
     }
 
     if (newNumPasswords != oldNumPasswords) {
-      M5.Display.fillRect(0, 30, 50, 10, TFT_BLACK);
+      M5.Display.fillRect(0, 30, 50, 10, menuBackgroundColor);
       M5.Display.setCursor(0, 30);
       M5.Display.println("Passwords: " + String(newNumPasswords));
       oldNumPasswords = newNumPasswords;
@@ -3151,7 +3201,7 @@ void updateConnectedMACs() {
 void displayMonitorPage2() {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   updateConnectedMACs();
 
   if (macAddresses[0] == "") {
@@ -3247,7 +3297,7 @@ const long updateInterval = 1000;
 void displayMonitorPage3() {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
 
   oldStack = getStack();
   oldRamUsage = getRamUsage();
@@ -3366,7 +3416,7 @@ void karmaAttack() {
 void waitAndReturnToMenu(String message) {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5Cardputer.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5Cardputer.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   
   int messageWidth = message.length() * 9;  // Each character is 6 pixels wide
   int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
@@ -3374,7 +3424,7 @@ void waitAndReturnToMenu(String message) {
   // Set the cursor to the calculated position
   M5.Display.setCursor(startX, M5.Display.height() / 2);
   M5.Display.println(message);
-  M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_BLACK);
+  M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, menuBackgroundColor);
 
   M5.Display.display();
   delay(1500);
@@ -3400,10 +3450,10 @@ void loopOptions(std::vector<std::pair<String, std::function<void()>>> &options,
         if (optionIndex >= options.size()) break;
 
         if (optionIndex == currentIndex) {
-            M5.Display.fillRect(0, 0 + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-            M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
+            M5.Display.fillRect(0, 0 + i * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+            M5.Display.setTextColor(menuTextFocusedColor);
         } else {
-            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
         }
         M5.Display.setCursor(0, 0 + i * lineHeight);
         M5.Display.println(options[optionIndex].first);
@@ -3445,10 +3495,10 @@ void loopOptions(std::vector<std::pair<String, std::function<void()>>> &options,
                 if (optionIndex >= options.size()) break;
 
                 if (optionIndex == currentIndex) {
-                    M5.Display.fillRect(0, 0 + i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
+                    M5.Display.fillRect(0, 0 + i * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+                    M5.Display.setTextColor(menuTextFocusedColor);
                 } else {
-                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+                    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
                 }
                 M5.Display.setCursor(0, 0 + i * lineHeight);
                 M5.Display.println(options[optionIndex].first);
@@ -3567,7 +3617,7 @@ void setStartupSound() {
         if (needDisplayUpdate) {
             M5.Display.clear();
             M5.Display.setCursor(0, 0);
-            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
             M5.Display.println("Select Startup Sound:");
 
             for (int i = 0; i < maxDisplayItems && (menuStartIndex + i) < sounds.size(); i++) {
@@ -3580,9 +3630,9 @@ void setStartupSound() {
                 }
 
                 if (itemIndex == currentSoundIndex) {
-                    M5.Display.setTextColor(TFT_GREEN, TFT_NAVY); // Highlight selected item
+                    M5.Display.setTextColor(menuTextFocusedColor); // Highlight selected item
                 } else {
-                    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); // Normal text color
+                    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor); // Normal text color
                 }
                 M5.Display.println(displayFileName);
             }
@@ -3612,8 +3662,8 @@ void setStartupSound() {
         } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
             selectedStartupSound = sounds[currentSoundIndex];
             saveStartupSoundConfig(selectedStartupSound);
-            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-            M5.Display.fillScreen(TFT_BLACK);
+            M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+            M5.Display.fillScreen(menuBackgroundColor);
             M5.Display.setCursor(0, M5.Display.height() / 2);
             M5.Display.print("Startup sound set to\n" + selectedStartupSound);
             delay(1000);
@@ -3783,15 +3833,15 @@ void setStartupImage() {
             if (needDisplayUpdate) {
                 M5.Display.clear();
                 M5.Display.setCursor(0, 0);
-                M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+                M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
                 M5.Display.println("Select Startup Image:");
 
                 for (int i = 0; i < maxDisplayItems && (menuStartIndex + i) < images.size(); i++) {
                     int itemIndex = menuStartIndex + i;
                     if (itemIndex == currentImageIndex) {
-                        M5.Display.setTextColor(TFT_GREEN, TFT_NAVY); // Sélectionner la couleur
+                        M5.Display.setTextColor(menuTextFocusedColor); // Sélectionner la couleur
                     } else {
-                        M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); // Non sélectionné
+                        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor); // Non sélectionné
                     }
                     M5.Display.println(images[itemIndex]);
                 }
@@ -3849,8 +3899,8 @@ void setStartupImage() {
             String ThisImg = "/img/" + images[currentImageIndex];
             drawImage(ThisImg.c_str());
             delay(1000);
-            M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-            M5.Display.fillScreen(TFT_BLACK);
+            M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+            M5.Display.fillScreen(menuBackgroundColor);
             M5.Display.setCursor(0, M5.Display.height() / 2);
             M5.Display.print("Startup image set to\n" + selectedStartupImage);
             delay(1000);
@@ -3893,7 +3943,7 @@ void brightness() {
 
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.setTextColor(menuTextFocusedColor);
 
   bool brightnessAdjusted = true;
   unsigned long lastKeyPressTime = 0;
@@ -3927,7 +3977,7 @@ void brightness() {
 
     if (brightnessAdjusted) {
       float brightnessPercentage = 100.0 * (currentBrightness - minBrightness) / (maxBrightness - minBrightness);
-      M5.Display.fillScreen(TFT_BLACK);
+      M5.Display.fillScreen(menuBackgroundColor);
       M5.Display.setCursor(50, M5.Display.height() / 2);
       M5.Display.print("Brightness: ");
       M5.Display.print((int)brightnessPercentage);
@@ -3939,7 +3989,7 @@ void brightness() {
   }
 
   float finalBrightnessPercentage = 100.0 * (currentBrightness - minBrightness) / (maxBrightness - minBrightness);
-  M5.Display.fillScreen(TFT_BLACK);
+  M5.Display.fillScreen(menuBackgroundColor);
   M5.Display.setCursor(0, M5.Display.height() / 2);
   M5.Display.print("Brightness set to " + String((int)finalBrightnessPercentage) + "%");
   delay(1000);
@@ -3953,7 +4003,7 @@ void adjustVolume() {
 
     M5.Display.clear();
     M5.Display.setTextSize(1.5);
-    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.setTextColor(menuTextFocusedColor);
 
     bool volumeAdjusted = true;
     unsigned long lastKeyPressTime = 0;
@@ -3986,7 +4036,7 @@ void adjustVolume() {
 
         if (volumeAdjusted) {
             float volumePercentage = 100.0 * (currentVolume - minVolume) / (maxVolume - minVolume);
-            M5.Display.fillScreen(TFT_BLACK);
+            M5.Display.fillScreen(menuBackgroundColor);
             M5.Display.setCursor(50, M5.Display.height() / 2);
             M5.Display.print("Volume: ");
             M5.Display.print((int)volumePercentage);
@@ -3998,7 +4048,7 @@ void adjustVolume() {
     }
 
     float finalVolumePercentage = 100.0 * (currentVolume - minVolume) / (maxVolume - minVolume);
-    M5.Display.fillScreen(TFT_BLACK);
+    M5.Display.fillScreen(menuBackgroundColor);
     M5.Display.setCursor(50, M5.Display.height() / 2);
     M5.Display.print("Volume set to " + String((int)finalVolumePercentage) + "%");
     delay(1000);
@@ -4071,6 +4121,9 @@ void restoreConfigParameter(String key) {
           } else if (key == "randomOn") {
             boolValue = (stringValue == "1");
             Serial.println("Random Startup restored to " + String(boolValue));
+          } else if (key == "selectedTheme") {
+            selectedTheme = stringValue;
+            Serial.println("Selected Theme restored to " + stringValue);
           }
           keyFound = true;
           break;
@@ -4121,7 +4174,111 @@ void restoreConfigParameter(String key) {
   }
 }
 
+// Helper function for theming
+int getColorValue(const char* colorName) {
+  // All TFT_[COLOR] colors defined by M5stack
+  if (strcmp(colorName, "TFT_BLACK") == 0) return TFT_BLACK;
+  if (strcmp(colorName, "TFT_NAVY") == 0) return TFT_NAVY;
+  if (strcmp(colorName, "TFT_DARKGREEN") == 0) return TFT_DARKGREEN;
+  if (strcmp(colorName, "TFT_DARKCYAN") == 0) return TFT_DARKCYAN;
+  if (strcmp(colorName, "TFT_MAROON") == 0) return TFT_MAROON;
+  if (strcmp(colorName, "TFT_PURPLE") == 0) return TFT_PURPLE;
+  if (strcmp(colorName, "TFT_OLIVE") == 0) return TFT_OLIVE;
+  if (strcmp(colorName, "TFT_LIGHTGREY") == 0) return TFT_LIGHTGREY;
+  if (strcmp(colorName, "TFT_DARKGREY") == 0) return TFT_DARKGREY;
+  if (strcmp(colorName, "TFT_BLUE") == 0) return TFT_BLUE;
+  if (strcmp(colorName, "TFT_GREEN") == 0) return TFT_GREEN;
+  if (strcmp(colorName, "TFT_CYAN") == 0) return TFT_CYAN;
+  if (strcmp(colorName, "TFT_RED") == 0) return TFT_RED;
+  if (strcmp(colorName, "TFT_MAGENTA") == 0) return TFT_MAGENTA;
+  if (strcmp(colorName, "TFT_YELLOW") == 0) return TFT_YELLOW;
+  if (strcmp(colorName, "TFT_WHITE") == 0) return TFT_WHITE;
+  if (strcmp(colorName, "TFT_ORANGE") == 0) return TFT_ORANGE;
+  if (strcmp(colorName, "TFT_GREENYELLOW") == 0) return TFT_GREENYELLOW;
+  if (strcmp(colorName, "TFT_PINK") == 0) return TFT_PINK;
+  if (strcmp(colorName, "TFT_BROWN") == 0) return TFT_BROWN;
+  if (strcmp(colorName, "TFT_GOLD") == 0) return TFT_GOLD;
+  // Can add your own colors via:
+  // if (strcmp(colorName, "[CUSTOM_NAME]") == 0) return M5.Lcd.color565(uint8_t r,uint8_t g,uint8_t b);
+  return -1; // Error Case
+}
 
+void restoreThemeParameters() {
+  Serial.println("Opening Theme File: ");
+  Serial.println(selectedTheme.c_str());
+  IniFile ini(selectedTheme.c_str());
+  if (!ini.open()) {
+    Serial.println("Error opening INI file");
+    return;
+  }
+
+  const size_t bufferLen = 80;
+  char valueBuffer[bufferLen]; // Buffer for reading string values
+  IniFileState state; // Needed for the getValue calls
+
+  // Read and assign each configuration value from the INI file
+  if (!ini.getValue("theme", "taskbarBackgroundColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read taskbarBackgroundColor");
+    return; // Exit if any key read fails
+  }
+  taskbarBackgroundColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "taskbarTextColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read taskbarTextColor");
+    return;
+  }
+  taskbarTextColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "taskbarDividerColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read taskbarDividerColor");
+    return;
+  }
+  taskbarDividerColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "menuBackgroundColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read menuBackgroundColor");
+    return;
+  }
+  menuBackgroundColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "menuSelectedBackgroundColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read menuSelectedBackgroundColor");
+    return;
+  }
+  menuSelectedBackgroundColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "menuTextFocusedColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read menuTextFocusedColor");
+    return;
+  }
+  menuTextFocusedColor = getColorValue(valueBuffer);
+
+  if (!ini.getValue("theme", "menuTextUnFocusedColor", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read menuTextUnFocusedColor");
+    return;
+  }
+  menuTextUnFocusedColor = getColorValue(valueBuffer);
+
+  // Read the boolean value
+  if (!ini.getValue("theme", "Colorful", valueBuffer, bufferLen)) {
+    Serial.println("Failed to read Colorful");
+    return;
+  }
+  Colorful = (strncmp(valueBuffer, "true", 4) == 0);
+
+  // Close the file
+  ini.close();
+
+  // Optionally, print the values to verify
+  Serial.println(taskbarBackgroundColor);
+  Serial.println(taskbarTextColor);
+  Serial.println(taskbarDividerColor);
+  Serial.println(menuBackgroundColor);
+  Serial.println(menuSelectedBackgroundColor);
+  Serial.println(menuTextFocusedColor);
+  Serial.println(menuTextUnFocusedColor);
+  Serial.println(Colorful ? "True" : "False");
+}
 
 
 //KARMA-PART-FUNCTIONS
@@ -4213,7 +4370,7 @@ void updateDisplayWithSSIDKarma(const char* ssidKarma, int count) {
  const int maxLength = 22;
   char truncatedSSID[maxLength + 1];  // Adjusted size to maxLength to fix bufferoverflow
 
-  M5.Display.fillRect(0, 0, M5.Display.width(), M5.Display.height() - 27, TFT_BLACK);
+  M5.Display.fillRect(0, 0, M5.Display.width(), M5.Display.height() - 27, menuBackgroundColor);
   int startIndexKarma = max(0, count - maxMenuDisplay);
 
   for (int i = startIndexKarma; i < count; i++) {
@@ -4416,10 +4573,10 @@ void drawMenuKarma() {
     if (menuIndexKarma >= menuSizeKarma) break;
 
     if (menuIndexKarma == currentIndexKarma) {
-      M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-      M5.Display.setTextColor(TFT_GREEN);
+      M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+      M5.Display.setTextColor(menuTextFocusedColor);
     } else {
-      M5.Display.setTextColor(TFT_WHITE);
+      M5.Display.setTextColor(menuTextUnFocusedColor);
     }
     M5.Display.setCursor(startX, startY + i * lineHeight + (lineHeight / 2) - 11);
     M5.Display.println(ssidsKarma[menuIndexKarma]);
@@ -4455,7 +4612,8 @@ void startAPWithSSIDKarma(const char* ssid) {
   int remainingTime;
   int clientCount = 0;
   int scanTimeKarma = 60; // Scan time for karma attack (not for Karma Auto)
-
+  enterDebounce();
+  
   while (true) {
     M5.update();
     M5Cardputer.update();
@@ -4463,7 +4621,7 @@ void startAPWithSSIDKarma(const char* ssid) {
     currentTime = millis();
     remainingTime = scanTimeKarma - ((currentTime - startTime) / 1000);
     clientCount = WiFi.softAPgetStationNum();
-    M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Display.setCursor((M5.Display.width() - 12 * strlen(ssid)) / 2, 25);
     M5.Display.println(String(ssid));
 
@@ -4482,7 +4640,7 @@ void startAPWithSSIDKarma(const char* ssid) {
     Serial.println("Connected Client: " + String(clientCount));
     Serial.println("-------------------");
 
-    M5.Lcd.setTextColor(TFT_WHITE);
+    M5.Lcd.setTextColor(menuTextUnFocusedColor);
     M5.Display.setCursor(33, 110);
     M5.Display.println(" Stop");
     M5.Display.display();
@@ -4601,10 +4759,10 @@ void listProbes() {
       for (int i = 0; i < maxDisplay; i++) {
         int probeIndex = (currentListIndex + i) % numProbes;
         if (i == 0) { // Mettre en évidence la sonde actuellement sélectionnée
-          M5.Display.fillRect(0, y, M5.Display.width(), lineHeight, TFT_NAVY);
-          M5.Display.setTextColor(TFT_GREEN);
+          M5.Display.fillRect(0, y, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+          M5.Display.setTextColor(menuTextFocusedColor);
         } else {
-          M5.Display.setTextColor(TFT_WHITE);
+          M5.Display.setTextColor(menuTextUnFocusedColor);
         }
         M5.Display.setCursor(0, y);
         M5.Display.println(probes[probeIndex]);
@@ -4714,7 +4872,7 @@ void deleteProbe() {
         String ssid = probes[probeIndex];
         ssid = ssid.substring(0, min(ssid.length(), (unsigned int)21));  // Tronquer pour l'affichage
         M5.Display.setCursor(0, i * lineHeight + 10);
-        M5.Display.setTextColor(probeIndex == currentListIndex ? TFT_GREEN : TFT_WHITE);
+        M5.Display.setTextColor(probeIndex == currentListIndex ? menuTextFocusedColor : menuTextUnFocusedColor);
         M5.Display.println(ssid);
       }
 
@@ -4775,7 +4933,7 @@ int showProbesAndSelect(String probes[], int numProbes) {
       for (int i = 0; i < maxDisplay && currentListIndex + i < numProbes; i++) {
         int displayIndex = currentListIndex + i;
         M5.Display.setCursor(10, i * lineHeight + 10);
-        M5.Display.setTextColor(displayIndex == currentListIndex ? TFT_GREEN : TFT_WHITE);  // Highlight the current element
+        M5.Display.setTextColor(displayIndex == currentListIndex ? menuTextFocusedColor : menuTextUnFocusedColor);  // Highlight the current element
         M5.Display.println(probes[displayIndex]);
       }
 
@@ -4954,7 +5112,7 @@ void probeAttack() {
   M5.Display.setCursor(M5.Display.width() / 2 - 24, M5.Display.height() - 20);
   M5.Display.setTextColor(TFT_WHITE,TFT_RED);
   M5.Display.println("Stop");
-  M5.Display.setTextColor(TFT_WHITE,TFT_BLACK);
+  M5.Display.setTextColor(menuTextUnFocusedColor,menuBackgroundColor);
 
   int probesTextX = 0;
   String probesText = "Probe Attack running...";
@@ -4991,10 +5149,10 @@ void probeAttack() {
       WiFi.begin(ssid.c_str(), "");
 
       M5.Display.setCursor(probesTextX + 12, 67); // Ajuster la position verticale
-      M5.Display.fillRect(probesTextX +  12, 67, 40, 15, TFT_BLACK); // Ajuster la taille de la zone à remplir
+      M5.Display.fillRect(probesTextX +  12, 67, 40, 15, menuBackgroundColor); // Ajuster la taille de la zone à remplir
       M5.Display.print(++probeCount);
 
-      M5.Display.fillRect(100, M5.Display.height() / 2, 140, 20, TFT_BLACK);
+      M5.Display.fillRect(100, M5.Display.height() / 2, 140, 20, menuBackgroundColor);
 
       M5.Display.setCursor(100, M5.Display.height() / 2);
       // M5.Display.print("Delay: " + String(delayTime) + "ms");
@@ -5333,7 +5491,7 @@ void displayWaitingForProbe() {
   if (!isWaitingForProbeDisplayed) {
     M5.Display.clear();
     M5.Display.setTextSize(1.5);
-    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.setTextColor(menuTextUnFocusedColor);
     M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 60, TFT_RED);
     M5.Display.setCursor(M5.Display.width() / 2 - 54, M5.Display.height() - 20);
     M5.Display.println("Stop Auto");
@@ -5354,7 +5512,7 @@ void displayWaitingForProbe() {
     int y = M5.Display.height() / 2 - 20;
 
     // Effacer la zone derrière les points
-    M5.Display.fillRect(x, y, M5.Display.textWidth("..."), M5.Display.fontHeight(), TFT_BLACK);
+    M5.Display.fillRect(x, y, M5.Display.textWidth("..."), M5.Display.fontHeight(), menuBackgroundColor);
 
     M5.Display.setCursor(x, y);
     for (int i = 0; i < probeDisplayState; i++) {
@@ -5371,7 +5529,7 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
   M5.Display.setCursor(0, 0);
   if (!isInitialDisplayDone) {
     M5.Display.clear();
-    M5.Display.setTextColor(TFT_WHITE);
+    M5.Display.setTextColor(menuTextUnFocusedColor);
 
     M5.Display.setCursor(0, 10);
     M5.Display.println(String(ssid));
@@ -5388,16 +5546,16 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
   }
   int timeValuePosX = M5.Display.textWidth("Left Time: ");
   int timeValuePosY = 30;
-  M5.Display.fillRect(timeValuePosX, 20 , 25, 20, TFT_BLACK);
-  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.fillRect(timeValuePosX, 20 , 25, 20, menuBackgroundColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setCursor(timeValuePosX, timeValuePosY);
   M5.Display.print(remainingTime);
-  M5.Display.print(" s");
+  M5.Display.print(" s ");
 
   int clientValuePosX = M5.Display.textWidth("Connected Client: ");
   int clientValuePosY = 50;
-  M5.Display.fillRect(clientValuePosX, 40 , 25 , 20, TFT_BLACK);
-  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.fillRect(clientValuePosX, 40 , 25 , 20, menuBackgroundColor);
+  M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setCursor(clientValuePosX, clientValuePosY);
   M5.Display.print(clientCount);
 }
@@ -5407,9 +5565,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.3.2"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.3.3"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardputer";
-  preHeader += ",release=v1.3.2"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.3.3"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -5432,14 +5590,14 @@ void wardrivingMode() {
   Serial.println("-------------------");
   Serial.println("Starting Wardriving");
   Serial.println("-------------------");
-  M5.Lcd.fillScreen(TFT_BLACK);
-  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.fillScreen(menuBackgroundColor);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Lcd.setTextSize(1.5);
   M5.Display.fillRect(0, M5.Display.height() - 30, M5.Display.width(), 30, TFT_RED);
   M5.Display.setCursor(M5.Display.width() / 2 - 24 , M5.Display.height() - 20);
   M5.Display.setTextColor(TFT_WHITE);
   M5.Display.println("Stop");
-  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Lcd.setCursor(0, 10);
   M5.Lcd.printf("Scanning...");
   M5.Lcd.setCursor(0, 30);
@@ -5570,7 +5728,7 @@ void wardrivingMode() {
       delay(1000);
       M5.Display.setTextSize(1.5);
       if (confirmPopup("List Open Networks?")) {
-        M5.Lcd.fillScreen(TFT_BLACK);
+        M5.Lcd.fillScreen(menuBackgroundColor);
         M5.Display.setCursor(0, M5.Display.height() / 2);
         M5.Display.println("Saving Open Networks");
         M5.Display.println("  Please wait...");
@@ -6737,7 +6895,7 @@ void deauthAttack(int networkIndex) {
     M5.Display.setTextColor(TFT_WHITE);
     M5.Display.println("Stop");
 
-    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Display.setCursor(10, 20);
     M5.Display.println("SSID: " + ssid);
     M5.Display.setCursor(10, 34);
@@ -7062,14 +7220,17 @@ void wifi_scan() {
   Serial.println("-----------------------------");
   Serial.println("Scanning WiFi networks...");
   ap_channels.clear();
-  M5.Lcd.setCursor(0, M5.Display.height() - 32 );
-  M5.Lcd.printf("Scanning nearby networks..");
+  const char* scanningText = "Scanning nearby networks..";
+  M5.Lcd.setCursor((M5.Lcd.width()-M5.Lcd.textWidth(scanningText))/2, M5.Display.height() - 12 );
+  M5.Lcd.printf(scanningText);
 
   int n = WiFi.scanNetworks(false, false);
   if (n == 0) {
     Serial.println("No networks found");
-    M5.Lcd.setCursor(0, 1);
-    M5.Lcd.printf("No AP  ");
+    const char* failedText = "No AP Found.";
+    M5.Lcd.setCursor((M5.Lcd.width()-M5.Lcd.textWidth(failedText))/2, M5.Display.height() - 12 );
+    M5.Lcd.setTextColor(TFT_RED);
+    M5.Lcd.printf(failedText);
     return;
   }
 
@@ -7101,9 +7262,9 @@ void wifi_scan() {
   M5.Lcd.printf("AP:");
   M5.Lcd.print(n);
   M5.Lcd.print("  ");
-  M5.Lcd.drawLine(0, 13, M5.Lcd.width(), 13, TFT_WHITE);
+  M5.Lcd.drawLine(0, 13, M5.Lcd.width(), 13, taskbarDividerColor);
   delay(30);
-  M5.Lcd.setCursor(0, M5.Display.height() - 32);
+  M5.Lcd.setCursor((M5.Lcd.width()-M5.Lcd.textWidth(scanningText))/2, M5.Display.height() - 12 );
   M5.Lcd.printf("                          ");
 }
 
@@ -7285,7 +7446,7 @@ void deauthClients() {
   esp_wifi_set_promiscuous(true);
   esp_wifi_set_promiscuous_rx_cb(promiscuous_callback);
 
-  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Lcd.setCursor(M5.Display.width() - 30, 1);
   M5.Lcd.printf("D:");
   if (isDeauthActive) {
@@ -7471,10 +7632,10 @@ void displayPcapList() {
   M5.Display.setTextSize(1.5);
   for (int i = listStartIndex; i < min(int(pcapFiles.size()), listStartIndex + listDisplayLimit); i++) {
     if (i == currentListIndexPcap) {
-      M5.Display.fillRect(0, (i - listStartIndex) * 18, M5.Display.width(), 18, TFT_NAVY);
-      M5.Display.setTextColor(TFT_GREEN);
+      M5.Display.fillRect(0, (i - listStartIndex) * 18, M5.Display.width(), 18, menuSelectedBackgroundColor);
+      M5.Display.setTextColor(menuTextFocusedColor);
     } else {
-      M5.Display.setTextColor(TFT_WHITE);
+      M5.Display.setTextColor(menuTextUnFocusedColor);
     }
     M5.Display.setCursor(10, (i - listStartIndex) * 18);
     M5.Display.println(pcapFiles[i]);
@@ -7560,7 +7721,7 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
           isValidMac = true;
         }
 
-        M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
         M5.Display.setCursor(0, 10);
         String name = advertisedDevice.getName().c_str();
 
@@ -7684,11 +7845,11 @@ void sendTeslaCode() {
   digitalWrite(signalPin, LOW);
 
   M5.Lcd.setTextSize(1.5);
-  M5.Lcd.fillRect(0, 0, 320, 240, TFT_BLACK);
+  M5.Lcd.fillRect(0, 0, 320, 240, menuBackgroundColor);
   M5.Lcd.fillRect(0, 0, 320, 20, M5.Lcd.color565(38, 38, 38));
-  M5.Lcd.setTextColor(TFT_WHITE);
+  M5.Lcd.setTextColor(menuTextFocusedColor);
   M5.Lcd.drawString("Tesla Code Sender", 30, 1, 2);
-  M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
 
   M5.Lcd.setCursor(5, M5.Display.height() / 2);
   M5.Lcd.print("Press Enter to send data");
@@ -7859,7 +8020,7 @@ void connectWifi(int networkIndex) {
 bool sshKilled = false;
 void testConnectivity(const char *host) {
   M5.Display.clear();
-  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
   M5.Display.setCursor(0, 10);
   Serial.println("Pinging Host...");
   M5.Display.print("Pinging: " + String(host));
@@ -7969,7 +8130,7 @@ void sshConnectTask(void *pvParameters) {
 String getUserInput(bool isPassword = false) {
   String input = "";
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
   M5.Display.setCursor(0, 30);
   while (true) {
     M5Cardputer.update();
@@ -8014,7 +8175,7 @@ void parseUserHostPort(const String &input, String &user, String &host, int &por
 // Fonction principale pour se connecter via SSH
 void sshConnect(const char *host) {
    sshKilled = false;
-  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   if (WiFi.localIP().toString() == "0.0.0.0") {
     waitAndReturnToMenu("Not connected...");
     return;
@@ -8635,7 +8796,7 @@ void local_scan_setup() {
   IPAddress gatewayIP;
   IPAddress subnetMask;
   std::vector<IPAddress> hostslist;
-  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Display.setTextSize(1.5);
 
   gatewayIP = WiFi.gatewayIP();
@@ -8757,10 +8918,10 @@ void displayHostOptions(const std::vector<IPAddress>& hostslist) {
       // Display options
       for (int i = 0; i < options.size(); ++i) {
         if (i == index) {
-          M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-          M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
+          M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+          M5.Display.setTextColor(menuTextFocusedColor);
         } else {
-          M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+          M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
         }
         M5.Display.setCursor(0, i * lineHeight);
         M5.Display.println(options[i].first.c_str());
@@ -8832,10 +8993,10 @@ void afterScanOptions(IPAddress ip, const std::vector<IPAddress>& hostslist) {
       // Display options
       for (int i = 0; i < option.size(); ++i) {
         if (i == index) {
-          M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, TFT_NAVY);
-          M5.Display.setTextColor(TFT_GREEN, TFT_NAVY);
+          M5.Display.fillRect(0, i * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+          M5.Display.setTextColor(menuTextFocusedColor);
         } else {
-          M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+          M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
         }
         M5.Display.setCursor(0, i * lineHeight);
         M5.Display.println(String(i + 1) + ". " + option[i].first.c_str());
@@ -9052,7 +9213,7 @@ void displaySpamStatus() {
   enterDebounce();
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(TFT_WHITE , TFT_BLACK);
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
   M5.Display.setCursor(0, 10);
   M5.Display.println("PwnGrid Spam Running...");
 
@@ -9214,9 +9375,9 @@ public:
     Serial.println(displayMessage);
 
 
-    M5.Display.clear(TFT_BLACK);
+    M5.Display.clear(menuBackgroundColor);
     M5.Display.setTextSize(1.5);
-    M5.Display.setTextColor(isSkimmerDetected ? TFT_RED : TFT_WHITE);
+    M5.Display.setTextColor(isSkimmerDetected ? TFT_RED : menuTextFocusedColor);
     M5.Display.setCursor(0, 20);
     M5.Display.println(displayMessage);
   }
@@ -9230,7 +9391,7 @@ void skimmerDetection() {
   scan->setWindow(449);
   
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(TFT_WHITE);
+  M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setCursor(0, 0);
   M5.Display.println("Scanning for Skimmers...");
 
@@ -9274,7 +9435,7 @@ void key_input(FS &fs, const String &bad_script) {
       Kb.releaseAll();
       M5.Display.setTextSize(1);
       M5.Display.setCursor(0, 0);
-      M5.Display.fillScreen(TFT_BLACK);
+      M5.Display.fillScreen(menuBackgroundColor);
       line = 0;
 
       while (payloadFile.available()) {
@@ -9383,7 +9544,7 @@ void key_input(FS &fs, const String &bad_script) {
 
           if (line == 7) {
             M5.Display.setCursor(0, 0);
-            M5.Display.fillScreen(TFT_BLACK);
+            M5.Display.fillScreen(menuBackgroundColor);
             line = 0;
           }
           line++;
@@ -9400,10 +9561,10 @@ void key_input(FS &fs, const String &bad_script) {
               Kb.println(Command);
             }
           } else {
-            M5.Display.setTextColor(TFT_BLACK);
+            M5.Display.setTextColor(menuBackgroundColor);
             M5.Display.println(Command);
           }
-          M5.Display.setTextColor(TFT_WHITE);
+          M5.Display.setTextColor(menuTextUnFocusedColor);
           M5.Display.println(Argument);
 
           if (strcmp(Cmd, "REM") != 0) delay(DEF_DELAY);  //if command is not a comment, wait DEF_DELAY until next command (100ms)
@@ -9479,8 +9640,8 @@ void showScriptOptions() {
 
 
 void runScript(const String &scriptName) {
-    M5.Display.fillScreen(TFT_BLACK);
-    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5.Display.fillScreen(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Display.println("Preparing");
     delay(200);
 
@@ -9497,7 +9658,7 @@ void runScript(const String &scriptName) {
 
 void badUSB() {
     Serial.println("BadUSB begin");
-    M5.Display.fillScreen(TFT_BLACK);
+    M5.Display.fillScreen(menuBackgroundColor);
     std::vector<std::pair<String, std::function<void()>>> mainOptions = {
         {"Script on SD", []() { showScriptOptions(); }},
         {"Keyboard Layout", []() { showKeyboardLayoutOptions(); showScriptOptions();}}
@@ -9620,7 +9781,7 @@ void initBluetoothKeyboard() {
     Serial.println();
 
     M5Cardputer.Display.clear();
-    M5Cardputer.Display.setTextColor(TFT_WHITE);
+    M5Cardputer.Display.setTextColor(menuTextUnFocusedColor);
     M5Cardputer.Display.setCursor(0, 10);
     M5Cardputer.Display.println("Bluetooth device name :");
     
@@ -9751,7 +9912,7 @@ void keyboardLoop() {
 
 // Mise à jour de l'affichage du statut Bluetooth
 void updateBluetoothStatus(bool status) {
-    M5Cardputer.Display.fillScreen(TFT_BLACK);
+    M5Cardputer.Display.fillScreen(menuBackgroundColor);
     M5Cardputer.Display.setTextSize(3);
     const char* text = "Connected";
     int16_t textWidth = M5Cardputer.Display.textWidth(text);
@@ -9790,7 +9951,7 @@ int totalNetworks = 0;
 unsigned long lastLog = 0;
 int currentScreen = 1;  // Track which screen is currently displayed
 
-const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.2,model=Cardputer,release=v1.3.2,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
+const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.3,model=Cardputer,release=v1.3.3,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
 
 char* log_col_names[LOG_COLUMN_COUNT] = {
     "MAC", "SSID", "AuthMode", "FirstSeen", "Channel", "RSSI", "CurrentLatitude", "CurrentLongitude", "AltitudeMeters", "AccuracyMeters", "Type"
@@ -9921,7 +10082,7 @@ void displayGeneralInfo() {
                       totalNetworks);
     y += lineHeight;
     y += 1;
-    M5.Display.drawLine(margin, y, 240 - margin, y, TFT_NAVY);
+    M5.Display.drawLine(margin, y, 240 - margin, y, taskbarDividerColor);
     y += 2;
 
     for (int i = 0; i < 14; i++) {
@@ -9933,7 +10094,7 @@ void displayGeneralInfo() {
             M5.Display.setCursor(x + col1Width + col2Width + 2 * separatorWidth, y);
             M5.Display.printf("%-8s", boardSSIDs[i].c_str());
             y += lineHeight;
-            M5.Display.drawLine(margin, y, 240 - margin, y, TFT_NAVY);
+            M5.Display.drawLine(margin, y, 240 - margin, y, taskbarDividerColor);
             y += 2;
             if (y > 135 - margin) break;
         }
@@ -10215,10 +10376,10 @@ void displayStatus() {
 
     // Mettre à jour uniquement si le total a changé
     if (totalReceived != lastTotalReceived) {
-        M5.Display.fillRect(0, 0, 240, 10, TFT_BLACK);  // Effacer la ligne de l'ancien total
+        M5.Display.fillRect(0, 0, 240, 10, menuBackgroundColor);  // Effacer la ligne de l'ancien total
         M5.Display.setTextSize(1);
         M5.Display.setCursor(0, 0);  // Position du texte (en haut)
-        M5.Display.setTextColor(TFT_WHITE);
+        M5.Display.setTextColor(menuTextUnFocusedColor);
         M5.Display.printf("Total Frames: %d", totalReceived);  // Afficher le nouveau total
         lastTotalReceived = totalReceived;  // Mettre à jour l'ancien total
     }
@@ -10239,10 +10400,10 @@ void displayStatus() {
             int posY = marginY + row * cellHeight;
 
             // Effacer la case avant de redessiner
-            M5.Display.fillRect(posX, posY, cellWidth, cellHeight, TFT_BLACK);  // Effacer la zone
+            M5.Display.fillRect(posX, posY, cellWidth, cellHeight, menuBackgroundColor);  // Effacer la zone
 
             // Dessiner le rectangle de la case
-            M5.Display.drawRect(posX, posY, cellWidth, cellHeight, TFT_WHITE);
+            M5.Display.drawRect(posX, posY, cellWidth, cellHeight, menuTextFocusedColor);
 
             // Créer le texte à afficher
             String text = String("CH ") + String(i + 1) + ": " + String(received_frames[i]);
@@ -10347,17 +10508,19 @@ void wifiVisualizer() {
 
     enterDebounce();
 
-    M5.Display.clear(TFT_BLACK);
+    M5.Display.clear(menuBackgroundColor);
     M5.Display.setTextSize(1);
     M5.Display.setTextFont(1);
-    M5.Display.setTextColor(TFT_GREEN, TFT_BLACK);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Display.setCursor(screenWidth / 2 - 30, screenHeight / 2 - 10);
     M5.Display.printf("Scanning...");
     M5.Display.display();
 
+    static int colors[] = {TFT_WHITE, TFT_RED, TFT_PINK, TFT_ORANGE, TFT_YELLOW, TFT_GREENYELLOW, TFT_GREEN, TFT_DARKGREEN, TFT_CYAN, TFT_BLUE, TFT_NAVY, TFT_PURPLE, TFT_MAROON, TFT_MAGENTA};
+
     for (int i = 0; i <= 5; i++) {
         int yPosition = chartHeight - (i * chartHeight / 5) + 10;
-        M5.Display.drawLine(leftMargin - 5, yPosition, leftMargin, yPosition, TFT_GREEN);
+        M5.Display.drawLine(leftMargin - 5, yPosition, leftMargin, yPosition, menuSelectedBackgroundColor);
         M5.Display.setCursor(2, yPosition - 5);
         int scaleValue = (5 * i);
         M5.Display.printf("%d", scaleValue);
@@ -10365,7 +10528,7 @@ void wifiVisualizer() {
     for (int i = 1; i <= maxChannels; i++) {
         int xPosition = leftMargin + (i - 1) * (barWidth + spacing);
         M5.Display.setCursor(xPosition + (barWidth / 2) - 4, screenHeight - 8);
-        M5.Display.setTextColor(TFT_GREEN, TFT_BLACK);
+        M5.Display.setTextColor(colors[i+1], menuBackgroundColor);
         M5.Display.printf("%d", i);
     }
     M5.Display.display();
@@ -10407,14 +10570,14 @@ void wifiVisualizer() {
             int scaleMax = ((maxCount + 4) / 5) * 5;
             if (scaleMax < 5) scaleMax = 5;
 
-            M5.Display.clear(TFT_BLACK);
+            M5.Display.clear(menuBackgroundColor);
             M5.Display.setTextSize(1);
             M5.Display.setTextFont(1);
 
-            M5.Display.setTextColor(TFT_GREEN, TFT_BLACK);
+            M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
             for (int i = 0; i <= 5; i++) {
                 int yPosition = chartHeight - (i * chartHeight / 5) + 10;
-                M5.Display.drawLine(leftMargin - 5, yPosition, leftMargin, yPosition, TFT_GREEN);
+                M5.Display.drawLine(leftMargin - 5, yPosition, screenWidth-5, yPosition, menuSelectedBackgroundColor);
                 M5.Display.setCursor(2, yPosition - 5);
                 int scaleValue = (scaleMax * i) / 5;
                 M5.Display.printf("%d", scaleValue);
@@ -10424,8 +10587,29 @@ void wifiVisualizer() {
                 int barHeight = map(channels[i], 0, scaleMax, 0, chartHeight);
                 int xPosition = leftMargin + (i - 1) * (barWidth + spacing);
 
-                uint16_t barColor = M5.Display.color565(0, 255 - (i * 10), 0);
-                uint16_t shadowColor = M5.Display.color565(0, 100 + (i * 5), 0);
+                int amount = 100;
+                uint8_t r = (colors[i] >> 11) & 0x1F;  // Extract the 5 most significant (red) bits
+                uint8_t g = (colors[i] >> 5) & 0x3F;   // Extract the 6 middle (green) bits
+                uint8_t b = colors[i] & 0x1F;          // Extract the 5 least significant (blue) bits
+
+                // Convert 5-6-5 format to 8-bit depth to manipulate
+                uint8_t red = (r * 255) / 31;
+                uint8_t green = (g * 255) / 63;
+                uint8_t blue = (b * 255) / 31;
+
+                // Decrease by 'amount' with underflow protection
+                red = (red > amount) ? (red - amount) : 0;
+                green = (green > amount) ? (green - amount) : 0;
+                blue = (blue > amount) ? (blue - amount) : 0;
+
+                // Convert back to 5-6-5 format from 8-bit colors
+                r = (red * 31) / 255;
+                g = (green * 63) / 255;
+                b = (blue * 31) / 255;
+
+                // Recompose the color
+                uint16_t shadowColor = (r << 11) | (g << 5) | b;
+                uint16_t barColor = colors[i];
 
                 M5.Display.fillRect(xPosition, screenHeight - barHeight - 10, barWidth, barHeight, barColor);
 
@@ -10435,10 +10619,10 @@ void wifiVisualizer() {
                     xPosition + barWidth + 4, screenHeight - 10, shadowColor
                 );
 
-                M5.Display.drawRect(xPosition, screenHeight - barHeight - 10, barWidth, barHeight, TFT_GREEN);
+                M5.Display.drawRect(xPosition, screenHeight - barHeight - 10, barWidth, barHeight, colors[i]);
 
                 M5.Display.setCursor(xPosition + (barWidth / 2) - 4, screenHeight - 8);
-                M5.Display.setTextColor(TFT_GREEN, TFT_BLACK);
+                M5.Display.setTextColor(colors[i], menuBackgroundColor);
                 M5.Display.printf("%d", i);
             }
 
@@ -10618,7 +10802,7 @@ void allTrafficSniffer() {
 
   Serial.println("Starting all traffic sniffer...");
   M5.Lcd.clear();
-  M5.Lcd.setTextColor(GREEN);
+  M5.Lcd.setTextColor(menuTextFocusedColor);
   M5.Lcd.setCursor(3, 0);
   M5.Lcd.println("Sniffing Raw on :");
   M5.Lcd.println(filename);
@@ -10635,7 +10819,7 @@ void allTrafficSniffer() {
     unsigned long currentPressTime = millis();
     unsigned long currentTime = millis();
 
-    M5.Lcd.setTextColor(WHITE, BLACK);
+    M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Lcd.setCursor(0, 25);
     M5.Lcd.printf("     < [Channel]: %d > \n", currentChannel);
     M5.Lcd.setCursor(0, 42);
@@ -10652,7 +10836,7 @@ void allTrafficSniffer() {
       cursorVisible = !cursorVisible;
       lastCursorBlinkTime = currentTime;
     }
-    M5.Lcd.setTextColor(GREEN, BLACK);
+    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
     M5.Lcd.printf(cursorVisible ? ">_" : "> ");
 
     // Show pause indicator
@@ -10662,7 +10846,7 @@ void allTrafficSniffer() {
       M5.Lcd.print(" PAUSE ");
     } else{
       M5.Lcd.setCursor(M5.Lcd.width() - 80, M5.Lcd.height() - 12);
-      M5.Lcd.setTextColor(GREEN, BLACK);
+      M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
       M5.Lcd.print("        ");
     }
 
@@ -10827,7 +11011,7 @@ void sniffNetwork() {
 
   Serial.println("Starting all traffic sniffer...");
   M5.Lcd.clear();
-  M5.Lcd.setTextColor(GREEN);
+  M5.Lcd.setTextColor(menuTextFocusedColor);
   M5.Lcd.setCursor(3, 0);
   M5.Lcd.println("Sniffing Raw on :");
   M5.Lcd.println(filename);
@@ -10842,7 +11026,7 @@ void sniffNetwork() {
     vTaskDelay(pdMS_TO_TICKS(10));
     M5Cardputer.update();
     handleDnsRequestSerial();
-
+    
     if (getConnectedPeopleCount() == 0) {
       Serial.println("No stations connected, stopping sniffer and returning to menu...");
       M5.Lcd.clear();
@@ -10859,7 +11043,7 @@ void sniffNetwork() {
     unsigned long currentPressTime = millis();
     unsigned long currentTime = millis();
 
-    M5.Lcd.setTextColor(WHITE, BLACK);
+    M5.Lcd.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
     M5.Lcd.setCursor(0, 25);
     M5.Lcd.printf("[Total]       : %d\n", packetSavedCount);
     M5.Lcd.setCursor(0, M5.Display.height() - 16);
@@ -10868,7 +11052,7 @@ void sniffNetwork() {
       cursorVisible = !cursorVisible;
       lastCursorBlinkTime = currentTime;
     }
-    M5.Lcd.setTextColor(GREEN, BLACK);
+    M5.Lcd.setTextColor(menuTextFocusedColor, menuBackgroundColor);
     M5.Lcd.printf(cursorVisible ? ">_" : "> ");
 
     if ((M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE))) {

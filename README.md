@@ -1,6 +1,6 @@
 <div align="center">
-
-# Evil-M5Project v1.3.2 - Handshake Master
+  
+# Evil-M5Project v1.3.3 - Colorful Update
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -51,6 +51,20 @@ Join the Evil-M5 discord for help and update 😉:
 
 
 </div></div>
+## NEW Feature ! from v1.3.3 : Customing Theming, Colorful interface toggle!!!
+### Introducing customization features that allow you to make your device truly your own.
+
+1. **Custom Theming**:
+   - EvilCardputer's interface colors can now be edited by the user.
+     To edit, change the entries in theme.ini in your SD card's root, and color here (https://m5stack.lang-ship.com/howto/m5gfx/color/) is supported.
+     Custom colors can be added as well, however you then need to recompile the software yourself.
+     
+2. **Colorful Interface Toggle**:
+   - The theme.ini also toggles "Colorful Interface" on and off, which when enabled, makes some UI elements more interactive, for instance the battery % changing color as it drops, or the captive portal indicator being red for off, and green for on.
+     Later optional colorful features will be added to this toggle as well.
+
+If updating to this version, make sure to add the nessecary `selectedTheme=/theme.ini` (or any other theme filename) into your /config/config.txt.
+Also make sure to add a `theme.ini` file to your root, there are a few to choose from in the SD-Card-File folder.
 
 ## NEW feature ! from v1.3.2 : Handshake Master, Raw Sniffing, Client Sniff & Wi-Fi Channel Visualizer!!!
 ### Introducing powerful new features that enhance network scanning and analysis capabilities.
@@ -182,16 +196,17 @@ Tested working others device :
 
 1. Connect your M5Core2 to your computer.
 2. Open the Arduino IDE and load the provided code.
-3. Ensure the Board tutorial from M5 and `M5Unified`, `TinyGPSPlus`, `ArduinoJson`, `esp8266audio` and `Adafruit_NeoPixel` libraries are installed. Follow these tutorials for guidance on M5 Board tutorial:
+3. Ensure the Board tutorial from M5 and `IniFile`, `M5Unified`, `TinyGPSPlus`, `ArduinoJson`, `esp8266audio` and `Adafruit_NeoPixel` libraries are installed. Follow these tutorials for guidance on M5 Board tutorial:
    - [Arduino Board Setup](https://docs.m5stack.com/en/arduino/arduino_board)
    - [Arduino Library Installation](https://docs.m5stack.com/en/arduino/arduino_library)
 4. Ensure the ESP32 and M5Stack board definitions are installed. **Note:** Errors occur with ESP32 version `3.0.0-alpha3`. Please use ESP32 version `2.1.1` and below.
 5. Place the necessary SD file content at the root of SD card. (This is needed to access the `IMG` startup and `sites` folder).
-6. Ensure to run the script in `utilities` to bypass the ESP32 firmware. Also, add libraries for BadUSB functionality.
-7. Ensure that the baud rate is set to `115200`.
-8. Ensure that `PSRAM` is disabled in the tools menu.
-9. Upload the script to your M5Core2 device.
-10. Restart the device if needed.
+6. (Optional) Edit theme.ini on the SD card to customize your device's color theme. (Only supported for cardputer, other devices to be implemented later) 
+7. Ensure to run the script in `utilities` to bypass the ESP32 firmware. Also, add libraries for BadUSB functionality.
+8. Ensure that the baud rate is set to `115200`.
+9. Ensure that `PSRAM` is disabled in the tools menu.
+10. Upload the script to your M5Core2 device.
+11. Restart the device if needed.
 
 Warning : for Cardputer you need to change the Flash size to 8MB and the Partition Scheme to 8M with spiffs (3MB APP/1.5MB SPIFFS) or space error may occur.
 
@@ -228,7 +243,7 @@ Thx to samxplogs for the video :
 
 Evil-AtomS3 Functionnality : 
 
-- All Evil-M5Core2 functionnality except bluetooth serial.
+- All Evil-M5Core2 functionality except bluetooth serial.
 
 Consumption:
 - Tests show max 200mA draw with 100% brightness and using WiFi/GPS
@@ -734,7 +749,7 @@ Available Commands:
 - [@Talking Sasquach](https://www.youtube.com/@TalkingSasquach) for creating video content about the project.
 - [@Sam X Plogs](https://www.youtube.com/@samxplogs) for creating video content about the project.
 - [@dagnazty](https://github.com/dagnazty) for the fantastic work on M5dial. 
-- [@xcs011](https://github.com/xcs011) for the work on the code.
+- [@LaikaSpaceDawg](https://github.com/LaikaSpaceDawg) for the work on the code.
 
 and to all Beta-testers on the discord : 
 
