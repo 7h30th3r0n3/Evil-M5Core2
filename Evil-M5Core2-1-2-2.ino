@@ -4895,7 +4895,7 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       // Continuer uniquement si un Flipper est identifié
       if (isFlipper) {
         String macAddress = advertisedDevice.getAddress().toString().c_str();
-        if (macAddress.startsWith("80:e1:26") || macAddress.startsWith("80:e1:27")) {
+        if (macAddress.startsWith("80:e1:26") || macAddress.startsWith("80:e1:27") || macAddress.startsWith("0C:FA:22")) {
           isValidMac = true;
         }
 
