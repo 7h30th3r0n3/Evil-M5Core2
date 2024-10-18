@@ -9379,6 +9379,8 @@ public:
     M5.Display.setTextColor(isSkimmerDetected ? TFT_RED : menuTextFocusedColor);
     M5.Display.setCursor(0, 20);
     M5.Display.println(displayMessage);
+    // Small delay to prevent crashing
+    delay(250);
   }
 };
 
