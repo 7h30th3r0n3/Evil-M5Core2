@@ -1,6 +1,6 @@
 <div align="center">
   
-# Evil-M5Project v1.3.3 - Colorful Update
+# Evil-M5Project v1.3.4 - Full Network Scan
 
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -19,7 +19,7 @@
   
 <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup2.jpg" width="300" />
   
-With more than 100 references at each boot.
+With more than 250 references at each boot.
 
 #### Evil-M5Family
 
@@ -51,6 +51,28 @@ Join the Evil-M5 discord for help and update 😉:
 
 
 </div></div>
+
+# NEW Feature! from v1.3.4: Full Network Scan!!!
+### Introducing a powerful, all-in-one Full Network Scan feature with enhanced capabilities, including the ability to list and manage previous scans.
+
+1. **Complete Network Discovery**:
+   - With just a single scan, you can now analyze the entire network, identifying all connected devices, 70 type of open ports and services running
+   - This scan provides a comprehensive overview of network devices, gathering essential data like open port and type of service per IP addresses
+
+2. **Store and Retrieve Scan Data**:
+   - All network scan results are automatically saved to the SD card, allowing for easy storage and future reference.
+   - You can list previous scans and review them at any time, making it simple to track network changes over time or revisit older results for deeper analysis.
+
+3. **Web Scraping for Full Web Presence Analysis**:
+   - Once the scan is complete, all detected web pages across the network can be scraped for further investigation. This includes internal web servers, admin panels, and any other web services running on network devices.
+   - The scraped data can be used for fingerprinting services, discovering hidden endpoints, and identifying potential vulnerabilities.
+
+With this new feature, network administrators and penetration testers can streamline the process of network reconnaissance, making it quicker and more efficient to map out and analyze a network's architecture and vulnerabilities.
+
+**Skimmer Detector Refactor**:
+   - The skimmer detector has been fully refactored for improved efficiency and accuracy.
+   - This updated skimmer detection algorithm now works faster, making it more reliable in identifying suspicious web pages or services that may pose security risks, such as fake login pages or phishing attempts.
+
 
 ## NEW Feature ! from v1.3.3 : Customing Theming, Colorful interface toggle!!!
 ### Introducing customization features that allow you to make your device truly your own.
@@ -414,6 +436,16 @@ The Monitor Status feature consists of three static menus that can be navigated 
 
 Send fake random probes near you on all channel. Perfect for counter the Probe Sniffing attack. Press left or right to reduce or increase time delay. (200 ms to 1000ms)
 
+<div align="center">
+  
+Check the demo thx to @hosseios
+
+<a href="https://www.youtube.com/shorts/HxjIs7i9Hjk">
+    <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/HxjIs7i9Hjk/0.jpg" width="33%" height="33%"/>
+</a>
+
+</div>
+
 ### Probe Sniffing
 
 Probe Sniffing start a probe scan that capture the SSID receive, you can store and reuse then. Restricted to 150 probes max.
@@ -514,7 +546,15 @@ Capability to Identify Potential Bluetooth Advertisement Attacks from Flipper an
 - Windows Swift Pair Advertisement Attacks
 - LoveSpouse Advertisement Attacks (Denial of Pleasure)
 
+<div align="center">
+  
+Check the demo thx to @hosseios
 
+<a href="https://www.youtube.com/shorts/rr5Z0bpm4dI">
+    <img alt="Samxplogs turorial" src="https://img.youtube.com/vi/rr5Z0bpm4dI/0.jpg" width="33%" height="33%"/>
+</a>
+
+</div>
 
 ## Client Sniff And Deauth
 ### You can now sniff connected client and send deauthentification frame automatically! 
