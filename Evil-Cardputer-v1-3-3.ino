@@ -29,7 +29,6 @@
    regarding network testing and ethical hacking.
 */
 // remember to change hardcoded password and configuration below in the code to ensure no unauthorized access : !!!!!! CHANGE THIS !!!!!
-// no bluetooth serial due to only BLE
 
 #include <WiFi.h>
 #include <WebServer.h>
@@ -155,12 +154,14 @@ const char* menuItems[] = {
     "SSH Shell",
     "Scan IP Ports",
     "Scan Network Hosts",
+    "Scan Network Full",
+    "Scan Network List",
     "Web Crawler",
     "PwnGrid Spam",
     "Skimmer Detector",
     "BadUSB",
     "Bluetooth Keyboard",
-    "Settings",
+    "Settings"
 };
 
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
@@ -180,12 +181,20 @@ int topVisibleIndex = 0;
 //!!!!!! CHANGE THIS !!!!!
 const char* ssid = ""; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
 const char* password = ""; // wifi password
+
+
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 // password for web access to remote check captured credentials and send new html file !!!!!! CHANGE THIS !!!!!
 const char* accessWebPassword = "7h30th3r0n3"; // !!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
+
+
+
+
+char ssid_buffer[32] = "";//!!!!!! NOT THIS !!!!!
+char password_buffer[64] = ""; //!!!!!! NOT THIS !!!!!
 
 String portalFiles[50]; // 30 portals max
 int numPortalFiles = 0;
@@ -843,7 +852,13 @@ void setup() {
       restoreConfigParameter("volume");
       restoreConfigParameter("randomOn"); 
       restoreConfigParameter("selectedTheme");
-
+      restoreConfigParameter("wifi_ssid");
+      restoreConfigParameter("wifi_password");
+      restoreConfigParameter("ssh_user");
+      restoreConfigParameter("ssh_host");
+      restoreConfigParameter("ssh_password");
+      restoreConfigParameter("ssh_port");
+      
       restoreThemeParameters();
 
       loadStartupImageConfig();
@@ -909,7 +924,7 @@ void setup() {
   // Textes à afficher
   const char* text1 = "Evil-Cardputer";
   const char* text2 = "By 7h30th3r0n3";
-  const char* text3 = "v1.3.3 2024";
+  const char* text3 = "v1.3.4 2024";
 
   // Mesure de la largeur du texte et calcul de la position du curseur
   int text1Width = M5.Lcd.textWidth(text1);
@@ -939,7 +954,7 @@ void setup() {
   Serial.println("-------------------");
   Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("v1.3.3 2024");
+  Serial.println("v1.3.4 2024");
   Serial.println("-------------------");
   M5.Display.setCursor(0, textY + 80);
   M5.Display.println(randomMessage);
@@ -958,7 +973,7 @@ void setup() {
     WiFi.begin(ssid, password);
 
     unsigned long startAttemptTime = millis();
-
+ 
     while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 3000) {
       delay(500);
       Serial.println("Trying to connect to Wifi...");
@@ -966,6 +981,12 @@ void setup() {
 
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("Connected to wifi !!!");
+      M5.Display.clear();
+      M5.Lcd.setCursor(M5.Display.width() / 2 - 48, M5.Display.height() / 2);
+      M5.Display.println("Connected to");
+      M5.Lcd.setCursor(M5.Display.width() / 2 - 48, M5.Display.height() / 2 + 12);
+      M5.Display.println(ssid);
+      delay(1000);
     } else {
       Serial.println("Fail to connect to Wifi or timeout...");
     }
@@ -1222,7 +1243,7 @@ void executeMenuItem(int index) {
   inMenu = false;
   isOperationInProgress = true;
   switch (index) {
-    case 0:
+     case 0:
         scanWifiNetworks();
         break;
     case 1:
@@ -1334,21 +1355,27 @@ void executeMenuItem(int index) {
         scanHosts();
         break;
     case 37:
-        webCrawling();
+        FullNetworkAnalysis();
         break;
     case 38:
-        send_pwnagotchi_beacon_main();
+        ListNetworkAnalysis();
         break;
     case 39:
-        skimmerDetection();
+        webCrawling();
         break;
     case 40:
-        badUSB();
+        send_pwnagotchi_beacon_main();
         break;
     case 41:
-        initBluetoothKeyboard();
+        skimmerDetection();
         break;
     case 42:
+        badUSB();
+        break;
+    case 43:
+        initBluetoothKeyboard();
+        break;
+    case 44:
         showSettingsMenu();
         break;
   }
@@ -4091,7 +4118,6 @@ void saveConfigParameter(String key, int value) {
   }
 }
 
-
 void restoreConfigParameter(String key) {
   if (SD.exists(configFilePath)) {
     File configFile = SD.open(configFilePath, FILE_READ);
@@ -4123,6 +4149,27 @@ void restoreConfigParameter(String key) {
           } else if (key == "selectedTheme") {
             selectedTheme = stringValue;
             Serial.println("Selected Theme restored to " + stringValue);
+          } else if (key == "wifi_ssid" && strlen(ssid) == 0) {
+              stringValue.toCharArray(ssid_buffer, sizeof(ssid_buffer));
+              ssid = ssid_buffer;
+              Serial.println("WiFi SSID restored to " + stringValue);
+          } else if (key == "wifi_password" && strlen(password) == 0) {
+              stringValue.toCharArray(password_buffer, sizeof(password_buffer));
+              password = password_buffer;
+              Serial.println("WiFi Password restored ");
+          } else if (key == "ssh_user" && ssh_user.length() == 0) {
+            ssh_user = stringValue;
+            Serial.println("SSH User restored to " + stringValue);
+          } else if (key == "ssh_host" && ssh_host.length() == 0) {
+            ssh_host = stringValue;
+            Serial.println("SSH Host restored to " + stringValue);
+          } else if (key == "ssh_password" && ssh_password.length() == 0) {
+            ssh_password = stringValue;
+            Serial.println("SSH Password restored");
+          } else if (key == "ssh_port") {
+            intValue = stringValue.toInt();
+            ssh_port = intValue;
+            Serial.println("SSH Port restored to " + String(intValue));
           }
           keyFound = true;
           break;
@@ -4172,6 +4219,8 @@ void restoreConfigParameter(String key) {
     }
   }
 }
+
+
 
 // Helper function for theming
 int getColorValue(const char* colorName) {
@@ -5564,9 +5613,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.3.3"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.3.4"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardputer";
-  preHeader += ",release=v1.3.3"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.3.4"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -8019,7 +8068,7 @@ void connectWifi(int networkIndex) {
 bool sshKilled = false;
 void testConnectivity(const char *host) {
   M5.Display.clear();
-  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setCursor(0, 10);
   Serial.println("Pinging Host...");
   M5.Display.print("Pinging: " + String(host));
@@ -8129,7 +8178,7 @@ void sshConnectTask(void *pvParameters) {
 String getUserInput(bool isPassword = false) {
   String input = "";
   M5.Display.setTextSize(1.5);
-  M5.Display.setTextColor(menuTextFocusedColor, menuBackgroundColor);
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setCursor(0, 30);
   while (true) {
     M5Cardputer.update();
@@ -8174,7 +8223,7 @@ void parseUserHostPort(const String &input, String &user, String &host, int &por
 // Fonction principale pour se connecter via SSH
 void sshConnect(const char *host) {
    sshKilled = false;
-  M5.Display.setTextColor(menuTextUnFocusedColor, TFT_BLACK);
+  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   if (WiFi.localIP().toString() == "0.0.0.0") {
     waitAndReturnToMenu("Not connected...");
     return;
@@ -8235,7 +8284,7 @@ void sshConnect(const char *host) {
   Serial.println(ssh_port);
 
   TaskHandle_t sshConnectTaskHandle = NULL;
-  xTaskCreatePinnedToCore(sshConnectTask, "SSH Connect Task", 40000, NULL, 1, &sshConnectTaskHandle, 1);
+  xTaskCreatePinnedToCore(sshConnectTask, "SSH Connect Task", 20000, NULL, 1, &sshConnectTaskHandle, 1);
   if (sshConnectTaskHandle == NULL) {
     Serial.println("Failed to create SSH Connect Task");
   } else {
@@ -8295,6 +8344,7 @@ String trimString(const String &str) {
 }
 
 void sshTask(void *pvParameters) {
+  Serial.println("starting sshtask"); // debug here
   ssh_channel channel = my_channel;
   if (channel == NULL) {
     M5Cardputer.Display.println("SSH Channel not open.");
@@ -8320,7 +8370,7 @@ void sshTask(void *pvParameters) {
   M5Cardputer.Display.setCursor(cursorX, cursorY);
   M5Cardputer.Display.print(commandBuffer);
   M5Cardputer.Display.display();
-
+  Serial.println("entering while true");// debug here
   while (true) {
     M5Cardputer.update();
 
@@ -8505,7 +8555,6 @@ void sshTask(void *pvParameters) {
 }
 
 // connect to SSH End
-
 // scan single IP
 
 void scanIpPort() {
@@ -8608,6 +8657,10 @@ void setupHttpClient(HTTPClient &http, WiFiClient &client, WiFiClientSecure &sec
 }
 
 void webCrawling(const String &urlOrIp) {
+  if (WiFi.localIP().toString() == "0.0.0.0") {
+    waitAndReturnToMenu("Not connected...");
+    return;
+  }
   enterDebounce();
   startIndex = 0;
   urlList.clear();  // Clear the URL list at the start of crawling
@@ -8731,19 +8784,6 @@ void webCrawling(const String &urlOrIp) {
   waitAndReturnToMenu("Returning to menu...");
   M5.Display.setTextSize(1.5);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -9345,69 +9385,146 @@ extern "C" void send_pwnagotchi_beacon_main() {
 
 
 // detectskimmer 
-class SkimmerAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
+
+BLEScan* pBLEScan;
+bool isScanning = false;
+bool skimmerDetected = false;
+bool isBLEScanning = false;
+String skimmerInfo;
+
+const char* badDeviceNames[] = {"HC-03", "HC-05", "HC-06", "HC-08", "BT04-A", "BT05"};
+const int badDeviceNamesCount = sizeof(badDeviceNames) / sizeof(badDeviceNames[0]);
+
+const char* badMacPrefixes[] = {"00:11:22", "00:18:E4", "20:16:04"};
+const int badMacPrefixesCount = sizeof(badMacPrefixes) / sizeof(badMacPrefixes[0]);
+
+unsigned long lastUpdate = 0;
+const unsigned long refreshInterval = 500;
+
+class SkimmerAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
 public:
   void onResult(BLEAdvertisedDevice advertisedDevice) override {
-    String bad_list[] = {"HC-03", "HC-05", "HC-06"};
-    int bad_list_length = sizeof(bad_list) / sizeof(bad_list[0]);
     bool isSkimmerDetected = false;
-    String displayMessage = "Device: ";
+    String displayMessage;
 
-    if (advertisedDevice.getName().length() != 0) {
-      String deviceName = advertisedDevice.getName().c_str();
-      displayMessage += deviceName;
+    std::string deviceAddress = advertisedDevice.getAddress().toString();
+    std::string deviceName = advertisedDevice.getName();
+    int rssi = advertisedDevice.getRSSI();
 
-      for (uint8_t i = 0; i < bad_list_length; i++) {
-        if (deviceName.equals(bad_list[i])) {
-          isSkimmerDetected = true;
-          Serial.println(" - Skimmer Detected!");
-          displayMessage += " - Skimmer Detected!";
-          break;
-        }
+    for (int i = 0; i < badDeviceNamesCount; i++) {
+      if (deviceName == badDeviceNames[i]) {
+        isSkimmerDetected = true;
+        break;
       }
-    } else {
-      String deviceAddress = advertisedDevice.getAddress().toString().c_str();
-      displayMessage += deviceAddress;
     }
 
-    displayMessage += " RSSI: " + String(advertisedDevice.getRSSI());
+    for (int i = 0; i < badMacPrefixesCount && !isSkimmerDetected; i++) {
+      if (deviceAddress.substr(0, 8) == badMacPrefixes[i]) {
+        isSkimmerDetected = true;
+        break;
+      }
+    }
+
+    displayMessage = "____________________\n\n";
+    displayMessage += "Device: \n";
+    displayMessage += deviceName.length() != 0 ? deviceName.c_str() : deviceAddress.c_str();
+    displayMessage += "\n\n";
+    displayMessage += "RSSI: " + String(rssi) + "\n";
+    displayMessage += "Skimmer: " + String(isSkimmerDetected ? "Probable" : "No");
+    displayMessage += "\n____________________";
+
     Serial.println(displayMessage);
 
+    unsigned long currentTime = millis();
+    if (currentTime - lastUpdate >= refreshInterval) {
+      lastUpdate = currentTime;
+      M5.Display.fillScreen(TFT_BLACK);
+      M5.Display.setTextSize(2);
+      M5.Display.setCursor(0, 0);
+      M5.Display.setTextColor(isSkimmerDetected ? TFT_RED : menuTextUnFocusedColor);
+      M5.Display.println(displayMessage);
+    }
 
-    M5.Display.clear(menuBackgroundColor);
-    M5.Display.setTextSize(1.5);
-    M5.Display.setTextColor(isSkimmerDetected ? TFT_RED : menuTextFocusedColor);
-    M5.Display.setCursor(0, 20);
-    M5.Display.println(displayMessage);
-    // Small delay to prevent crashing
-    delay(250);
+    if (isSkimmerDetected && !skimmerDetected) {
+      skimmerDetected = true;
+      skimmerInfo = displayMessage;
+    }
   }
 };
 
 void skimmerDetection() {
-  BLEDevice::init("");
-  BLEScan* scan = BLEDevice::getScan();
-  scan->setAdvertisedDeviceCallbacks(new SkimmerAdvertisedDeviceCallbacks());
-  scan->setInterval(1349);
-  scan->setWindow(449);
-  
-  M5.Display.setTextSize(1.5);
+  if (!BLEDevice::getInitialized()) {
+    BLEDevice::init("");
+  }
+
+  if (pBLEScan != nullptr) {
+    if (isBLEScanning) {
+      pBLEScan->stop();
+      isBLEScanning = false;
+    }
+    pBLEScan->clearResults();
+  }
+
+  pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new SkimmerAdvertisedDeviceCallbacks());
+  pBLEScan->setActiveScan(true);
+  pBLEScan->setInterval(1349);
+  pBLEScan->setWindow(449);
+
+  M5.Display.fillScreen(menuBackgroundColor);
+  M5.Display.setTextSize(2);
   M5.Display.setTextColor(menuTextUnFocusedColor);
   M5.Display.setCursor(0, 0);
   M5.Display.println("Scanning for Skimmers...");
 
-  // Boucle pour gérer l'entrée de l'utilisateur
-  while (true) {
+  isScanning = true;
+  skimmerDetected = false;
+  skimmerInfo = "";
+
+  pBLEScan->start(0, nullptr, false);
+  isBLEScanning = true;
+  enterDebounce();
+  while (isScanning) {
     M5.update();
     M5Cardputer.update();
 
     if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER) || M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      if (pBLEScan != nullptr && isBLEScanning) {
+        pBLEScan->stop();
+        isBLEScanning = false;
+      }
+      isScanning = false;
       waitAndReturnToMenu("Scan Stopped");
       return;
     }
-    scan->start(5, false); // Scan pendant 5 secondes
+
+    if (skimmerDetected) {
+      if (pBLEScan != nullptr && isBLEScanning) {
+        pBLEScan->stop();
+        isBLEScanning = false;
+      }
+      isScanning = false;
+
+      M5.Display.fillScreen(TFT_BLACK);
+      M5.Display.setTextSize(2);
+      M5.Display.setCursor(0, 0);
+      M5.Display.setTextColor(TFT_RED);
+      M5.Display.println(skimmerInfo);
+      M5.Speaker.tone(1000, 500);
+      while (true) {
+        M5.update();
+        M5Cardputer.update();
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+          waitAndReturnToMenu("Skimmer Detected - Caution");
+          return;
+        }
+        delay(100);
+      }
+    }
+    delay(100);
   }
 }
+
 
 // detectskimmer end 
 
@@ -9679,29 +9796,6 @@ void badUSB() {
 // badusb end
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Map de rapport HID pour le clavier
 const uint8_t HID_REPORT_MAP[] = {
     0x05, 0x01,  // Usage Pg (Generic Desktop)
@@ -9952,7 +10046,7 @@ int totalNetworks = 0;
 unsigned long lastLog = 0;
 int currentScreen = 1;  // Track which screen is currently displayed
 
-const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.3,model=Cardputer,release=v1.3.3,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
+const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.4,model=Cardputer,release=v1.3.4,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
 
 char* log_col_names[LOG_COLUMN_COUNT] = {
     "MAC", "SSID", "AuthMode", "FirstSeen", "Channel", "RSSI", "CurrentLatitude", "CurrentLongitude", "AltitudeMeters", "AccuracyMeters", "Type"
@@ -11069,4 +11163,597 @@ void sniffNetwork() {
   sniffFile.close();
   Serial.println("Stopped all traffic sniffer, file closed.");
   waitAndReturnToMenu("Stopping Sniffing...");
+}
+
+
+#include <lwip/sockets.h>
+
+// Global variables
+File scanFile;
+String scanFolder = "/NetworkScan";
+
+// Function to get the next file index
+int getNextFileIndex() {
+    if (!SD.exists(scanFolder)) {
+        SD.mkdir(scanFolder);  // Create the folder if it doesn't exist
+    }
+
+    File root = SD.open(scanFolder);
+    int maxIndex = -1;
+    while (File file = root.openNextFile()) {
+        String fileName = file.name();
+        if (fileName.endsWith(".txt")) {
+            // Extract the index number from the file name
+            int currentIndex = fileName.substring(fileName.lastIndexOf('/') + 1, fileName.lastIndexOf('.')).toInt();
+            if (currentIndex > maxIndex) {
+                maxIndex = currentIndex;
+            }
+        }
+        file.close();
+    }
+    root.close();
+    return maxIndex + 1;  // Return the next file index
+}
+
+// Function to log scan results to the file progressively
+void logScanResult(String result) {
+    if (!scanFile) {
+        int fileIndex = getNextFileIndex();
+        String filePath = scanFolder + "/" + String(fileIndex) + ".txt";  // Create a new file path with the next index
+        scanFile = SD.open(filePath, FILE_WRITE);  // Open the file for writing
+        if (!scanFile) {
+            M5.Display.println("Failed to create scan file.");
+            return;
+        }
+    }
+    scanFile.println(result);  // Write the scan result to the file
+    scanFile.flush();  // Ensure the data is written to the file
+}
+
+
+// Mise à jour de la fonction FullNetworkAnalysis pour passer l'index du scan
+void FullNetworkAnalysis() {
+    // Check WiFi connection
+    if (WiFi.localIP().toString() == "0.0.0.0") {
+        waitAndReturnToMenu("Not connected...");
+        return;
+    }
+
+    enterDebounce();
+
+    IPAddress gatewayIP;
+    IPAddress subnetMask;
+    std::vector<IPAddress> hostslist;
+
+    // Initial display configuration
+    M5.Display.setTextColor(menuTextUnFocusedColor, TFT_BLACK);
+    M5.Display.setTextSize(1.5);
+
+    gatewayIP = WiFi.gatewayIP();
+    subnetMask = WiFi.subnetMask();
+
+    IPAddress network = WiFi.localIP();
+    network[3] = 0;  // Use the base network address
+    M5.Display.clear();
+    int numHosts = 254 - subnetMask[3];  // Calculate the number of hosts
+    M5.Display.setCursor(0, M5.Display.height() / 2);
+    M5.Display.println("Probing " + String(numHosts) + " hosts with ARP");
+    M5.Display.println("       please wait...");
+
+    bool foundHosts = false;
+
+    // Prepare the base IP address for ARP requests
+    char base_ip[16];
+    sprintf(base_ip, "%d.%d.%d.", network[0], network[1], network[2]);
+
+    // Send ARP requests across the network
+    send_arp(base_ip, hostslist);
+
+    // Read the ARP table to detect active hosts
+    read_arp_table(base_ip, 1, numHosts, hostslist);
+
+    // Scan through the ARP table and log results
+    for (int i = 1; i <= numHosts; i++) {
+        IPAddress currentIP = network;
+        currentIP[3] = i;
+
+        if (arpRequest(currentIP)) {
+            hostslist.push_back(currentIP);
+            foundHosts = true;
+            logScanResult("Host : " + currentIP.toString());  // Log each found host
+        }
+    }
+
+    if (!foundHosts) {
+        M5.Display.println("No hosts found.");
+        delay(2000);
+        waitAndReturnToMenu("No hosts found.");
+        return;
+    } else {
+        logScanResult("-----------------------");
+    }
+
+    // Display the number of found hosts
+    M5.Display.clear();
+    M5.Display.setCursor(M5.Display.width() / 2 - 60, M5.Display.height() / 2);
+    M5.Display.println(String(hostslist.size()) + " hosts found");
+    delay(2000);
+
+    // Scrolling display of the hosts and scanning their ports
+    int scanIndex = getNextFileIndex();
+    displayHostsAndScanPorts(hostslist, scanIndex);
+
+    // Close the scan file after the scan is done
+    if (scanFile) {
+        scanFile.close();
+        M5.Display.println("Scan results saved successfully.");
+    }
+}
+
+
+// Function to connect to a host with a timeout
+bool connectWithTimeout(WiFiClient& client, IPAddress ip, uint16_t port, uint32_t timeout_ms) {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        return false;
+    }
+
+    struct sockaddr_in server;
+    server.sin_family = AF_INET;
+    server.sin_port = htons(port);
+    server.sin_addr.s_addr = ip;
+
+    int flags = fcntl(sock, F_GETFL, 0);
+    fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+
+    int res = connect(sock, (struct sockaddr*)&server, sizeof(server));
+    if (res < 0) {
+        if (errno != EINPROGRESS) {
+            close(sock);
+            return false;
+        }
+    }
+
+    fd_set fdset;
+    FD_ZERO(&fdset);
+    FD_SET(sock, &fdset);
+    struct timeval tv;
+    tv.tv_sec = timeout_ms / 1000;
+    tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+    res = select(sock + 1, NULL, &fdset, NULL, &tv);
+    if (res <= 0) {
+        close(sock);
+        return false;
+    }
+
+    int so_error;
+    socklen_t len = sizeof(so_error);
+    getsockopt(sock, SOL_SOCKET, SO_ERROR, &so_error, &len);
+    if (so_error != 0) {
+        close(sock);
+        return false;
+    }
+
+    client = WiFiClient(sock);
+    return true;
+}
+
+// Fonction pour afficher les hôtes et analyser les ports
+void displayHostsAndScanPorts(const std::vector<IPAddress>& hostslist, int scanIndex) {
+    int displayStart = 0;
+    int lineHeight = 12;
+    int maxLines = M5.Display.height() / lineHeight;
+    std::vector<String> scanResults;
+    std::map<IPAddress, std::vector<int>> openPorts;
+
+    const int ports[] = {
+        20, 21, 22, 23, 25, 53, 67, 68, 69, 80, 110, 123, 135, 137, 139, 143, 161, 162, 389, 443, 445, 465, 
+        514, 554, 587, 631, 636, 873, 993, 995, 1024, 1025, 1352, 1433, 1521, 1720, 1723, 2049, 2181, 2222, 
+        2375, 2376, 3306, 3389, 3690, 5000, 5060, 5432, 5555, 5900, 5985, 5986, 6379, 8080, 8443, 9000, 
+        9200, 9999, 10000, 11211, 1194, 27017, 32768, 49152, 49153, 49154, 49155, 49156, 49157
+    };
+
+    const int numPorts = sizeof(ports) / sizeof(ports[0]);
+    const int timeout_ms = 75;
+
+    std::map<int, String> portServices = {
+        {20, "FTP Data"}, {21, "FTP"}, {22, "SSH"}, {23, "Telnet"}, {25, "SMTP"}, {53, "DNS"}, {67, "DHCP"},
+        {68, "DHCP"}, {69, "TFTP"}, {80, "HTTP"}, {110, "POP3"}, {123, "NTP"}, {135, "Msoft RPC"},
+        {137, "NetBIOS"}, {139, "NetBIOS"}, {143, "IMAP"}, {161, "SNMP"}, {162, "SNMP Trap"}, {389, "LDAP"},
+        {443, "HTTPS"}, {445, "Msoft-DS"}, {465, "SMTPS"}, {514, "Syslog"}, {554, "RTSP"}, {587, "SMTP"},
+        {631, "IPP"}, {636, "LDAPS"}, {873, "rsync"}, {993, "IMAPS"}, {995, "POP3S"}, {1024, "Reserved"},
+        {1025, "NFS-or-IIS"}, {1352, "LotusNote"}, {1433, "MSSQL"}, {1521, "Oracle"}, {1720, "H.323"},
+        {1723, "PPTP"}, {2049, "NFS"}, {2181, "Zookeeper"}, {2222, "SSH Alt"}, {2375, "Docker"},
+        {2376, "DockerTLS"}, {3306, "MySQL"}, {3389, "RDP"}, {3690, "SVN"}, {5000, "UPnP"}, {5060, "SIP"},
+        {5432, "PostgreSQL"}, {5555, "ADB"}, {5900, "VNC"}, {5985, "WinRM HTTP"}, {5986, "WinRMHTTPS"},
+        {6379, "Redis"}, {8080, "HTTP Proxy"}, {8443, "HTTPS Alt"}, {9000, "SonarQube"}, {9200, "Elasticsrc"},
+        {9999, "Urchin"}, {10000, "Webmin"}, {11211, "Memcached"}, {1194, "OpenVPN"}, {27017, "MongoDB"},
+        {32768, "RPC"}, {49152, "WinRPC"}, {49153, "WinRPC"}, {49154, "WinRPC"}, {49155, "WinRPC"},
+        {49156, "WinRPC"}, {49157, "WinRPC"}
+    };
+
+
+
+    int currentHostIndex = 0;
+    M5.Display.setTextSize(1.5);
+    bool needsDisplayUpdate = true;
+
+    while (currentHostIndex < hostslist.size()) {
+        IPAddress host = hostslist[currentHostIndex];
+        String hostHeader = "Host: " + host.toString();
+        scanResults.push_back("--------------------------");
+        scanResults.push_back(hostHeader);
+        scanResults.push_back("--------------------------");
+        needsDisplayUpdate = true;
+
+        if (needsDisplayUpdate) {
+            displayResults(displayStart, maxLines, scanResults);
+            needsDisplayUpdate = false;
+        }
+
+        for (int j = 0; j < numPorts; j++) {
+            int port = ports[j];
+            WiFiClient client;
+            bool isPortOpen = connectWithTimeout(client, host, port, timeout_ms);
+
+            if (isPortOpen) {
+                String service = portServices.count(port) ? portServices[port] : "Unknown";
+                scanResults.push_back("Port " + String(port) + " open - " + service);
+                client.stop();
+                needsDisplayUpdate = true;
+                logScanResult(host.toString() + " - " + String(port) + " - " + service);  // Enregistrer les informations de port
+                openPorts[host].push_back(port);
+            }
+
+            if (needsDisplayUpdate) {
+                displayResults(displayStart, maxLines, scanResults);
+                needsDisplayUpdate = false;
+            }
+
+            M5Cardputer.update();
+            if (handleScrolling(displayStart, maxLines, scanResults.size())) {
+                needsDisplayUpdate = true;
+            }
+            delay(10);
+        }
+
+        scanResults.push_back("--------------------------");
+        logScanResult("--------------------------");  // Enregistrer les informations de port
+        scanResults.push_back(host.toString() + " Finished.");
+        needsDisplayUpdate = true;
+
+        if (needsDisplayUpdate) {
+            displayResults(displayStart, maxLines, scanResults);
+            needsDisplayUpdate = false;
+        }
+
+        M5Cardputer.update();
+        if (handleScrolling(displayStart, maxLines, scanResults.size())) {
+            needsDisplayUpdate = true;
+        }
+
+        currentHostIndex++;
+    }
+    scanResults.push_back("--------------------------");
+    scanResults.push_back("Scan Terminated.");
+    displayResults(displayStart, maxLines, scanResults);
+    while (true) {
+        M5Cardputer.update();
+        if (handleScrolling(displayStart, maxLines, scanResults.size())) {
+            needsDisplayUpdate = true;
+        }
+        if (needsDisplayUpdate) {
+            displayResults(displayStart, maxLines, scanResults);
+            needsDisplayUpdate = false;
+        }
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+            break;
+        }
+        delay(30);
+    }
+    if (confirmPopup("Scrape websites? (Y/N)")) {
+        M5.Display.clear();
+        fetchWebsites(hostslist, openPorts, scanIndex);  // Appelle la fonction pour récupérer les sites
+    }
+
+    waitAndReturnToMenu("Return to menu.");
+}
+
+
+// Function to display scan results
+void displayResults(int displayStart, int maxLines, const std::vector<String>& scanResults) {
+    M5.Display.clear();
+    M5.Display.setCursor(0, 0);
+
+    int totalLines = scanResults.size();
+    int endLine = min(displayStart + maxLines, totalLines);
+
+    for (int i = displayStart; i < endLine; i++) {
+        M5.Display.println(scanResults[i]);
+    }
+}
+
+// Function to handle scrolling
+bool handleScrolling(int& displayStart, int maxLines, int totalLines) {
+    int previousDisplayStart = displayStart;
+    if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+        displayStart = max(0, displayStart - 1);
+        delay(30);
+    } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {
+        displayStart = min(displayStart + 1, max(0, totalLines - maxLines));
+        delay(30);
+    }
+    return displayStart != previousDisplayStart;
+}
+
+
+void fetchWebsites(const std::vector<IPAddress>& hostslist, const std::map<IPAddress, std::vector<int>>& openPorts, int scanIndex) {
+    // Créer un dossier spécifique pour ce scan
+    String folderPath = "/Captured_Website/Scan_" + String(scanIndex);
+    if (!SD.exists(folderPath)) {
+        SD.mkdir(folderPath);
+    }
+
+    int totalWebsites = 0;
+    for (const auto& [host, ports] : openPorts) {
+        for (int port : ports) {
+            if (port == 443 || port == 8443 || port == 80 || port == 8080 || port == 8000 || isLikelyWebPort(port)) {
+                totalWebsites++;
+            }
+        }
+    }
+
+    int processedWebsites = 0;
+
+    for (const auto& [host, ports] : openPorts) {
+        for (int port : ports) {
+            String protocol;
+            if (port == 443 || port == 8443) {
+                protocol = "https://";
+            } else if (port == 80 || port == 8080 || port == 8000) {
+                protocol = "http://";
+            } else if (isLikelyWebPort(port)) {
+                // Tenter HTTP d'abord pour les autres ports communs
+                protocol = "http://";
+            } else {
+                // Ignorer les ports qui ne sont pas liés aux services web
+                continue;
+            }
+
+            processedWebsites++;
+
+            // Afficher le décompte centré en x et à la ligne y = 40
+            String countDisplay = String(processedWebsites) + "/" + String(totalWebsites);
+            M5.Display.setCursor(110, 20);
+            M5.Display.print(countDisplay); 
+            M5.Display.display();
+
+            String url = protocol + host.toString() + ":" + String(port);
+
+            // Effectuer une requête HTTP GET et suivre les redirections
+            String content = getHttpContentWithRedirect(url);
+
+            // Enregistrer le contenu dans un fichier
+            if (!content.isEmpty()) {
+                saveWebsiteContent(folderPath, host.toString() + "_" + String(port), content);
+            }
+        }
+    }
+}
+
+
+// Fonction pour identifier si le port est susceptible de servir un site web
+bool isLikelyWebPort(int port) {
+    // Liste des ports courants utilisés pour des services web
+    std::vector<int> webPorts = {80, 443, 8080, 8443, 8000, 8888, 3000, 5000, 7001};
+    return std::find(webPorts.begin(), webPorts.end(), port) != webPorts.end();
+}
+
+
+// Fonction pour récupérer le contenu HTML d'une page avec gestion des redirections
+String getHttpContentWithRedirect(String url) {
+    HTTPClient http;
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    http.begin(url);
+    int httpCode = http.GET();
+    String payload = "";
+
+    if (httpCode == HTTP_CODE_OK) {
+        payload = http.getString();
+    }
+
+    http.end();
+    return payload;
+}
+
+
+// Fonction pour sauvegarder le contenu du site dans un fichier
+void saveWebsiteContent(String folderPath, String identifier, String content) {
+    String filePath = folderPath + "/" + identifier + ".html";  // Crée un fichier pour chaque site web
+    File webFile = SD.open(filePath, FILE_WRITE);
+    
+    String statusMessage = "";
+    if (webFile) {
+        webFile.print(content);
+        webFile.close();
+        statusMessage = "Scraping :";
+    } else {
+        statusMessage = "Failed :";
+    }
+
+    // Effacer l'écran
+    M5.Display.clear();
+
+    // Calcul pour centrer le texte verticalement
+    int textHeight = M5.Display.fontHeight() * 2;  // Estimation pour deux lignes de texte
+    int startY = (M5.Display.height() - textHeight) / 2;
+
+    // Calcul pour centrer la première ligne
+    int statusTextWidth = M5.Display.textWidth(statusMessage);
+    int startXStatus = (M5.Display.width() - statusTextWidth) / 2;
+
+    // Afficher la première ligne centrée
+    M5.Lcd.setTextColor(menuTextUnFocusedColor, TFT_BLACK);
+    M5.Display.setCursor(startXStatus, startY);
+    M5.Display.println(statusMessage);
+
+    // Calcul pour centrer la deuxième ligne
+    int identifierTextWidth = M5.Display.textWidth(identifier);
+    int startXIdentifier = (M5.Display.width() - identifierTextWidth) / 2;
+
+    // Afficher la deuxième ligne centrée
+    M5.Display.setCursor(startXIdentifier, startY + M5.Display.fontHeight());
+    M5.Display.println(identifier);
+}
+
+// Fonction pour lister les fichiers texte dans un dossier
+std::vector<String> listScanFiles() {
+    std::vector<String> scanFiles;
+    if (!SD.exists(scanFolder)) {
+        SD.mkdir(scanFolder);  // Créer le dossier s'il n'existe pas
+    }
+
+    File root = SD.open(scanFolder);
+    while (File file = root.openNextFile()) {
+        String fileName = file.name();
+        if (fileName.endsWith(".txt")) {
+            scanFiles.push_back(fileName);  // Ajouter à la liste des fichiers
+        }
+        file.close();
+    }
+    root.close();
+    return scanFiles;  // Retourne la liste des fichiers trouvés
+}
+
+// Fonction pour afficher la liste déroulante des fichiers
+void displayFileList(const std::vector<String>& files) {
+    int displayStart = 0;
+    int currentFileIndex = 0;
+    int lineHeight = 12;
+    int maxLines = M5.Display.height() / lineHeight;
+    bool needsDisplayUpdate = true;
+    enterDebounce();
+    
+    while (true) {
+        if (needsDisplayUpdate) {
+            M5.Display.clear(TFT_BLACK);
+            int endLine = min(displayStart + maxLines, (int)files.size());
+            for (int i = displayStart; i < endLine; i++) {
+                if (i == currentFileIndex) {
+                    M5.Display.fillRect(0, (i - displayStart) * lineHeight, M5.Display.width(), lineHeight, menuSelectedBackgroundColor);
+                    M5.Display.setTextColor(menuTextFocusedColor, menuSelectedBackgroundColor);
+                } else {
+                    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+                }
+                M5.Display.setCursor(2, (i - displayStart) * lineHeight);
+                M5.Display.println(files[i]);
+            }
+            M5.Display.display();
+            needsDisplayUpdate = false;
+        }
+
+        M5.update();
+        M5Cardputer.update();
+
+        if (M5Cardputer.Keyboard.isKeyPressed(';')) {  // Touche ; pour monter
+            currentFileIndex = max(0, currentFileIndex - 1);
+            if (currentFileIndex < displayStart) {
+                displayStart = max(0, displayStart - 1);
+            }
+            needsDisplayUpdate = true;
+            delay(100);
+        } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {  // Touche . pour descendre
+            currentFileIndex = min((int)files.size() - 1, currentFileIndex + 1);
+            if (currentFileIndex >= displayStart + maxLines) {
+                displayStart = min(displayStart + 1, (int)files.size() - maxLines);
+            }
+            needsDisplayUpdate = true;
+            delay(100);
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {  // Touche Entrée pour sélectionner
+            viewFileContent(String(scanFolder) + "/" + files[currentFileIndex]);  // Afficher le contenu du fichier sélectionné avec le chemin complet
+            enterDebounce();
+            needsDisplayUpdate = true; // Rafraîchir la liste des fichiers après avoir visualisé un fichier
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {  // Touche Entrée pour sélectionner
+            break;
+        }
+
+
+        delay(30);
+    }
+}
+
+// Fonction pour afficher le contenu d'un fichier sélectionné
+void viewFileContent(String filePath) {
+    File file = SD.open(filePath);
+    if (!file) {
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+        M5.Display.println("Failed to open file: " + filePath);
+        M5.Display.display();
+        delay(2000);
+        return;
+    }
+
+    std::vector<String> fileLines;
+    while (file.available()) {
+        String line = file.readStringUntil('\n');
+        fileLines.push_back(line);
+    }
+    file.close();
+
+    // Affichage avec défilement
+    int displayStart = 0;
+    int lineHeight = 10;
+    int maxLines = M5.Display.height() / lineHeight;
+    bool needsDisplayUpdate = true;
+    M5.Display.setTextSize(1.3);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    
+    enterDebounce();
+    while (true) {
+        if (needsDisplayUpdate) {
+            M5.Display.clear(menuBackgroundColor);
+            int endLine = min(displayStart + maxLines, (int)fileLines.size());
+            for (int i = displayStart; i < endLine; i++) {
+                M5.Display.setCursor(2, (i - displayStart) * lineHeight);
+                M5.Display.println(fileLines[i]);
+            }
+            M5.Display.display();
+            needsDisplayUpdate = false;
+        }
+
+        M5.update();
+        M5Cardputer.update();
+
+        if (M5Cardputer.Keyboard.isKeyPressed(';')) {  // Touche ; pour défiler vers le haut
+            displayStart = max(0, displayStart - 1);
+            needsDisplayUpdate = true;
+            delay(30);
+        } else if (M5Cardputer.Keyboard.isKeyPressed('.')) {  // Touche . pour défiler vers le bas
+            displayStart = min(displayStart + 1, (int)fileLines.size() - maxLines);
+            needsDisplayUpdate = true;
+            delay(30);
+        } else if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {  // Touche Entrée pour quitter la visualisation
+            break; // Sortir de la visualisation du fichier
+        }
+
+        delay(30);
+    }
+}
+
+// Fonction principale pour démarrer la liste des scans
+void ListNetworkAnalysis() {
+    std::vector<String> scanFiles = listScanFiles();
+    if (scanFiles.empty()) {
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+        M5.Display.println("No scan files found.");
+        M5.Display.display();
+        delay(2000);
+        return;
+    }
+
+    displayFileList(scanFiles);
+    waitAndReturnToMenu("Return to menu.");
 }
