@@ -1,5 +1,5 @@
 /*
-   Evil-M5Core2 - WiFi Network Testing and Exploration Tool
+   Evil-M5Cardputer - WiFi Network Testing and Exploration Tool
 
    Copyright (c) 2024 7h30th3r0n3
 
@@ -22,8 +22,8 @@
    SOFTWARE.
 
    Disclaimer:
-   This tool, Evil-M5Core2, is developed for educational and ethical testing purposes only.
-   Any misuse or illegal use of this tool is strictly prohibited. The creator of Evil-M5Core2
+   This tool, Evil-M5Cardputer, is developed for educational and ethical testing purposes only.
+   Any misuse or illegal use of this tool is strictly prohibited. The creator of Evil-M5Cardputer
    assumes no liability and is not responsible for any misuse or damage caused by this tool.
    Users are required to comply with all applicable laws and regulations in their jurisdiction
    regarding network testing and ethical hacking.
@@ -84,6 +84,7 @@ String scanIp = "";
 
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
+//these value bypass the config file to hardcode crendentials
 String ssh_user = "";
 String ssh_host = "";
 String ssh_password = "";
@@ -176,14 +177,13 @@ int currentListIndex = 0;
 String clonedSSID = "Evil-Cardputer";
 int topVisibleIndex = 0;
 
-// Connect to nearby wifi network automaticaly ro provide internet to the core2 you can be connected and provide AP at same time
+// Connect to nearby wifi network automaticaly ro provide internet to the cardputer you can be connected and provide AP at same time it bypass the config file to hardcode credentials
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 const char* ssid = ""; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
 const char* password = ""; // wifi password
-
-
 //!!!!!! CHANGE THIS !!!!!
+
 //!!!!!! CHANGE THIS !!!!!
 // password for web access to remote check captured credentials and send new html file !!!!!! CHANGE THIS !!!!!
 const char* accessWebPassword = "7h30th3r0n3"; // !!!!!! CHANGE THIS !!!!!
