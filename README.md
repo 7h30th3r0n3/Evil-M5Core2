@@ -71,7 +71,7 @@ With this new feature, network administrators and penetration testers can stream
 
 **Skimmer Detector Refactor**:
    - The skimmer detector has been fully refactored for improved efficiency and accuracy.
-   - This updated skimmer detection algorithm now works faster, making it more reliable in identifying suspicious web pages or services that may pose security risks, such as fake login pages or phishing attempts.
+   - This updated skimmer detection algorithm now works faster, making it more reliable in identifying suspicious bluetooth device that can probably be a skimmer.
 
 
 ## NEW Feature ! from v1.3.3 : Customing Theming, Colorful interface toggle!!!
