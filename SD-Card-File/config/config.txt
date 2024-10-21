@@ -7,5 +7,12 @@ startupSound=/audio/sample.mp3
 selectedTheme=/theme.ini
 KarmaAutoWhitelist=network1,network2,network3
 CustomProbes=Never,Gonna,Give,You,Up,never,gonna,Let,you:,Down,never:,gonna:,Run,Around,And,Desert,you!,never!,gonna!,Make,you-, Cry,never-,gonna-,Say,Goodbye,never<,gonna<,Tell,A,Lie,and<,Hurt,you<
-CustomBeacons=Never Gonna Give You Up,never gonna Let you Down,never gonna Run Around,And Desert you,never gonna Make you Cry,never gonna Say Goodbye,never gonna Tell A Lie,and Hurt you
-
+CustomBeacons=Never,Gonna,Give,You,Up,never,gonna,Let,you:,Down,never:,gonna:,Run,Around,And,Desert,you!,never!,gonna!,Make,you-, Cry,never-,gonna-,Say,Goodbye,never<,gonna<,Tell,A,Lie,and<,Hurt,you<
+KarmaAutoWhitelist=network1,network2,network3
+randomOn=0
+wifi_ssid=
+wifi_password=
+ssh_user=
+ssh_host=
+ssh_password=
+ssh_port=
