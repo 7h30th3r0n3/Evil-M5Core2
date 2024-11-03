@@ -25,3 +25,15 @@ Make sure you have Python 3.7+ installed. Then, install any additional dependenc
 
 ```bash
 pip install asyncio
+```
+
+### 2. Configure Network Address Translation (NAT) for External Access
+
+To allow the ESP32 to connect to this server from outside your local network, configure NAT (Port Forwarding) on your router for the C2 server.
+
+- **Find your server's local IP address**: Check your computer's IP address (e.g., `192.168.x.x`).
+- **Access your router settings**: Open a web browser and enter your router’s IP address (usually something like `192.168.1.1`).
+- **Set up port forwarding**:
+  - **NAT**: Forward **port 4444** (or your chosen `tcp_port`) to your server's local IP address.
+
+> **Important**: Port forwarding exposes your server to the internet, which may present security risks. Ensure that your server is secure and accessible only to trusted devices.
