@@ -1,56 +1,54 @@
 <div align="center">
   
-# Evil-M5Project v1.3.4 - Full Network Scan
+  # Evil-M5Project v1.3.5 - Reverse TCP Tunnel
 
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
+  <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
-<b>Evil-M5Project</b> is an innovative tool developed for ethical testing and exploration of WiFi networks. It harnesses the power of the M5Core2 device to scan, monitor, and interact with WiFi networks in a controlled environment. This project is designed for educational purposes, aiding in understanding network security and vulnerabilities.
+  <b>Evil-M5Project</b> is an innovative tool developed for ethical testing and exploration of WiFi networks. It harnesses the power of the M5Core2 device to scan, monitor, and interact with WiFi networks in a controlled environment. This project is designed for educational purposes, aiding in understanding network security and vulnerabilities.
 
-> <i>Disclaimer</i>: The creator of Evil-M5Core2 is not responsible for any misuse of this tool. It is intended solely for ethical and educational purposes. Users are reminded to comply with all applicable laws and regulations in their jurisdiction. All files provided with Evil-M5Core2 are designed to be used in a controlled environment and must be used in compliance with all applicable laws and regulations. Misuse or illegal use of this tool is strictly prohibited and not supported by the creator.
+  > <i>Disclaimer</i>: The creator of Evil-M5Core2 is not responsible for any misuse of this tool. It is intended solely for ethical and educational purposes. Users are reminded to comply with all applicable laws and regulations in their jurisdiction. All files provided with Evil-M5Core2 are designed to be used in a controlled environment and must be used in compliance with all applicable laws and regulations. Misuse or illegal use of this tool is strictly prohibited and not supported by the creator.
 
-</div>
+  #### Evil-M5Family
 
-<div align="center">
+  <img src="./Github-Img/M5family.jpg" width="300" />
 
-#### Booting Screen
-<div align="center">
-  
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup.jpg" width="300" />
-  
-<img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/Github-Img/startup2.jpg" width="300" />
-  
-With more than 250 references at each boot.
+  If you like this project, support me by buying me a coffee on [Ko-fi](https://ko-fi.com/7h30th3r0n3) !
 
-#### Evil-M5Family
+  [![Support the project on Ko-fi !](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/7h30th3r0n3)
 
-<img src="./Github-Img/M5family.jpg" width="300" />
-<div align="center">
+  Or use this affiliate link to buy M5 product [Support the project on M5 shop](https://shop.m5stack.com/?ref=7h30th3r0n3) !
 
-
-If you like this project, support me by buying me a coffee on [Ko-fi](https://ko-fi.com/7h30th3r0n3) !
-
-[![Support the project on Ko-fi !](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/7h30th3r0n3)
-
-Or use this affiliate link to buy M5 product [Support the project on M5 shop](https://shop.m5stack.com/?ref=7h30th3r0n3) !
-
-<div>
+  <div>
     <a href="https://shop.m5stack.com/?ref=7h30th3r0n3">
         <img src="https://static.goaffpro.com/4973/images/1561376655877.png" alt="Support my on M5 shop" width="100" style="display:block; margin:auto;" />
     </a>
+  </div>
+
+  </br>
+
+  Join the Evil-M5 discord for help and updates 😉:
+
+  <a href="https://discord.com/invite/qbwAJch25S">
+    <img src="https://7h30th3r0n3.com/discord.jpg" width="75" alt="Join Discord" />
+  </a>
+
 </div>
+
+
+## NEW Feature! from v1.3.5: Reverse TCP Tunnel!!!
+### Introducing the ability to implant and control the Evil-Cardputer from anywhere around the world through a Command & Control (C2) Python server available in utilities.
+
+1. **Remote Access Control**:
+   - Access the Evil-Cardputer from any location, enabling you to issue commands and monitor activity.
+   - The Reverse TCP Tunnel creates a connection back to a C2 Python server, allowing persistent remote management with firewall evasion.
+
+2. **Comprehensive Remote Command Interface**:
+   - Perform network scans, capture credentials, modify portals, access files, monitor system status, and execute BadUSBscripts — all remotely through the C2 server.
+   - Making it ideal for ethical testing and controlled penetration testing purpose.
+
+<div align="center">
+  <img src="./Github-Img/ReverseTCP.jpg" />
 </div>
-</div>
-
-</br>
-
-Join the Evil-M5 discord for help and update 😉: 
-
-<a href="https://discord.com/invite/qbwAJch25S">
-  <img src="https://7h30th3r0n3.com/discord.jpg" width="75" alt="Join Discord" />
-</a>
-
-
-</div></div>
 
 # NEW Feature! from v1.3.4: Full Network Scan!!!
 ### Introducing a powerful, all-in-one Full Network Scan feature with enhanced capabilities, including the ability to list and manage previous scans.
@@ -171,36 +169,54 @@ Here an assembly with 8 esp32-c3 connected in parallel and which scans 1,3,6,9,1
 - **Web Crawler**: Crawl websites to extract information, ensuring authorization to crawl before use.
 - **PwnGrid**: Spam face and message on pwnagotchi devices nearby, causing a Denial of Screen PWND.
 - **Skimmer Detector**: Detect potential Bluetooth skimmers using HC-03, HC-05, and HC-06 modules.
-- **BadUSB**: Simulate BadUSB attacks by emulating keyboard/mouse inputs to execute predefined scripts or commands.
-
+- **BadUSB**: BadUSB attacks by emulating keyboard/mouse inputs to execute predefined scripts or commands with provided script.
+- **Wardriving Master**: Perform Wardriving with wardriving slave to map networks in a defined area, analyzing signals and identifying access points.
+- **WebUi BadUSB**: Start BadUSB attacks via a web interface.
+- **Wi-Fi Channel Visualizer**: Visualize the number of nearby Wi-Fi on each channels.
+- **Client Sniff**: Capture traffic from connected clients to analyze communications and detect potential vulnerabilities and informations leak.
+- **Raw Sniffing**: Conduct raw packet captures for in-depth analysis of exchanged WiFi network data.
+- **Handshake Master**: Capture and analyze WPA/WPA2 handshakes with Sniffer Slave on static channel.
+- **Customing Theming**: Customize the tool’s interface and themes to tailor the appearance for specific preferences or mission needs.
+- **Full Network Scan**: Conduct a full network scan to identify connected devices, 70 open ports, and running services.
+- **Reverse TCP Tunnel**: Use remotly from anywhere the WebUI.
+  
  ( What is a Karma attack ? check the blog : https://7h30th3r0n3.fr/does-your-machine-have-a-good-or-bad-karma/)
 
 Features may vary depending on the firmware/device you are using:
-| Feature                       | Evil-M5Core2 1.2.2 | Evil-Cardputer v1.2.9 | Evil-M5Core3 1.1.9 | Evil-AtomS3 v1.1.7 | Evil-Face v1.0 |
-|-------------------------------|--------------------|-----------------------|--------------------|--------------------|----------------|
-| WiFi Network Scanning         | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Network Cloning               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Captive Portal Management     | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Credential Handling           | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Remote Web Server             | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Sniffing probes               | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Karma Attack                  | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Automated Karma Attack        | ✅                  | ✅                     | ✅                  | ✅                  | ✅              |
-| Bluetooth Serial Control      | ✅                  | ❌                     | ❌                  | ❌                  | ❌              |
-| Wardriving                    | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Wardriving master             | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| Beacon Spam                   | ✅                  | ✅                     | ✅                  | ✅                  | ❌              |
-| Deauther                      | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
-| Client Sniff And Deauth       | ✅                  | ✅                     | ❌                  | ❌                  | ❌              |
-| EAPOL/Deauth detection        | ✅                  | ✅                     | ✅ (No EAPOL)       | ❌                  | ❌              |
-| Wall Of Flipper               | ✅                  | ✅                     | ✅                  | ❌                  | ❌              |
-| Send tesla code with RFunit   | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| Scan Network and port         | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| SSH Shell                     | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| Web Crawler                   | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| PwnGrid                       | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| Skimmer Detector              | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
-| BadUSB                        | ❌                  | ✅                     | ❌                  | ❌                  | ❌              |
+| Feature                       | Evil-Cardputer v1.3.5 | Evil-M5Core2 1.2.2 | Evil-M5Core3 1.1.9 | Evil-AtomS3 v1.1.7 | Evil-Face v1.0 |
+|-------------------------------|-----------------------|--------------------|--------------------|--------------------|----------------|
+| WiFi Network Scanning         | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Network Cloning               | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Captive Portal Management     | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Credential Handling           | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Remote Web Server             | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Sniffing probes               | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Karma Attack                  | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Automated Karma Attack        | ✅                     | ✅                  | ✅                  | ✅                  | ✅              |
+| Bluetooth Serial Control      | ❌                     | ✅                  | ❌                  | ❌                  | ❌              |
+| Wardriving                    | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Wardriving Master             | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Beacon Spam                   | ✅                     | ✅                  | ✅                  | ✅                  | ❌              |
+| Deauther                      | ✅                     | ✅                  | ❌                  | ❌                  | ❌              |
+| Client Sniff And Deauth       | ✅                     | ✅                  | ❌                  | ❌                  | ❌              |
+| EAPOL/Deauth detection        | ✅                     | ✅                  | ✅ (No EAPOL)       | ❌                  | ❌              |
+| Wall Of Flipper               | ✅                     | ✅                  | ✅                  | ❌                  | ❌              |
+| Send tesla code with RFunit   | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Scan Network and port         | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| SSH Shell                     | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Web Crawler                   | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| PwnGrid                       | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Skimmer Detector              | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| BadUSB                        | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| WebUi BadUSB                  | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Wi-Fi Channel Visualizer      | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Client Sniff                  | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Raw Sniffing                  | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Handshake Master              | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Customing Theming             | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Full Network Scan             | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+| Reverse TCP Tunnel            | ✅                     | ❌                  | ❌                  | ❌                  | ❌              |
+
 
 ## Hardware Requirements
 
@@ -209,7 +225,7 @@ Features may vary depending on the firmware/device you are using:
 - SD card (fat32 max 16Go, consider 8Go is already more than enough).
 
 Tested working others device :
- M5Cardputer [M5stack](https://shop.m5stack.com/products/m5stack-cardputer-kit-w-m5stamps3?ref=7h30th3r0n3)  [link AliExpress](https://s.click.aliexpress.com/e/_DBzWP6B)
+- M5Cardputer [M5stack](https://shop.m5stack.com/products/m5stack-cardputer-kit-w-m5stamps3?ref=7h30th3r0n3)  [link AliExpress](https://s.click.aliexpress.com/e/_DBzWP6B)
 - M5stack fire (with LED effect) [M5stack](https://shop.m5stack.com/products/m5stack-fire-iot-development-kit-psram-v2-7?ref=7h30th3r0n3) 
 - M5stack core1 [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
 - M5stack AWS [M5stack](https://shop.m5stack.com/products/atoms3-dev-kit-w-0-85-inch-screen?ref=7h30th3r0n3)
@@ -360,40 +376,29 @@ Follow these steps to efficiently utilize each feature of Evil-M5Core2.
 
 - **Operate Captive Portal**: With `normal.html` page, a mock WiFi passord page designed to mimic a legitimate error on box.
 
-#### Special Pages
-- **/evil-m5core2-menu**: Menu for pages bellow.
-- **/credentials**: Lists captured credentials.
-- **/uploadhtmlfile**: Provides an upload form to store files on the SD card (for new portal pages and file exfiltration).
-- **/check-sd-file**: Provides an index of to check, download and delete files on the SD card.
-- **/Change-Portal-Password**: Provides a page to change the password of the deployed access point.
-
-
-When Captive Portal is ON you can connect to it to acces to 3 fonctionnality protected by password :
-
-- /evil-m5core2-menu
-This page is just a menu to provide easy access to others page with authentification form.
-
-- /credentials
-This page can list the captured credentials. 
-
-- /uploadhtmlfile
-This page provide a upload form that store files in SD card in any folder of the SD to be able to send new portal page, exfiltrate file trough wifi or change the startup image.
-please considere to upload file under 1Mo to ensure no lag during the transfert process.
-
-- /check-sd-file
-This page provide an index of to check, download and delete files on the SD card.
-
-
-- /Change-Portal-Password
-Provides a page to change the password of the deployed Access Point. Required if attempting a Karma attack on a network with a known password.
-
+#### Special Accessible Pages
+- **Credentials**: Lists captured credentials.
+- **Upload file On SD**: Provides an upload form to upload files on the SD card (for new portal pages and file exfiltration).
+- **Check Sd File**: Provides an index of to check, download and delete files on the SD card.
+- **Setup Portal**: Provides a page to change the SSID, password and page of the deployed access point.
+- **Run BadUSB Script**: Execute BadUSB script by clicking on it.
+- **Scan Network**: Execute the Scan Network Full.
+- **Monitor Status **: Execute BadUSB script by clicking on it.
   
-To prevent unauthorised access of these page they are really simply protected by a password that you need to change in the code. 
+To prevent unauthorised access of these page they are really simply protected by a password that you need to change in the code. (Default password : 7h30th3r0n3)
 To acces to these page use the password form in menu: 
-
 http://192.168.4.1/evil-m5core2-menu
 
 Any other tried page should redirect to the choosen portal. 
+
+These pages can be accessed by multiple way : 
+
+<div align="center">
+  <img src="./Github-Img/SpecialPages.jpg" width="400" />
+  
+  But also remotly:
+    <img src="./Github-Img/ReverseTCP.jpg" />
+</div>
 
 #### Stop Captive Portal
 
