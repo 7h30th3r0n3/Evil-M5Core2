@@ -1,5 +1,5 @@
 /*
-   Evil-M5Cardputer - WiFi Network Testing and Exploration Tool
+   Evil-M5Core2 - WiFi Network Testing and Exploration Tool
 
    Copyright (c) 2024 7h30th3r0n3
 
@@ -22,8 +22,8 @@
    SOFTWARE.
 
    Disclaimer:
-   This tool, Evil-M5Cardputer, is developed for educational and ethical testing purposes only.
-   Any misuse or illegal use of this tool is strictly prohibited. The creator of Evil-M5Cardputer
+   This tool, Evil-M5Core2, is developed for educational and ethical testing purposes only.
+   Any misuse or illegal use of this tool is strictly prohibited. The creator of Evil-M5Core2
    assumes no liability and is not responsible for any misuse or damage caused by this tool.
    Users are required to comply with all applicable laws and regulations in their jurisdiction
    regarding network testing and ethical hacking.
@@ -84,7 +84,6 @@ String scanIp = "";
 
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-//these value bypass the config file to hardcode crendentials
 String ssh_user = "";
 String ssh_host = "";
 String ssh_password = "";
@@ -92,13 +91,13 @@ int ssh_port = 22;
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 
-
 // SSH session and channel
 ssh_session my_ssh_session;
 ssh_channel my_channel;
 //ssh end
 
-
+String tcp_host = "";
+int tcp_port = 4444;
 
 extern "C" {
 #include "esp_wifi.h"
@@ -162,7 +161,9 @@ const char* menuItems[] = {
     "Skimmer Detector",
     "BadUSB",
     "Bluetooth Keyboard",
-    "Settings"
+    "Reverse TCP Tunnel",
+    "Settings",
+
 };
 
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
@@ -177,13 +178,14 @@ int currentListIndex = 0;
 String clonedSSID = "Evil-Cardputer";
 int topVisibleIndex = 0;
 
-// Connect to nearby wifi network automaticaly ro provide internet to the cardputer you can be connected and provide AP at same time it bypass the config file to hardcode credentials
+// Connect to nearby wifi network automaticaly to provide internet to the cardputer you can be connected and provide AP at same time
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 const char* ssid = ""; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
 const char* password = ""; // wifi password
-//!!!!!! CHANGE THIS !!!!!
 
+
+//!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
 // password for web access to remote check captured credentials and send new html file !!!!!! CHANGE THIS !!!!!
 const char* accessWebPassword = "7h30th3r0n3"; // !!!!!! CHANGE THIS !!!!!
@@ -483,6 +485,8 @@ void play(const char* fname) {
 //mp3 end
 
 
+bool wificonnected = false;
+String ipAddress = "";
 
 #include <BLEDevice.h>
 #include <BLEUtils.h>
@@ -496,7 +500,6 @@ BLEHIDDevice* hid;
 BLECharacteristic* keyboardInput;
 bool isConnected = false;
 bool isBluetoothKeyboardActive = false; // Indicateur pour l'état du clavier Bluetooth
-
 
 void setup() {
   M5.begin();
@@ -574,10 +577,16 @@ void setup() {
     "  Escaping the Matrix...",
     " You know I-Am-Jakoby ?",
     "You know TalkingSasquach?",
-    "Redirecting your bandwidth\nfor Leska free WiFi...", // Donation on Ko-fi // Thx Leska !
-    "Where we're going We don't\nneed roads   Nefast - 1985",// Donation on Ko-fi // Thx Nefast !
-    "Never leave a trace always\n behind you by CyberOzint",// Donation on Ko-fi // Thx CyberOzint !
-    "   Injecting hook.worm \nransomware to your android",// Donation on Ko-fi // Thx hook.worm !
+    "Redirecting your bandwidth for Leska free WiFi...", // Donation on Ko-fi // Thx Leska !
+    "Where we're going We don't need roads Nefast - 1985",// Donation on Ko-fi // Thx Nefast !
+    "Never leave a trace always  behind you by CyberOzint",// Donation on Ko-fi // Thx CyberOzint !
+    "Injecting hook.worm ransomware to your android",// Donation on Ko-fi // Thx hook.worm !
+    "    You know Kiyomi ? ", // for collab on Wof
+    "Redirecting your bandwidth for Leska WiFi...", // Donation on Ko-fi // Thx Leska !
+    "Compressing wook.worm algorithm", // Donation on Ko-fi // Thx wook.worm !
+    "Summoning the void by kdv88", // Donation on Ko-fi // Thx kdv88 !
+    "Egg sandwich - robt2d2",// Donation on Ko-fi // Thx robt2d2 !
+    " Scared of the .bat? KNAX", // Donation on Ko-fi // Thx KNAX !
     "    You know Kiyomi ?   ", // for collab on Wof
     "           42           ",
     "    Don't be a Skidz !",
@@ -644,17 +653,17 @@ void setup() {
     "   Towelie's High Times.",
     "Butters Awkward Escapades",
     "Navigating the Multiverse",
-    "    Affirmative Dave,\n        I read you.",
-    "  Your Evil-M5Core2 have\n     died of dysentery",
-    " Did you disable PSRAM ?",
+    "Affirmative Dave, I read you.",
+    "Your Evil-M5Core2 have died of dysentery",
+    "Did you disable PSRAM ?",
     "You already star project?",
     "Rick's Portal Gun Activated...",
     "Engaging in Plumbus Assembly...",
     "Wubba Lubba Dub Dub!",
-    "Syncing with Meeseeks Box...",
+    "Syncing with Meeseeks Box.",
     "Searching for Szechuan Sauce...",
     "Scanning Galactic Federation...",
-    "Exploring Dimension C-137...",
+    "Exploring Dimension C-137.",
     "Navigating the Citadel...",
     "Jerry's Dumb Ideas Detected...",
     "Engaging in Ricksy Business...",
@@ -667,7 +676,7 @@ void setup() {
     "Using Butter Robot...",
     "Evil Morty Schemes Unfolding...",
     "Beth's Cloning Facility Accessed...",
-    "Listening to Get Schwifty...",
+    "Listening to Get Schwifty.",
     "Birdperson in Flight...",
     "Gazorpazorpfield Hates Mondays...",
     "Tampering with Time Crystals...",
@@ -675,25 +684,25 @@ void setup() {
     "Gazorpazorp Emissary Arrived...",
     "Navigating the Cronenberg World...",
     "Using Galactic Federation Currency...",
-    "Galactic Adventure Awaits...",
+    "Galactic Adventure Awaits.",
     "Plumbus Maintenance In Progress...",
-    "Taming the Dream Inceptors...",
-    "Mr. Goldenfold's Nightmare...",
-    "Hacking into Unity's Mind...",
+    "Taming the Dream Inceptors",
+    "Mr. Goldenfold's Nightmare",
+    "Hacking into Unity's Mind.",
     "Beta 7 Assimilation in Progress...",
     "Purging the Planet...",
     "Planet Music Audition...",
-    "Hacking into Rick's Safe...",
+    "Hacking into Rick's Safe..",
     "Extracting from Parasite Invasion...",
     "Scanning for Evil Rick...",
-    "Preparing for Jerryboree...",
+    "Preparing for Jerryboree..",
     "Plutonian Negotiations...",
-    "Tiny Rick Mode Activated...",
+    "Tiny Rick Mode Activated..",
     "Scanning for Cromulons...",
-    "Decoding Rick's Blueprints...",
-    "Breaking the Fourth Wall...",
-    "Jerry's App Idea Rejected...",
-    "Galactic Federation Hacked...",
+    "Decoding Rick's Blueprints",
+    "Breaking the Fourth Wall..",
+    "Jerry's App Idea Rejected.",
+    "Galactic Federation Hacked",
     "Portal Gun Battery Low...",
     "ccessing Anatomy Park...",
     "Interdimensional Travel Commencing...",
@@ -708,22 +717,22 @@ void setup() {
     "Engaging Heist-o-Tron...",
     "Confronting Scary Terry...",
     "Engaging in Squanching...",
-    "Learning from Birdperson...",
+    "Learning from Birdperson..",
     "Dimension Hopping Initiated...",
     "Morty Adventure Card Filled...",
     "Engaging Operation Phoenix...",
-    "Developing Dark Matter Formula...",
+    "Developing DarkMatter Formula",
     "Teleporting to Bird World...",
     "Exploring Blips and Chitz...",
-    "Synchronizing with Noob Noob...",
+    "Synchronizing with Noob Noob.",
     "Plumbus Optimization...",
-    "Beth's Self-Discovery Quest...",
-    "Extracting from Galactic Prison...",
+    "Beth's Self-Discovery Quest..",
+    "Extract from Galactic Prison...",
     "Taming the Zigerion Scammers...",
     "Dimension C-500k Travel...",
     "Sneaking into Birdperson's Wedding...",
     "Preparing Microverse Battery...",
-    "Vindicator Call Initiated...",
+    "Vindicator Call Initiated.",
     "Evil Morty Tracking...",
     "Snuffles' Revolution...",
     "Navigating Abadango Cluster...",
@@ -731,8 +740,8 @@ void setup() {
     "Stealing from Devil's Antique Shop...",
     "Beth's Horse Surgeon Adventures...",
     "Engaging Purge Planet...",
-    "Evil Morty Plans Detected...",
-    "Exploring the Thunderdome...",
+    "Evil Morty Plans Detected.",
+    "Exploring the Thunderdome.",
     "Extracting Toxic Rick...",
     "Tiny Rick Singing...",
     "Birdperson's Memories...",
@@ -741,8 +750,8 @@ void setup() {
     "Engaging with Snuffles...",
     "Exploring Anatomy Park...",
     "Rewiring Rick's Mind...",
-    "Scanning for Sleepy Gary...",
-    "Navigating the Narnian Box...",
+    "Scanning for Sleepy Gary..",
+    "Navigating the Narnian Box",
     "Engaging Rick's AI Assistant...",
     "Synchronizing with Beth's Clone...",
     "Preparing for Ricklantis Mixup...",
@@ -750,38 +759,38 @@ void setup() {
     "Portal Gun Malfunction...",
     "Galactic Federation Detected...",
     "Jerry's Misadventures...",
-    "Engaging Operation Phoenix...",
+    "Engaging Operation Phoenix",
     "Scanning for Snowball...",
     "Morty's Science Project...",
     "Evil Morty's Reign...",
     "Navigating Purge Planet...",
-    "Rick's Memories Unlocked...",
-    "Synchronizing with Tinkles...",
-    "Galactic Federation Hacked...",
+    "Rick's Memories Unlocked..",
+    "Synchronizing with Tinkles",
+    "Galactic Federation Hacked",
     "Rick's AI Assistant Activated...",
     "Exploring Zigerion Base...",
     "Beth's Identity Crisis...",
     "Galactic Federation Overthrown...",
     "Scanning for Phoenix Person...",
     "Rick's Safe Hacked...",
-    "Morty's Adventure Awaits...",
+    "Morty's Adventure Awaits..",
     "Synchronizing with Snowball...",
     "Evil Morty Conspiracy...",
-    "Galactic Adventure Awaits...",
+    "Galactic Adventure Awaits.",
     "Rick's AI Assistant Activated...",
     "Interdimensional Cable Tuning...",
     "Navigating Zigerion Base...",
     "Morty's School Science Project...",
     "Rick's Portal Gun Malfunction...",
-    "Engaging Ricklantis Mixup...",
-    "Galactic Federation Hacked...",
+    "Engaging Ricklantis Mixup..",
+    "Galactic Federation Hacked.",
     "Beth's Clone Identified...",
     "Synchronizing with Phoenix Person...",
     "Galactic Government Overthrown...",
-    "Listening to Get Schwifty...",
+    "Listening to Get Schwifty..",
     "Rick's Safe Hacked...",
-    "Morty's Mind Blowers Loaded...",
-    "Engaging Galactic Federation...",
+    "Morty's Mind Blowers Loaded",
+    "Engaging Galactic Federation..",
     "Scanning for Snowball...",
     "Evil Morty's Reign Initiated...",
     "Navigating Purge Planet...",
@@ -858,7 +867,9 @@ void setup() {
       restoreConfigParameter("ssh_host");
       restoreConfigParameter("ssh_password");
       restoreConfigParameter("ssh_port");
-      
+      restoreConfigParameter("tcp_host");
+      restoreConfigParameter("tcp_port");
+
       restoreThemeParameters();
 
       loadStartupImageConfig();
@@ -924,7 +935,7 @@ void setup() {
   // Textes à afficher
   const char* text1 = "Evil-Cardputer";
   const char* text2 = "By 7h30th3r0n3";
-  const char* text3 = "v1.3.4 2024";
+  const char* text3 = "v1.3.5 2024";
 
   // Mesure de la largeur du texte et calcul de la position du curseur
   int text1Width = M5.Lcd.textWidth(text1);
@@ -954,13 +965,57 @@ void setup() {
   Serial.println("-------------------");
   Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("v1.3.4 2024");
+  Serial.println("v1.3.5 2024");
   Serial.println("-------------------");
-  M5.Display.setCursor(0, textY + 80);
-  M5.Display.println(randomMessage);
+  // Diviser randomMessage en deux lignes pour s'adapter à l'écran
+  int maxCharsPerLine = screenWidth / 10;  // Estimation de 10 pixels par caractère
+  int randomMessageLength = strlen(randomMessage);  // Utilisation de strlen() pour obtenir la longueur
+  
+  String line1 = "";
+  String line2 = "";
+  
+  int currentLength = 0;  // Longueur actuelle de la ligne
+  bool onSecondLine = false;
+  
+  for (int i = 0; i < randomMessageLength; i++) {
+    char currentChar = randomMessage[i];
+  
+    // Ajouter le mot à la ligne appropriée
+    if (currentLength + 1 > maxCharsPerLine && currentChar == ' ') {
+      if (!onSecondLine) {
+        onSecondLine = true;
+        currentLength = 0;  // Réinitialiser la longueur pour la deuxième ligne
+        continue;  // Passer à la prochaine itération pour commencer la deuxième ligne
+      } else {
+        break;  // Si on a atteint la limite de la deuxième ligne, arrêter
+      }
+    }
+  
+    if (onSecondLine) {
+      line2 += currentChar;
+    } else {
+      line1 += currentChar;
+    }
+  
+    currentLength++;
+  }
+  
+  // Position de départ pour l'affichage des deux lignes de randomMessage
+  int randomMessageY1 = textY + 80;  // Position Y de la première ligne de randomMessage
+  int randomMessageY2 = randomMessageY1 + 12;  // Position Y de la seconde ligne de randomMessage
+  
+  M5.Display.setCursor(0, randomMessageY1);
+  M5.Display.println(line1);
+  
+  M5.Display.setCursor(0, randomMessageY2);
+  M5.Display.println(line2);
+  
+  // Affichage de randomMessage en série
   Serial.println(" ");
   Serial.println(randomMessage);
   Serial.println("-------------------");
+
+  
   firstScanWifiNetworks();
   if (ledOn) {
     pixels.setPixelColor(0, pixels.Color(0, 0, 0));
@@ -1079,12 +1134,11 @@ int getCapturedPasswordsCount() {
   file.close();
   return passwordCount;
 }
-
 void drawTaskBar() {
   taskBarCanvas.fillRect(0, 0, taskBarCanvas.width(), 10, taskbarBackgroundColor); // Dessiner un rectangle bleu en haut de l'écran
   taskBarCanvas.fillRect(0, 10, taskBarCanvas.width(), 2, taskbarDividerColor); // Dessiner un rectangle bleu en haut de l'écran
   taskBarCanvas.setTextColor(taskbarTextColor);
-  
+
   if (Colorful) {
     // Number of Connections
     int connectedPeople = getConnectedPeopleCount();
@@ -1102,6 +1156,33 @@ void drawTaskBar() {
     taskBarCanvas.setCursor(70, 2);
     taskBarCanvas.setTextColor(capturedPasswords > 0 ? menuTextFocusedColor : taskbarTextColor);
     taskBarCanvas.print(String(capturedPasswords));
+  
+    // Indicateur Captive Portal
+    taskBarCanvas.setCursor(95, 1);
+    taskBarCanvas.setTextColor(taskbarTextColor);
+    taskBarCanvas.print("P:");
+    taskBarCanvas.setCursor(108, 1);
+    taskBarCanvas.setTextColor(isCaptivePortalOn ? TFT_GREEN : TFT_RED);
+    taskBarCanvas.print(String(isCaptivePortalOn ? "On" : "Off")); 
+
+    // Indicateur de connexion réseau
+    taskBarCanvas.setCursor(140, 1); // Position après "P:On/Off"
+    taskBarCanvas.setTextColor(taskbarTextColor);
+    taskBarCanvas.print("C:");
+    taskBarCanvas.setTextColor(WiFi.localIP().toString() != "0.0.0.0" ? TFT_GREEN : TFT_RED);
+    taskBarCanvas.print(String(WiFi.localIP().toString() != "0.0.0.0" ? "On" : "Off"));
+    taskBarCanvas.setTextColor(taskbarTextColor);
+
+    // Get/Draw Battery Level
+    String batteryLevel = getBatteryLevel();
+    int batteryWidth = taskBarCanvas.textWidth(batteryLevel + "%");
+    taskBarCanvas.setCursor(taskBarCanvas.width() - batteryWidth - 5, 1);
+
+    int batteryLevelInt = batteryLevel.toInt();  // Convert String to integer once
+
+    taskBarCanvas.setTextColor(batteryLevelInt >= 70 ? TFT_GREEN :
+                              (batteryLevelInt >= 40 ? TFT_YELLOW : TFT_RED));
+    taskBarCanvas.print(batteryLevel + "%");
   } else {
     // Afficher le nombre de personnes connectées
     int connectedPeople = getConnectedPeopleCount();
@@ -1112,6 +1193,22 @@ void drawTaskBar() {
     int capturedPasswords = getCapturedPasswordsCount();
     taskBarCanvas.setCursor(46, 2); // Positionner après "Sta"
     taskBarCanvas.print("Pwd:" + String(capturedPasswords));
+
+    // Indicateur Captive Portal
+    taskBarCanvas.setCursor(95, 2); // Positionner après "Pwd"
+    taskBarCanvas.setTextColor(isCaptivePortalOn ? TFT_GREEN : TFT_RED);
+    taskBarCanvas.print("P:" + String(isCaptivePortalOn ? "On" : "Off")); 
+
+    // Indicateur de connexion réseau
+    taskBarCanvas.setCursor(140, 2); // Position après "P:On/Off"
+    taskBarCanvas.setTextColor(taskbarTextColor);
+    taskBarCanvas.print("C:" + String(WiFi.localIP().toString() != "0.0.0.0" ? "On" : "Off"));
+
+    // Afficher le niveau de batterie à droite
+    String batteryLevel = getBatteryLevel();
+    int batteryWidth = taskBarCanvas.textWidth(batteryLevel + "%");
+    taskBarCanvas.setCursor(taskBarCanvas.width() - batteryWidth - 5, 2); // Positionner à droite
+    taskBarCanvas.print(batteryLevel + "%");
   }
 
   // Afficher l'indicateur de point clignotant pour les accès aux pages et DNS
@@ -1130,38 +1227,13 @@ void drawTaskBar() {
   } else {
     taskBarCanvas.print("  ");
   }
-  if (Colorful) {
-    taskBarCanvas.setCursor(95, 1);
-    taskBarCanvas.setTextColor(taskbarTextColor);
-    taskBarCanvas.print("P:");
-    taskBarCanvas.setCursor(108, 1);
-    taskBarCanvas.setTextColor(isCaptivePortalOn ? TFT_GREEN : TFT_RED);
-    taskBarCanvas.print(String(isCaptivePortalOn ? "On" : "Off")); 
-
-    // Get/Draw Battery Level
-    String batteryLevel = getBatteryLevel();
-    int batteryWidth = taskBarCanvas.textWidth(batteryLevel + "%");
-    taskBarCanvas.setCursor(taskBarCanvas.width() - batteryWidth - 5, 1);
-
-    int batteryLevelInt = batteryLevel.toInt();  // Convert String to integer once
-
-    taskBarCanvas.setTextColor(batteryLevelInt >= 70 ? TFT_GREEN :
-                              (batteryLevelInt >= 40? TFT_YELLOW : TFT_RED));
-    taskBarCanvas.print(batteryLevel + "%");
-  } else {
-    taskBarCanvas.setCursor(95, 2); // Positionner après "■"
-    taskBarCanvas.print("P:" + String(isCaptivePortalOn ? "On" : "Off")); 
-
-    // Afficher le niveau de batterie à droite
-    String batteryLevel = getBatteryLevel();
-    int batteryWidth = taskBarCanvas.textWidth(batteryLevel + "%");
-    taskBarCanvas.setCursor(taskBarCanvas.width() - batteryWidth - 5, 2); // Positionner à droite
-    taskBarCanvas.print(batteryLevel + "%");
-  }
 
   // Afficher le framebuffer de la barre de tâches
   taskBarCanvas.pushSprite(0, 0);
 }
+
+
+
 
 void loop() {
   M5.update();
@@ -1355,7 +1427,7 @@ void executeMenuItem(int index) {
         scanHosts();
         break;
     case 37:
-        FullNetworkAnalysis();
+        FullNetworkAnalysis(false);
         break;
     case 38:
         ListNetworkAnalysis();
@@ -1376,8 +1448,12 @@ void executeMenuItem(int index) {
         initBluetoothKeyboard();
         break;
     case 44:
+        reverseTCPTunnel();
+        break;
+    case 45:
         showSettingsMenu();
         break;
+
   }
   isOperationInProgress = false;
 }
@@ -1517,30 +1593,23 @@ void checkSerialCommands() {
       isOperationInProgress = true;
       inMenu = false;
       scanWifiNetworks();
-      //sendBLE("-------------------");
-      //sendBLE("Near Wifi Network : ");
       for (int i = 0; i < numSsid; i++) {
         ssidList[i] = WiFi.SSID(i);
-        //sendBLE(String(i) + ": " + ssidList[i]);
       }
     } else if (command.startsWith("select_network")) {
       int ssidIndex = command.substring(String("select_network ").length()).toInt();
       selectNetwork(ssidIndex);
-      //sendBLE("SSID sélectionné: " + currentlySelectedSSID);
     } else if (command.startsWith("change_ssid ")) {
       String newSSID = command.substring(String("change_ssid ").length());
       cloneSSIDForCaptivePortal(newSSID);
       Serial.println("Cloned SSID changed to: " + clonedSSID);
-      //sendBLE("Cloned SSID changed to: " + clonedSSID);
     } else if (command.startsWith("set_portal_password ")) {
       String newPassword = command.substring(String("set_portal_password ").length());
       captivePortalPassword = newPassword;
       Serial.println("Captive portal password changed to: " + captivePortalPassword);
-      //sendBLE("Captive portal password changed to: " + captivePortalPassword);
     } else if (command.startsWith("set_portal_open")) {
       captivePortalPassword = "";
       Serial.println("Open Captive portal set");
-      //sendBLE("Open Captive portal set");
     } else if (command.startsWith("detail_ssid")) {
       int ssidIndex = command.substring(String("detail_ssid ").length()).toInt();
       String security = getWifiSecurity(ssidIndex);
@@ -1549,35 +1618,23 @@ void checkSerialCommands() {
       String macAddress = bssidToString(bssid);
       M5.Display.display();
       Serial.println("------Wifi-Info----");
-      //sendBLE("------Wifi-Info----");
       Serial.println("SSID: " + (ssidList[ssidIndex].length() > 0 ? ssidList[ssidIndex] : "N/A"));
-      //sendBLE("SSID: " + (ssidList[ssidIndex].length() > 0 ? ssidList[ssidIndex] : "N/A"));
       Serial.println("Channel: " + String(WiFi.channel(ssidIndex)));
-      //sendBLE("Channel: " + String(WiFi.channel(ssidIndex)));
       Serial.println("Security: " + security);
-      //sendBLE("Security: " + security);
       Serial.println("Signal: " + String(rssi) + " dBm");
-      //sendBLE("Signal: " + String(rssi) + " dBm");
       Serial.println("MAC: " + macAddress);
-      //sendBLE("MAC: " + macAddress);
       Serial.println("-------------------");
-      //sendBLE("-------------------");
     } else if (command == "clone_ssid") {
       cloneSSIDForCaptivePortal(currentlySelectedSSID);
       Serial.println("Cloned SSID: " + clonedSSID);
-      //sendBLE("Cloned SSID: " + clonedSSID);
     } else if (command == "start_portal") {
       createCaptivePortal();
-      //sendBLE("Start portal with " + clonedSSID);
     } else if (command == "stop_portal") {
       stopCaptivePortal();
-      //sendBLE("Portal Stopped ");
     } else if (command == "list_portal") {
       File root = SD.open("/sites");
       numPortalFiles = 0;
       Serial.println("Available portals:");
-      //sendBLE("-------------------");
-      //sendBLE("Availables portals :");
       while (File file = root.openNextFile()) {
         if (!file.isDirectory()) {
           String fileName = file.name();
@@ -1587,7 +1644,6 @@ void checkSerialCommands() {
             Serial.print(numPortalFiles);
             Serial.print(": ");
             Serial.println(fileName);
-            //sendBLE(String(numPortalFiles) + ": " + fileName);
             numPortalFiles++;
             if (numPortalFiles >= 50) break; // max 30 files
           }
@@ -1603,9 +1659,7 @@ void checkSerialCommands() {
     } else if (command == "monitor_status") {
       String status = getMonitoringStatus();
       Serial.println("-------------------");
-      //sendBLE("-------------------");
       Serial.println(status);
-      //sendBLE(status);
     } else if (command == "probe_attack") {
       isOperationInProgress = true;
       inMenu = false;
@@ -1616,18 +1670,12 @@ void checkSerialCommands() {
       if (isProbeAttackRunning) {
         isProbeAttackRunning = false;
         Serial.println("-------------------");
-        //sendBLE("-------------------");
         Serial.println("Stopping probe attack...");
-        //sendBLE("Stopping probe attack...");
         Serial.println("-------------------");
-        //sendBLE("-------------------");
       } else {
         Serial.println("-------------------");
-        //sendBLE("-------------------");
         Serial.println("No probe attack running.");
-        //sendBLE("No probe attack running.");
         Serial.println("-------------------");
-        //sendBLE("-------------------");
       }
     } else if (command == "probe_sniffing") {
       isOperationInProgress = true;
@@ -1638,11 +1686,8 @@ void checkSerialCommands() {
       stopProbeSniffingViaSerial = true;
       isProbeSniffingRunning = false;
       Serial.println("-------------------");
-      //sendBLE("-------------------");
       Serial.println("Stopping probe sniffing via serial...");
-      //sendBLE("Stopping probe sniffing via serial...");
       Serial.println("-------------------");
-      //sendBLE("-------------------");
     } else if (command == "list_probes") {
       listProbesSerial();
     } else if (command.startsWith("select_probes ")) {
@@ -1655,56 +1700,36 @@ void checkSerialCommands() {
       delay(200);
     } else if (command == "help") {
       Serial.println("-------------------");
-      //sendBLE("-------------------");
       Serial.println("Available Commands:");
-      //sendBLE("Available Commands:");
       Serial.println("scan_wifi - Scan WiFi Networks");
-      //sendBLE("scan_wifi - Scan WiFi Networks");
       Serial.println("select_network <index> - Select WiFi <index>");
-      //sendBLE("select_network <index> - Select WiFi <index>");
       Serial.println("change_ssid <max 32 char> - change current SSID");
-      //sendBLE("change_ssid <max 32 char> - change current SSID");
       Serial.println("set_portal_password <password min 8> - change portal password");
-      //sendBLE("set_portal_password <password min 8> - portal pass");
       Serial.println("set_portal_open  - change portal to open");
-      //sendBLE("set_portal_open - change portal to open");
       Serial.println("detail_ssid <index> - Details of WiFi <index>");
-      //sendBLE("detail_ssid <index> - Details of WiFi <index>");
       Serial.println("clone_ssid - Clone Network SSID");
-      //sendBLE("clone_ssid - Clone Network SSID");
       Serial.println("start_portal - Activate Captive Portal");
-      //sendBLE("start_portal - Activate Captive Portal");
       Serial.println("stop_portal - Deactivate Portal");
-      //sendBLE("stop_portal - Deactivate Portal");
       Serial.println("list_portal - Show Portal List");
-      //sendBLE("list_portal - Show Portal List");
       Serial.println("change_portal <index> - Switch Portal <index>");
-      //sendBLE("change_portal <index> - Switch Portal <index>");
       Serial.println("check_credentials - Check Saved Credentials");
-      //sendBLE("check_credentials - Check Saved Credentials");
       Serial.println("monitor_status - Get current information on device");
-      //sendBLE("monitor_status - Get current information on device");
       Serial.println("probe_attack - Initiate Probe Attack");
       Serial.println("stop_probe_attack - End Probe Attack");
       Serial.println("probe_sniffing - Begin Probe Sniffing");
       Serial.println("stop_probe_sniffing - End Probe Sniffing");
       Serial.println("list_probes - Show Probes");
-      //sendBLE("list_probes - Show Probes");
       Serial.println("select_probes <index> - Choose Probe <index>");
-      //sendBLE("select_probes <index> - Choose Probe <index>");
       Serial.println("karma_auto - Auto Karma Attack Mode");
       Serial.println("-------------------");
-      //sendBLE("-------------------");
     } else {
       Serial.println("-------------------");
-      //sendBLE("-------------------");
       Serial.println("Command not recognized: " + command);
-      //sendBLE("Command not recognized: " + command);
       Serial.println("-------------------");
-      //sendBLE("-------------------");
     }
   }
 }
+
 
 String getMonitoringStatus() {
   String status;
@@ -2043,8 +2068,8 @@ void createCaptivePortal() {
       String html = "<!DOCTYPE html><html><head><style>";
       html += "body{font-family:sans-serif;background:#f0f0f0;padding:40px;display:flex;justify-content:center;align-items:center;height:100vh}";
       html += "form{text-align:center;}div.menu{background:white;padding:20px;box-shadow:0 4px 8px rgba(0,0,0,0.1);border-radius:10px}";
-      html += " input,a{margin:10px;padding:8px;width:80%;box-sizing:border-box;border:1px solid #ddd;border-radius:5px}";
-      html += " a{display:inline-block;text-decoration:none;color:white;background:#007bff;text-align:center}";
+      html += "input,a{margin:10px;padding:8px;width:80%;box-sizing:border-box;border:1px solid #ddd;border-radius:5px}";
+      html += "a{display:inline-block;text-decoration:none;color:white;background:#007bff;text-align:center}";
       html += "</style></head><body>";
       html += "<div class='menu'><form action='/evil-m5core2-menu' method='get'>";
       html += "Password: <input type='password' name='pass'><br>";
@@ -2052,13 +2077,17 @@ void createCaptivePortal() {
       html += "<a href='javascript:void(0);' onclick='this.href=\"/uploadhtmlfile?pass=\"+document.getElementsByName(\"pass\")[0].value'>Upload File On SD</a>";
       html += "<a href='javascript:void(0);' onclick='this.href=\"/check-sd-file?pass=\"+document.getElementsByName(\"pass\")[0].value'>Check SD File</a>";
       html += "<a href='javascript:void(0);' onclick='this.href=\"/setup-portal?pass=\"+document.getElementsByName(\"pass\")[0].value'>Setup Portal</a>";
-      html += "<a href='javascript:void(0);' onclick='this.href=\"/list-badusb-scripts?pass=\"+document.getElementsByName(\"pass\")[0].value'>Run BadUSB Script</a>";  // Lien pour BadUSB
+      html += "<a href='javascript:void(0);' onclick='this.href=\"/list-badusb-scripts?pass=\"+document.getElementsByName(\"pass\")[0].value'>Run BadUSB Script</a>";
+      html += "<a href='javascript:void(0);' onclick='this.href=\"/scan-network?pass=\"+document.getElementsByName(\"pass\")[0].value'>Scan Network</a>";
+      html += "<a href='javascript:void(0);' onclick='this.href=\"/monitor-status?pass=\"+document.getElementsByName(\"pass\")[0].value'>Monitor Status</a>";  // Lien vers Monitor Status
       html += "</form></div></body></html>";
+      
       server.send(200, "text/html", html);
       Serial.println("-------------------");
       Serial.println("evil-m5core2-menu access.");
       Serial.println("-------------------");
   });
+
 
 
   server.on("/credentials", HTTP_GET, []() {
@@ -2146,48 +2175,66 @@ void createCaptivePortal() {
 
   server.on("/delete-sd-file", HTTP_GET, handleFileDelete);
 
-   server.on("/setup-portal", HTTP_GET, []() {
+  server.on("/setup-portal", HTTP_GET, []() {
       String password = server.arg("pass");
       if (password != accessWebPassword) {
           server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
           return;
       }
   
+      // Lister les fichiers HTML disponibles dans le dossier /sites avec un indice
+      String portalOptions = "";
+      File root = SD.open("/sites");
+      int index = 0;  // Initialiser un indice pour chaque fichier
+  
+      while (File file = root.openNextFile()) {
+          if (!file.isDirectory() && String(file.name()).endsWith(".html")) {
+              // Ajouter l'indice comme valeur pour chaque option
+              portalOptions += "<option value='" + String(index) + "'>" + file.name() + "</option>";
+              index++;
+          }
+          file.close();
+      }
+      root.close();
+  
+      // Génération de la page HTML avec la liste déroulante pour choisir le fichier de portail
       String html = "<html><head><style>";
       html += "body { background-color: #333; color: white; font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }";
       html += ".container { display: inline-block; background-color: #444; padding: 30px; border-radius: 8px; box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3); width: 320px; }";
-      html += "input[type='text'], input[type='password'], button { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; box-sizing: border-box; font-size: 16px; background-color: #FFF; color: #333; }";
-      html += "input[type='text']:focus, input[type='password']:focus { outline: none; box-shadow: 0px 0px 8px rgba(0, 123, 255, 0.5); }";
+      html += "input[type='text'], input[type='password'], select, button { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; box-sizing: border-box; font-size: 16px; background-color: #FFF; color: #333; }";
       html += "button, input[type='submit'] { background-color: #008CBA; color: white; cursor: pointer; border-radius: 25px; transition: background-color 0.3s ease; }";
       html += "button:hover, input[type='submit']:hover { background-color: #005F73; }";
-      html += "a button { width: 100%; }";
-      html += ".button-group { display: flex; justify-content: space-around; margin-top: 20px; }";
-      html += ".button-group button { width: 99%; padding: 10px; font-size: 16px; }";
       html += "</style></head><body>";
   
       html += "<div class='container'>";
-  
-      // Formulaire pour modifier le SSID et le mot de passe
       html += "<form action='/update-portal-settings' method='get'>";
       html += "<input type='hidden' name='pass' value='" + password + "'>";
       html += "<h2 style='color: #FFF;'>Setup Portal</h2>";
       html += "Portal Name: <br><input type='text' name='newSSID' placeholder='Enter new SSID'><br>";
       html += "New Password (leave empty for open network): <br><input type='password' name='newPassword' placeholder='Enter new Password'><br>";
+      
+      // Ajout de la liste déroulante pour sélectionner le fichier de portail par indice
+      html += "Select Portal Page: <br><select name='portalIndex'>";
+      html += portalOptions;
+      html += "</select><br>";
+      
       html += "<input type='submit' value='Save Settings'><br>";
       html += "</form>";
   
-      // Boutons pour démarrer et arrêter le portail
       html += "<div class='button-group'>";
       html += "<a href='/start-portal?pass=" + password + "'><button type='button'>Start Portal</button></a>";
       html += "<a href='/stop-portal?pass=" + password + "'><button type='button'>Stop Portal</button></a>";
       html += "</div>";
-  
       html += "</div></body></html>";
   
       server.send(200, "text/html", html);
   });
-
   
+  
+  
+  
+  
+    
   server.on("/update-portal-settings", HTTP_GET, []() {
       String password = server.arg("pass");
       if (password != accessWebPassword) {
@@ -2197,23 +2244,39 @@ void createCaptivePortal() {
   
       String newSSID = server.arg("newSSID");
       String newPassword = server.arg("newPassword");
+      int portalIndex = server.arg("portalIndex").toInt();  // Récupérer l'indice du fichier sélectionné
   
+      // Logs pour vérifier l'indice reçu
+      Serial.println("Updating portal settings...");
+      Serial.println("New SSID: " + newSSID);
+      Serial.println("New Password: " + newPassword);
+      Serial.println("Selected Portal Index: " + String(portalIndex));
+  
+      // Mettre à jour le SSID
       if (!newSSID.isEmpty()) {
-          cloneSSIDForCaptivePortal(newSSID);  // Mise à jour du SSID
+          cloneSSIDForCaptivePortal(newSSID);
           Serial.println("Portal Name updated: " + newSSID);
       }
   
-      // Si le mot de passe est vide, créer un réseau ouvert
+      // Mettre à jour le mot de passe
       if (!newPassword.isEmpty()) {
-          captivePortalPassword = newPassword;  // Mise à jour du mot de passe
+          captivePortalPassword = newPassword;
           Serial.println("Portal Password updated: " + newPassword);
       } else {
           captivePortalPassword = "";  // Réseau ouvert
           Serial.println("Portal is now open (no password).");
       }
   
+      // Appeler `changePortal` avec l'indice
+      changePortal(portalIndex);
+      Serial.println("Portal page updated to index: " + String(portalIndex));
+  
       server.send(200, "text/html", "<html><body><p>Settings updated successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
   });
+
+
+
+
   
   server.on("/start-portal", HTTP_GET, []() {
       String password = server.arg("pass");
@@ -2298,105 +2361,182 @@ void createCaptivePortal() {
   });
 
   server.on("/edit-file", HTTP_GET, []() {
-    String editFilePassword = server.arg("pass");
-    if (editFilePassword != accessWebPassword) {
-        Serial.println("Unauthorized access attempt to /edit-file");
-        server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
-        return;
-    }
+      String editFilePassword = server.arg("pass");
+      if (editFilePassword != accessWebPassword) {
+          Serial.println("Unauthorized access attempt to /edit-file");
+          server.send(403, "text/html", "<html><body><p>Unauthorized</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      String editFileName = server.arg("filename");
+      if (!editFileName.startsWith("/")) {
+          editFileName = "/" + editFileName;
+      }
+  
+      // Check if the file exists
+      if (!SD.exists(editFileName)) {
+          Serial.println("File not found: " + editFileName);
+          server.send(404, "text/html", "<html><body><p>File not found.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      // Open the file for reading
+      File editFile = SD.open(editFileName, FILE_READ);
+      if (!editFile) {
+          Serial.println("Failed to open file for reading: " + editFileName);
+          server.send(500, "text/html", "<html><body><p>Failed to open file for reading.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+  
+      Serial.println("File opened successfully: " + editFileName);
+  
+      // Send HTML header with UTF-8 encoding
+      String htmlContent = "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>";
+      htmlContent += "textarea { width: 100%; height: 400px; }";
+      htmlContent += "button { background-color: #007bff; border: none; color: white; padding: 10px; font-size: 16px; cursor: pointer; margin-top: 10px; }";
+      htmlContent += "</style></head><body>";
+      htmlContent += "<h3>Editing File: " + editFileName + "</h3>";
+      htmlContent += "<form id='editForm' method='post' enctype='multipart/form-data'>";
+      htmlContent += "<input type='hidden' name='filename' value='" + editFileName + "'>";
+      htmlContent += "<input type='hidden' name='pass' value='" + editFilePassword + "'>";
+      htmlContent += "<textarea id='content' name='content'>";
+  
+      // Send the initial part of the HTML
+      server.sendContent(htmlContent);
+  
+      // Send the file content in chunks
+      const size_t editFileBufferSize = 512;
+      uint8_t editFileBuffer[editFileBufferSize];
+      while (editFile.available()) {
+          size_t bytesRead = editFile.read(editFileBuffer, editFileBufferSize);
+          server.sendContent(String((char*)editFileBuffer).substring(0, bytesRead));
+      }
+      editFile.close();
+  
+      // Complete the HTML
+      htmlContent = "</textarea><br>";
+      htmlContent += "<button type='button' onclick='submitForm()'>Save</button>";
+      htmlContent += "</form>";
+      htmlContent += "<script>";
+      htmlContent += "function submitForm() {";
+      htmlContent += "  var formData = new FormData();";
+      htmlContent += "  formData.append('pass', '" + editFilePassword + "');";
+      htmlContent += "  formData.append('filename', '" + editFileName + "');";
+      htmlContent += "  var blob = new Blob([document.getElementById('content').value], { type: 'text/plain' });";
+      htmlContent += "  formData.append('filedata', blob, '" + editFileName + "');";
+      htmlContent += "  var xhr = new XMLHttpRequest();";
+      htmlContent += "  xhr.open('POST', '/save-file', true);";
+      htmlContent += "  xhr.onload = function () {";
+      htmlContent += "    if (xhr.status === 200) {";
+      htmlContent += "      alert('File saved successfully!');";
+      htmlContent += "      window.history.back();";
+      htmlContent += "    } else {";
+      htmlContent += "      alert('An error occurred while saving the file.');";
+      htmlContent += "    }";
+      htmlContent += "  };";
+      htmlContent += "  xhr.send(formData);";
+      htmlContent += "}";
+      htmlContent += "</script>";
+      htmlContent += "</body></html>";
+  
+      // Send the final part of the HTML
+      server.sendContent(htmlContent);
+  
+      // Close the connection
+      server.client().stop();
+  });
+  
+  
+  
+  server.on("/save-file", HTTP_POST, []() {
+      // This is called after the file upload is complete
+      if (!isSaveFileAuthorized) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+      } else {
+          server.send(200, "text/html", "<html><body><p>File saved successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+      }
+      // Reset authorization flag
+      isSaveFileAuthorized = false;
+  }, handleSaveFileUpload);
+  
+  
+  server.on("/monitor-status", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
 
-    String editFileName = server.arg("filename");
-    if (!editFileName.startsWith("/")) {
-        editFileName = "/" + editFileName;
-    }
-
-    // Check if the file exists
-    if (!SD.exists(editFileName)) {
-        Serial.println("File not found: " + editFileName);
-        server.send(404, "text/html", "<html><body><p>File not found.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
-        return;
-    }
-
-    // Open the file for reading
-    File editFile = SD.open(editFileName, FILE_READ);
-    if (!editFile) {
-        Serial.println("Failed to open file for reading: " + editFileName);
-        server.send(500, "text/html", "<html><body><p>Failed to open file for reading.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
-        return;
-    }
-
-    Serial.println("File opened successfully: " + editFileName);
-
-    // Send HTML header with UTF-8 encoding
-    String htmlContent = "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>";
-    htmlContent += "textarea { width: 100%; height: 400px; }";
-    htmlContent += "button { background-color: #007bff; border: none; color: white; padding: 10px; font-size: 16px; cursor: pointer; margin-top: 10px; }";
-    htmlContent += "</style></head><body>";
-    htmlContent += "<h3>Editing File: " + editFileName + "</h3>";
-    htmlContent += "<form id='editForm' method='post' enctype='multipart/form-data'>";
-    htmlContent += "<input type='hidden' name='filename' value='" + editFileName + "'>";
-    htmlContent += "<input type='hidden' name='pass' value='" + editFilePassword + "'>";
-    htmlContent += "<textarea id='content' name='content'>";
-
-    // Send the initial part of the HTML
-    server.sendContent(htmlContent);
-
-    // Send the file content in chunks
-    const size_t editFileBufferSize = 512;
-    uint8_t editFileBuffer[editFileBufferSize];
-    while (editFile.available()) {
-        size_t bytesRead = editFile.read(editFileBuffer, editFileBufferSize);
-        server.sendContent(String((char*)editFileBuffer).substring(0, bytesRead));
-    }
-    editFile.close();
-
-    // Complete the HTML
-    htmlContent = "</textarea><br>";
-    htmlContent += "<button type='button' onclick='submitForm()'>Save</button>";
-    htmlContent += "</form>";
-    htmlContent += "<script>";
-    htmlContent += "function submitForm() {";
-    htmlContent += "  var formData = new FormData();";
-    htmlContent += "  formData.append('pass', '" + editFilePassword + "');";
-    htmlContent += "  formData.append('filename', '" + editFileName + "');";
-    htmlContent += "  var blob = new Blob([document.getElementById('content').value], { type: 'text/plain' });";
-    htmlContent += "  formData.append('filedata', blob, '" + editFileName + "');";
-    htmlContent += "  var xhr = new XMLHttpRequest();";
-    htmlContent += "  xhr.open('POST', '/save-file', true);";
-    htmlContent += "  xhr.onload = function () {";
-    htmlContent += "    if (xhr.status === 200) {";
-    htmlContent += "      alert('File saved successfully!');";
-    htmlContent += "      window.history.back();";
-    htmlContent += "    } else {";
-    htmlContent += "      alert('An error occurred while saving the file.');";
-    htmlContent += "    }";
-    htmlContent += "  };";
-    htmlContent += "  xhr.send(formData);";
-    htmlContent += "}";
-    htmlContent += "</script>";
-    htmlContent += "</body></html>";
-
-    // Send the final part of the HTML
-    server.sendContent(htmlContent);
-
-    // Close the connection
-    server.client().stop();
-});
+       // Vérification de la connexion Wi-Fi et mise à jour des variables
+      if (WiFi.localIP().toString() != "0.0.0.0") {
+          wificonnected = true;
+          ipAddress = WiFi.localIP().toString();
+      } else {
+          wificonnected = false;
+          ipAddress = "           ";
+      }
+      
+      // Récupération des informations de monitor
+      String ssid = clonedSSID;
+      String portalStatus = isCaptivePortalOn ? "On" : "Off";
+      String page = selectedPortalFile.substring(7);
+      String wifiStatus = wificonnected ? "Y" : "N";
+      String ip = ipAddress;
+      int numClients = WiFi.softAPgetStationNum();
+      int numPasswords = countPasswordsInFile();
+      String stackLeft = getStack();
+      String ramUsage = getRamUsage();
+      String batteryLevel = getBatteryLevel();
 
 
+      // Génération du HTML pour afficher les informations
+      String html = "<!DOCTYPE html><html><head><style>";
+      html += "body { font-family: Arial, sans-serif; background: #f0f0f0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }";
+      html += ".container { background-color: #ffffff; padding: 20px 40px; border-radius: 12px; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); width: 90%; max-width: 500px; }";
+      html += "h2 { color: #007bff; margin-top: 0; font-size: 24px; text-align: center; }";
+      html += ".info { display: flex; justify-content: space-between; margin-bottom: 15px; padding: 10px; background-color: #f7f9fc; border-radius: 6px; border: 1px solid #e1e4e8; }";
+      html += ".label { font-weight: bold; color: #333; }";
+      html += ".value { color: #666; }";
+      html += ".footer { text-align: center; margin-top: 20px; font-size: 14px; color: #999; }";
+      html += "</style></head><body>";
+      html += "<div class='container'>";
+      html += "<h2>Monitor Status</h2>";
+  
+      // Informations de statut en blocs organisés
+      html += "<div class='info'><span class='label'>SSID:</span><span class='value'>" + ssid + "</span></div>";
+      html += "<div class='info'><span class='label'>Portal Status:</span><span class='value'>" + portalStatus + "</span></div>";
+      html += "<div class='info'><span class='label'>Page:</span><span class='value'>" + page + "</span></div>";
+      html += "<div class='info'><span class='label'>Connected:</span><span class='value'>" + wifiStatus + "</span></div>";
+      html += "<div class='info'><span class='label'>IP Address:</span><span class='value'>" + ip + "</span></div>";
+      html += "<div class='info'><span class='label'>Clients Connected:</span><span class='value'>" + String(numClients) + "</span></div>";
+      html += "<div class='info'><span class='label'>Passwords Count:</span><span class='value'>" + String(numPasswords) + "</span></div>";
+      html += "<div class='info'><span class='label'>Stack Left:</span><span class='value'>" + stackLeft + " KB</span></div>";
+      html += "<div class='info'><span class='label'>RAM Usage:</span><span class='value'>" + ramUsage + " MB</span></div>";
+      html += "<div class='info'><span class='label'>Battery Level:</span><span class='value'>" + batteryLevel + "%</span></div>";
+  
+      // Pied de page
+      html += "<div class='footer'>Time Up: " + String(millis() / 1000) + " seconds</div>";
+      html += "</div>";
+      html += "</body></html>";
+  
+      server.send(200, "text/html", html);
+  });
 
-server.on("/save-file", HTTP_POST, []() {
-    // This is called after the file upload is complete
-    if (!isSaveFileAuthorized) {
-        server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
-    } else {
-        server.send(200, "text/html", "<html><body><p>File saved successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
-    }
-    // Reset authorization flag
-    isSaveFileAuthorized = false;
-}, handleSaveFileUpload);
+  server.on("/scan-network", HTTP_GET, []() {
+      String password = server.arg("pass");
+      if (password != accessWebPassword) {
+          server.send(403, "text/html", "<html><body><p>Unauthorized.</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          return;
+      }
+          server.send(200, "text/html", "<html><body><p>Scan finnished successfully!</p><script>setTimeout(function(){window.history.back();}, 1000);</script></body></html>");
+          FullNetworkAnalysis(true);  // Utilise la fonction existante pour exécuter le script
+         
+  }); 
 
-
+    server.on("/favicon.ico", HTTP_GET, []() {
+          server.send(404, "text/html", "<html><body><p>Not found.</p></body></html>");
+          return;        
+  }); 
 
   server.onNotFound([]() {
     pageAccessFlag = true;
@@ -3125,9 +3265,9 @@ int countPasswordsInFile() {
 
 int oldNumClients = -1;
 int oldNumPasswords = -1;
-bool wificonnected = false;
+
 String wificonnectedPrint = "";
-String ipAddress = "";
+
 void displayMonitorPage1() {
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
@@ -3441,22 +3581,63 @@ void karmaAttack() {
 }
 
 void waitAndReturnToMenu(String message) {
+  const int screenWidth = 240;
+  const int screenHeight = 135;
+  const int charWidth = 10;  // Largeur approximative d'un caractère
+  const int maxCharsPerLine = screenWidth / charWidth;
+
   M5.Display.clear();
   M5.Display.setTextSize(1.5);
-  M5Cardputer.Display.setTextColor(menuTextUnFocusedColor);
-  
-  int messageWidth = message.length() * 9;  // Each character is 6 pixels wide
-  int startX = (M5.Display.width() - messageWidth) / 2;  // Calculate starting X position
+  M5.Display.setTextColor(menuTextUnFocusedColor);
 
-  // Set the cursor to the calculated position
-  M5.Display.setCursor(startX, M5.Display.height() / 2);
-  M5.Display.println(message);
+  // Découper le message en plusieurs lignes
+  std::vector<String> lines;
+  String currentLine = "";
+  for (int i = 0; i < message.length(); i++) {
+    char currentChar = message.charAt(i);
+    if (currentChar == ' ' && currentLine.length() >= maxCharsPerLine) {
+      lines.push_back(currentLine);
+      currentLine = "";
+    }
+    currentLine += currentChar;
+
+    // Si la ligne dépasse la longueur maximale
+    if (currentLine.length() >= maxCharsPerLine) {
+      int lastSpace = currentLine.lastIndexOf(' ');
+      if (lastSpace != -1) {
+        // Couper à l'espace le plus proche pour éviter de couper un mot
+        lines.push_back(currentLine.substring(0, lastSpace));
+        currentLine = currentLine.substring(lastSpace + 1);
+      } else {
+        lines.push_back(currentLine);
+        currentLine = "";
+      }
+    }
+  }
+  if (currentLine.length() > 0) {
+    lines.push_back(currentLine);
+  }
+
+  // Calculer la position de départ pour centrer verticalement
+  int totalTextHeight = lines.size() * 12;  // 20 pixels par ligne (environ)
+  int startY = (screenHeight - totalTextHeight) / 2;
+
+  // Afficher chaque ligne au centre horizontalement et verticalement
+  for (int i = 0; i < lines.size(); i++) {
+    String line = lines[i];
+    int lineWidth = line.length() * charWidth;
+    int startX = (screenWidth - lineWidth) / 2;  // Calculer la position X pour centrer
+
+    M5.Display.setCursor(startX, startY + i * 12);
+    M5.Display.println(line);
+  }
 
   M5.Display.display();
   delay(1500);
   inMenu = true;
   drawMenu();
 }
+
 
 
 void loopOptions(std::vector<std::pair<String, std::function<void()>>> &options, bool loop, bool displayTitle, const String &title = "") {
@@ -4170,6 +4351,13 @@ void restoreConfigParameter(String key) {
             intValue = stringValue.toInt();
             ssh_port = intValue;
             Serial.println("SSH Port restored to " + String(intValue));
+          } else if (key == "tcp_host") {
+            tcp_host = stringValue;
+            Serial.println("TCP host restored to " + String(intValue));
+          } else if (key == "tcp_port") {
+            intValue = stringValue.toInt();
+            tcp_port = intValue;
+            Serial.println("TCP Port restored to " + String(intValue));
           }
           keyFound = true;
           break;
@@ -5613,9 +5801,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.3.4"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.3.5"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardputer";
-  preHeader += ",release=v1.3.4"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.3.5"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -8171,7 +8359,7 @@ void sshConnectTask(void *pvParameters) {
   M5.Display.println("SSH Connection established.");
   M5.Display.display();
 
-  xTaskCreatePinnedToCore(sshTask, "SSH Task", 40000, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(sshTask, "SSH Task", 20000, NULL, 1, NULL, 1);
   vTaskDelete(NULL);
 }
 
@@ -10046,7 +10234,7 @@ int totalNetworks = 0;
 unsigned long lastLog = 0;
 int currentScreen = 1;  // Track which screen is currently displayed
 
-const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.4,model=Cardputer,release=v1.3.4,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
+const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.5,model=Cardputer,release=v1.3.5,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
 
 char* log_col_names[LOG_COLUMN_COUNT] = {
     "MAC", "SSID", "AuthMode", "FirstSeen", "Channel", "RSSI", "CurrentLatitude", "CurrentLongitude", "AltitudeMeters", "AccuracyMeters", "Type"
@@ -11212,7 +11400,7 @@ void logScanResult(String result) {
 
 
 // Mise à jour de la fonction FullNetworkAnalysis pour passer l'index du scan
-void FullNetworkAnalysis() {
+void FullNetworkAnalysis(bool isWebCommand) {
     // Check WiFi connection
     if (WiFi.localIP().toString() == "0.0.0.0") {
         waitAndReturnToMenu("Not connected...");
@@ -11281,7 +11469,7 @@ void FullNetworkAnalysis() {
 
     // Scrolling display of the hosts and scanning their ports
     int scanIndex = getNextFileIndex();
-    displayHostsAndScanPorts(hostslist, scanIndex);
+    displayHostsAndScanPorts(hostslist, scanIndex, isWebCommand);
 
     // Close the scan file after the scan is done
     if (scanFile) {
@@ -11290,8 +11478,6 @@ void FullNetworkAnalysis() {
     }
 }
 
-
-// Function to connect to a host with a timeout
 bool connectWithTimeout(WiFiClient& client, IPAddress ip, uint16_t port, uint32_t timeout_ms) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
@@ -11340,7 +11526,7 @@ bool connectWithTimeout(WiFiClient& client, IPAddress ip, uint16_t port, uint32_
 }
 
 // Fonction pour afficher les hôtes et analyser les ports
-void displayHostsAndScanPorts(const std::vector<IPAddress>& hostslist, int scanIndex) {
+void displayHostsAndScanPorts(const std::vector<IPAddress>& hostslist, int scanIndex, bool isWebCommand) {
     int displayStart = 0;
     int lineHeight = 12;
     int maxLines = M5.Display.height() / lineHeight;
@@ -11438,25 +11624,26 @@ void displayHostsAndScanPorts(const std::vector<IPAddress>& hostslist, int scanI
     scanResults.push_back("--------------------------");
     scanResults.push_back("Scan Terminated.");
     displayResults(displayStart, maxLines, scanResults);
-    while (true) {
-        M5Cardputer.update();
-        if (handleScrolling(displayStart, maxLines, scanResults.size())) {
-            needsDisplayUpdate = true;
-        }
-        if (needsDisplayUpdate) {
-            displayResults(displayStart, maxLines, scanResults);
-            needsDisplayUpdate = false;
-        }
-        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
-            break;
-        }
-        delay(30);
+    if (!isWebCommand){
+      while (true) {
+          M5Cardputer.update();
+          if (handleScrolling(displayStart, maxLines, scanResults.size())) {
+              needsDisplayUpdate = true;
+          }
+          if (needsDisplayUpdate) {
+              displayResults(displayStart, maxLines, scanResults);
+              needsDisplayUpdate = false;
+          }
+          if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+              break;
+          }
+          delay(30);
+      }
+      if (confirmPopup("Scrape websites? (Y/N)")) {
+          M5.Display.clear();
+          fetchWebsites(hostslist, openPorts, scanIndex);  // Appelle la fonction pour récupérer les sites
+      }
     }
-    if (confirmPopup("Scrape websites? (Y/N)")) {
-        M5.Display.clear();
-        fetchWebsites(hostslist, openPorts, scanIndex);  // Appelle la fonction pour récupérer les sites
-    }
-
     waitAndReturnToMenu("Return to menu.");
 }
 
@@ -11756,4 +11943,262 @@ void ListNetworkAnalysis() {
 
     displayFileList(scanFiles);
     waitAndReturnToMenu("Return to menu.");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool isBackspacePressed() {
+  if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+    Serial.println("Touche BACKSPACE détectée, retour au menu.");
+    return true;
+  }
+  return false;
+}
+
+void reverseTCPTunnel() {
+
+  if (WiFi.localIP().toString() == "0.0.0.0") {
+      waitAndReturnToMenu("Not connected...");
+      return;
+  }
+
+  if (tcp_host == ""){
+      waitAndReturnToMenu("Error check tcp_host in config file");
+      return;
+  }
+  
+  createCaptivePortal();
+  
+  M5.Display.clear();
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+  WiFiClient client;
+  
+  bool running = true;
+  while (running) {
+    handleDnsRequestSerial();
+    M5Cardputer.update();
+    
+    M5.Display.clear();
+    M5.Display.setCursor(20, M5.Display.height() / 2);
+    M5.Display.println("Attempting to connect...");
+    
+    unsigned long previousAttemptTime = 0;
+    const unsigned long attemptInterval = 5000;
+    bool attemptingConnection = true;
+
+    while (attemptingConnection && running) {
+        handleDnsRequestSerial();
+        M5Cardputer.update();
+        
+        // Check for return to menu
+        if (isBackspacePressed()) {
+          running = false;
+          M5.Display.clear();
+          M5.Display.setCursor(20, M5.Display.height() / 2);
+          M5.Display.println("Returning to menu...");
+          break;
+        }
+
+        if (millis() - previousAttemptTime >= attemptInterval) {
+            previousAttemptTime = millis();
+
+            if (client.connect(tcp_host.c_str(), tcp_port)) {
+                M5.Display.clear();
+                M5.Display.setCursor(20, M5.Display.height() / 2);
+                M5.Display.println("Connection established.");
+                attemptingConnection = false;
+            } else {
+                if (WiFi.status() != WL_CONNECTED) {
+                  WiFi.begin(ssid, password);
+                }
+                M5.Display.clear();
+                M5.Display.setCursor(20, M5.Display.height() / 2);
+                M5.Display.println("Trying to connect...");
+            }
+        }
+    }
+
+    if (!running) break;
+
+    M5.Display.clear();
+    M5.Display.setCursor(30, M5.Display.height() / 2);
+    M5.Display.println("TCP tunnel Connected.");
+
+    while (client.connected() && running) {
+      M5Cardputer.update();
+      handleDnsRequestSerial();
+      handleDataTransfer(client);
+      delay(10);
+      
+      // Check for return to menu
+      if (isBackspacePressed()) {
+        running = false;
+        break;
+      }
+    }
+
+    client.stop();
+    M5.Display.clear();
+    M5.Display.setCursor(20, M5.Display.height() / 2);
+    M5.Display.println("Connection closed.");
+    delay(1000); // Short delay for user to read the information
+  }
+  waitAndReturnToMenu("Return to menu.");
+}
+
+void handleDataTransfer(WiFiClient &client) {
+  if (client.available()) {
+    Serial.println("Data received from server, connecting to local web server...");
+    WiFiClient localClient;
+    if (!localClient.connect("127.0.0.1", 80)) {
+      Serial.println("Failed to connect to local web server on port 80.");
+      return;
+    }
+    Serial.println("Connected to local web server on port 80.");
+
+    String request = "";
+    unsigned long reqTimeout = millis();
+    const int bufferSize = 1024;
+    char buffer[bufferSize + 1];
+    bool headersReceived = false;
+    int contentLength = 0;
+
+    // Read headers
+    while (client.connected() && (millis() - reqTimeout < 20000)) {
+      handleDnsRequestSerial();
+      M5Cardputer.update();
+
+      if (isBackspacePressed()) {
+        client.stop();
+        localClient.stop();
+        return;
+      }
+
+      int len = client.available();
+      if (len > 0) {
+        if (len > bufferSize) len = bufferSize;
+        int readLen = client.readBytes(buffer, len);
+        buffer[readLen] = '\0';
+        request += buffer;
+        reqTimeout = millis();
+        if (request.indexOf("\r\n\r\n") != -1) {
+          headersReceived = true;
+          break;
+        }
+      }
+      delay(1);
+    }
+
+    if (!headersReceived) {
+      Serial.println("Timeout or incomplete headers received from client.");
+      client.stop();
+      localClient.stop();
+      return;
+    }
+
+    // Check if there is a request body to read
+    int contentLengthIndex = request.indexOf("Content-Length: ");
+    if (contentLengthIndex != -1) {
+      int endOfContentLength = request.indexOf("\r\n", contentLengthIndex);
+      String contentLengthValue = request.substring(contentLengthIndex + 16, endOfContentLength);
+      contentLength = contentLengthValue.toInt();
+    }
+
+    // Calculate the position of the end of headers
+    int headersEndIndex = request.indexOf("\r\n\r\n") + 4;
+    int bodyBytesRead = request.length() - headersEndIndex;
+
+    // Read the request body if necessary
+    while (bodyBytesRead < contentLength && (millis() - reqTimeout < 20000)) {
+      handleDnsRequestSerial();
+      M5Cardputer.update();
+
+      if (isBackspacePressed()) {
+        client.stop();
+        localClient.stop();
+        return;
+      }
+
+      int len = client.available();
+      if (len > 0) {
+        if (len > bufferSize) len = bufferSize;
+        int readLen = client.readBytes(buffer, len);
+        buffer[readLen] = '\0';
+        request += buffer;
+        bodyBytesRead += readLen;
+        reqTimeout = millis();
+      }
+      delay(1);
+    }
+
+    if (bodyBytesRead < contentLength) {
+      Serial.println("Timeout or incomplete request body received from client.");
+      client.stop();
+      localClient.stop();
+      return;
+    }
+
+    // Modify Host header if necessary
+    int hostIndex = request.indexOf("Host: ");
+    if (hostIndex != -1) {
+      int endOfHost = request.indexOf("\r\n", hostIndex);
+      if (endOfHost != -1) {
+        request = request.substring(0, hostIndex) + "Host: 127.0.0.1:80" + request.substring(endOfHost);
+      }
+    }
+
+    // Send the complete request to the local server
+    localClient.print(request);
+    //Serial.print(request);
+
+    Serial.println("Waiting for response from local web server...");
+    unsigned long respTimeout = millis();
+    const int responseBufferSize = 1024;
+    uint8_t responseBuffer[responseBufferSize];
+    while (localClient.connected() || localClient.available()) {
+      handleDnsRequestSerial();
+      M5Cardputer.update();
+
+      if (isBackspacePressed()) {
+        client.stop();
+        localClient.stop();
+        return;
+      }
+
+      int len = localClient.available();
+      if (len > 0) {
+        if (len > responseBufferSize) len = responseBufferSize;
+        int readLen = localClient.read(responseBuffer, len);
+        client.write(responseBuffer, readLen);
+        Serial.write(responseBuffer, readLen);
+        respTimeout = millis();
+      } else if (millis() - respTimeout > 2000) {
+        Serial.println("Timeout while reading response from local web server.");
+        break;
+      }
+      delay(1);
+    }
+    localClient.stop();
+    Serial.println("Connection to local web server closed.");
+  }
+  delay(10);
 }
