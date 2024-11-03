@@ -16,3 +16,5 @@ ssh_user=
 ssh_host=
 ssh_password=
 ssh_port=
+tcp_host=
+tcp_port=
