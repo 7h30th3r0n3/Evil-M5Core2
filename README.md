@@ -232,7 +232,14 @@ Tested working others device :
 - M5stack CoreS3 [M5stack]  [link AliExpress](https://s.click.aliexpress.com/e/_DlFvqIT)
 
 ## Installation
+### M5burner
+1. Connect your M5Core2 to your computer.
+2. Download M5burner in UIFLOW FIRMWARE BURNING TOOL section : [M5Stack Download Center](https://docs.m5stack.com/en/download)
+3. Place the necessary SD file content at the root of SD card. (This is needed to access all the files of the project).
+4. Type "evil-" in search bar and check for the device you have.
+5. Click download and flash.
 
+### Compile Yourself
 1. Connect your M5Core2 to your computer.
 2. Open the Arduino IDE and load the provided code.
 3. Ensure the Board tutorial from M5 and `IniFile`, `M5Unified`, `TinyGPSPlus`, `ArduinoJson`, `esp8266audio` and `Adafruit_NeoPixel` libraries are installed. Follow these tutorials for guidance on M5 Board tutorial:
