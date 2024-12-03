@@ -124,7 +124,7 @@ With this new feature, network administrators and penetration testers can stream
    - The theme.ini also toggles "Colorful Interface" on and off, which when enabled, makes some UI elements more interactive, for instance the battery % changing color as it drops, or the captive portal indicator being red for off, and green for on.
      Later optional colorful features will be added to this toggle as well.
 
-If updating to this version, make sure to add the nessecary `selectedTheme=/theme.ini` (or any other theme filename) into your /config/config.txt.
+If updating to this version, make sure to add the necessary `selectedTheme=/theme.ini` (or any other theme filename) into your /config/config.txt.
 Also make sure to add a `theme.ini` file to your root, there are a few to choose from in the SD-Card-File folder.
 
 ## NEW feature ! from v1.3.2 : Handshake Master, Raw Sniffing, Client Sniff & Wi-Fi Channel Visualizer!!!
