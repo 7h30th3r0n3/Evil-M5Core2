@@ -1,6 +1,6 @@
 <div align="center">
   
-  # Evil-M5Project v1.3.5 - Reverse TCP Tunnel
+  # Evil-M5Project v1.3.6 - Network Hijacking
 
   <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -37,6 +37,43 @@
 
 </div>
 
+
+## NEW Feature! from v1.3.6: Network Hijacking
+### Automate the process of taking over a network's infrastructure.
+
+<div align="center">
+  <img src="./Github-Img/NetworkHijacking1.jpg" alt="Network Hijacking Process" width="350"/>
+  <img src="./Github-Img/NetworkHijacking2.jpg" alt="Network Hijacking Process2" width="350"/>
+  <img src="./Github-Img/NetworkHijacking3.jpg" alt="Network Hijacking Process3" width="350"/>
+
+
+Here the demo video :
+
+<a href="https://youtube.com/shorts/htfcb1ta51U" >
+    <img alt="Demo Video" src="https://img.youtube.com/vi/htfcb1ta51U/0.jpg" width="33%" height="33%"/>
+</a>
+</div>
+
+1. **DHCP Starvation Attack**:
+   - Floods the target DHCP server with fake client requests, exhausting the pool of available IP addresses.
+   - Forces legitimate devices to fail when requesting an IP address when attack is successful.
+
+2. **Rogue DHCP Server**:
+   - Takes over DHCP requests after starvation, responding with malicious configurations.
+   - Redirects DNS queries to the Evil-Cardputer IP, when the portal is ON the DNS is spoofed so any http request without HSTS should redirect to protal page.
+   - It can be used without DHCP starvation if the DHCP is slow to anwser.
+
+3. **Switch DNS**:
+   - Switch DNS address between emitted WiFi and WiFi Local connection.
+
+3. **Automated Workflow**:
+   - With a single command, Evil-Cardputer executes the full attack process:
+     1. DHCP Starvation
+     2. Rogue DHCP setup
+     3. Captive portal initialization
+     4. Switching DNS and spoofing
+   - Interactive guidance is provided at each step for demonstration if you want.
+  
 
 ## NEW Feature! from v1.3.5: Reverse TCP Tunnel!!!
 ### Introducing the ability to implant and control the Evil-Cardputer from anywhere around the world through a Command & Control (C2) Python server available in utilities.
