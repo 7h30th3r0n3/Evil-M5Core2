@@ -12,8 +12,6 @@
 
   <img src="./Github-Img/M5family.jpg" width="300" />
   <img src="./Github-Img/CYD-Stick.jpg" width="200" />
-
-  *CYD2USB and StickCplus are in beta on the discord
   
   If you like this project, support me by buying me a coffee on [Ko-fi](https://ko-fi.com/7h30th3r0n3) !
 
