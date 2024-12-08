@@ -51,7 +51,7 @@
 
 2. **Rogue DHCP Server**:
    - Takes over DHCP requests after starvation, responding with malicious configurations.
-   - Redirects DNS queries to the Evil-Cardputer IP, when the portal is ON the DNS is spoofed so any http request without HSTS should redirect to protal page.
+   - Redirects DNS queries to the Evil-Cardputer IP, when the portal is ON the DNS is spoofed so any http request without HSTS should redirect to portal page.
    - It can be used without DHCP starvation if the DHCP is slow to anwser.
   
 <div align="center">
@@ -59,7 +59,7 @@
 </div>
 
 3. **Switch DNS**:
-   - Switch DNS address between emitted WiFi and WiFi Local connection.
+   - Switch DNS address between emitted WiFi and WiFi Local connection to answer DNS query on the connected network.
   
 <div align="center">
   <img src="./Github-Img/NetworkHijacking3.jpg" alt="Network Hijacking Process" width="350"/>
