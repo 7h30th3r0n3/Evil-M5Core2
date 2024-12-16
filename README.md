@@ -912,6 +912,8 @@ It pretty small so you can also check serial on USB to get information.
 - **Captive Portal**: Start a simple Wi-Fi captive portal to interact with connected clients.
 - **SSID Selection**: Browse and select SSIDs stored in the device.
 - **Karma Attack**: Automatically respond to probe requests by creating rogue APs with detected SSIDs.
+- **BadUSB**: List and execute all BadUSBs stored in the device.
+- **Settings**: Change your device settings.
 - **About Screen**: Information about the project and contributors.
 
 ### Getting Started
@@ -989,7 +991,12 @@ Before you begin, make sure you have installed the following libraries in the Ar
 - **Start Captive Portal**: From the menu, select "Start Portal" to create a simple Wi-Fi access point.
 - **SSID Selection**: Choose from stored SSIDs to set the current SSID for the captive portal.
 - **Karma Attack**: Launch the Karma attack by selecting "Start Karma" from the menu.
+- **BadUSB**: Execute pre-defined scripts as a USB HID device by selecting "BadUSB" from the menu.
+- **Settings**: Configure device settings such as screen brightness, toggle between Normal and BadUSB modes, and enable or disable verbose debugging.
 - **About Screen**: View project information by selecting "About" from the menu.
+
+#### BadUSB
+To add BadUSBs to your M5Dial copy .txt files to your `m5dial-data` folder and upload using your choice.
 
 ----------------------------------------------------------
 
