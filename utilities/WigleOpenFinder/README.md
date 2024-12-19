@@ -54,7 +54,7 @@ SSIDs saved in Open-SSID-Paris.txt
 
 
 ### Generated Text File
-The script will save the open SSIDs in a text file named after the city, such as `Open-SSID-Paris.txt`. Contents of the file might look like this:
+The script will save the open SSIDs in a text file named after the city, such as `Open-SSID-Paris.txt`.
 
 ---
 
