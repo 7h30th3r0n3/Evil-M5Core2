@@ -1,0 +1,49 @@
+# WigleOpenFinder
+
+## Description
+
+This Python script uses the Nominatim API from OpenStreetMap to retrieve the coordinates of a given city and the Wigle API to search for open Wi-Fi networks in that geographical area. The SSIDs of the found networks are sorted, displayed in the console, and saved to a text file.
+
+---
+
+## Features
+
+- Retrieve geographical coordinates of a city using the Nominatim API.
+- Search for unsecured Wi-Fi networks within a 0.5-degree radius around the provided coordinates.
+- Extract and sort SSIDs of open networks.
+- Save the SSIDs to a text file.
+
+---
+
+## Requirements
+
+- Python 3.x installed on your system.
+- The `requests` library installed in your Python environment.
+- A Wigle account with a valid API token.
+
+---
+
+## Installation
+
+1. Clone the repository to your local machine.
+2. Add your Wigle API token to the variable `api_token` in the script.
+3. Ensure all required libraries are installed in your Python environment.
+
+---
+
+## Usage
+
+1. Execute the script using Python.
+2. Enter the name of a city when prompted.
+3. Review the SSIDs displayed in the console.
+4. Check the text file generated in the script directory for the saved SSIDs.
+
+---
+
+## Example
+
+### Input
+The script will prompt you to enter the name of a city, for example: `Paris`.
+
+### Console Output
+The script will display the open networks it finds:
