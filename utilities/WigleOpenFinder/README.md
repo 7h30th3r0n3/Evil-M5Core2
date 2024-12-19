@@ -47,3 +47,36 @@ The script will prompt you to enter the name of a city, for example: `Paris`.
 
 ### Console Output
 The script will display the open networks it finds:
+Open networks for Paris:
+FreeWiFi McDonalds_Open Starbucks
+
+SSIDs saved in Open-SSID-Paris.txt
+
+
+### Generated Text File
+The script will save the open SSIDs in a text file named after the city, such as `Open-SSID-Paris.txt`. Contents of the file might look like this:
+
+---
+
+## Notes
+
+- The Wigle API enforces usage limits. Ensure compliance with their terms of service.
+- The accuracy of results depends on the data available in Wigle's database.
+
+---
+
+## Contribution
+
+Contributions are welcome. If you encounter a bug or have ideas for improvement, feel free to report them or submit updates.
+
+---
+
+## License
+
+This project is licensed under the MIT License.
+
+---
+
+## Disclaimer
+
+This script is intended for ethical and legal use only. Always respect privacy and adhere to local network regulations.
