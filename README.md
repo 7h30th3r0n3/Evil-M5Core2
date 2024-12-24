@@ -1,6 +1,6 @@
 <div align="center">
   
-  # Evil-M5Project v1.3.6 - Network Hijacking
+  # Evil-M5Project v1.3.7 - Printer Attack
 
   <img src="https://github.com/7h30th3r0n3/Evil-M5Core2/blob/main/SD-Card-File/img/startup.jpg" width="300" />
 
@@ -35,6 +35,29 @@
 
 </div>
 
+
+
+## NEW Feature! from v1.3.7: Printer Attack!!!
+### Introducing the ability to scan, check status, and print on vulnerable printers.
+
+1. **Detect Printers**<br>
+Automatically detect vulnerable printers with an open port `9100` on the currently connected network.
+
+2. **Print Files**<br>
+Send files stored on the SD card to all detected printers for printing.
+
+<div align="center">
+<img src="./Github-Img/backtofuture.gif" width="300" alt="backtofuture" /><br>
+⚠️ please use this ethicaly
+</div>
+
+3. **Check Printer Status**<br>
+Use SNMP to retrieve the current status of detected printers, including information like toner levels, paper status, and device errors.
+
+#### Manual Printer Management
+Add printers manually to target devices outside the current IP range and perform scans or actions on them.
+
+This feature allows you to interact with network printers efficiently, uncover vulnerabilities, and automate printing tasks on compromised devices.
 
 ## NEW Feature! from v1.3.6: Network Hijacking
 ### Automate the process of taking over a network's infrastructure.
