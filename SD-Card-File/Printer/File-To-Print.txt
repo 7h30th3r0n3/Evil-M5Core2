@@ -1,10 +1,29 @@
-_____ _     _____  ___  _   _     _____       ___        _____ 
-|___  | |__ |___ / / _ \| |_| |__ |___ / _ __ / _ \ _ __ |___ / 
-   / /| '_ \  |_ \| | | | __| '_ \  |_ \| '__| | | | '_ \  |_ \ 
-  / / | | | |___) | |_| | |_| | | |___) | |  | |_| | | | |___) |
-_/_/  |_| |_|____/ \___/ \__|_| |_|____/|_|   \___/|_| |_|____/ 
-\ \      / /_ _ ___  | | | | ___ _ __ ___                      
- \ \ /\ / / _` / __| | |_| |/ _ \ '__/ _ \                      
-  \ V  V / (_| \__ \ |  _  |  __/ | |  __/                      
-   \_/\_/ \__,_|___/ |_| |_|\___|_|  \___|                      
-
+WARNING: Your printer is exposed on port 9100, 
+a port often used for direct print jobs. 
+This port can be easily exploited if left unsecured. 
+Attackers could intercept print jobs, inject malicious content, 
+or even access your entire network.
+Leaving port 9100 open is like leaving your front door unlocked. 
+It can lead to unauthorized access, data theft, 
+and serious disruptions in your operations. 
+This makes your sensitive documents and network vulnerable.
+We strongly recommend securing your printer 
+and keeping your firmware up to date.
+This is an ethical warning to prevent you to patch this.
+Act now to protect your infrastructure.
+__________________________________________
+  "This printer is exposed on 9100!!!"   |
+_________________________________________|
+   _______         |         ________    |
+  |ooooooo|      ____       | __  __ |   |
+  |[]+++[]|     [____]      |/  \/  \|   |
+  |+ ___ +|     ]()()[      |\__/\__/|   |
+  |:|   |:|   ___\__/___    |[][][][]|   |
+  |:|___|:|  |__|    |__|   |++++++++|   |
+  |[]===[]|   |_|_/\_|_|    | ______ |   |
+_ ||||||||| _ | | __ | | __ ||______|| __|
+  |_______|   |_|[::]|_|    |________|    \
+              \_|_||_|_/                   \
+                |_||_|                      \
+               _|_||_|_                      \
+              |___||___|                      \
