@@ -220,8 +220,8 @@ int topVisibleIndex = 0;
 // Connect to nearby wifi network automaticaly to provide internet to the cardputer you can be connected and provide AP at same time
 //!!!!!! CHANGE THIS !!!!!
 //!!!!!! CHANGE THIS !!!!!
-const char* ssid = "7"; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
-const char* password = "12345678"; // wifi password
+const char* ssid = ""; // ssid to connect,connection skipped at boot if stay blank ( can be shutdown by different action like probe attack)
+const char* password = ""; // wifi password
 
 
 //!!!!!! CHANGE THIS !!!!!
